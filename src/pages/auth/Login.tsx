@@ -27,7 +27,7 @@ export default function Login() {
     setError('');
     try {
       await signIn(email, password);
-      navigate('/');
+      navigate('/console');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Access denied. Use a quick login profile to enter the command center.');
     } finally {
@@ -46,7 +46,7 @@ export default function Login() {
       bank: item[2] === ROLES.BANK_OFFICER ? 'SBI' : null,
       phone: null,
     });
-    navigate('/');
+    navigate('/console');
   };
 
   return (
