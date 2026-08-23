@@ -36,6 +36,9 @@ NEXUS is a predictive intelligence layer that sits on top of India's existing cy
 ```
 Fraud happens → Complaint ingested (seconds) → Trace & predict (AI model) → Alert & intercept (6-24 hr window) → Frozen / recovered
 ```
+<p align="center">
+  <img src="nexus-command-center.jpeg" alt="NEXUS National Command Center dashboard showing live cash-out predictions, threat map, and alert feed" width="850"/>
+</p>
 
 Instead of only flagging suspicious accounts after the fact, NEXUS predicts the **specific ATM / bank branch cash-out location and a 6–24 hour time window**, and pushes that as an actionable alert to police, banks, and I4C — while there's still time to act.
 
