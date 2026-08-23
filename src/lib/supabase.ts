@@ -1,15 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { getConfig } from "./config";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
+let _supabase: SupabaseClient | null = null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-  realtime: {
-    params: { eventsPerSecond: 10 },
-  },
+export function getSupabase(): SupabaseClient {
+  if (_supabase) return _supabase;
+  const config = getConfig();
+  _supabase = createClient(config.supabase_url, config.supabase_anon_key, {
+    auth: { persistSession: true },
+    realtime: { params: { eventsPerSecond: 10 } }
+  });
+  return _supabase;
+}
+
+// Keep backward-compatible default export
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    return (getSupabase() as any)[prop];
+  }
 });
+
+export default supabase;
