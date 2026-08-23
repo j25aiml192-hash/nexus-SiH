@@ -6,6 +6,7 @@ from api.routes import alerts
 from api.routes import incidents
 from api.routes import briefs
 from api.routes import mule
+from api.routes import atms
 from scheduler import start_scheduler
 
 start_scheduler()
@@ -22,6 +23,7 @@ app.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
 app.include_router(incidents.router, prefix="/incidents", tags=["Incidents"])
 app.include_router(briefs.router, prefix="/briefs", tags=["Briefs"])
 app.include_router(mule.router, prefix="/mule", tags=["Mule"])
+app.include_router(atms.router, prefix="/atms", tags=["Atm"])
 
 
 @app.get("/health")
