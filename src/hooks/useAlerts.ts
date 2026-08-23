@@ -4,7 +4,7 @@ import { useNexusStore } from '@/store/nexusStore';
 import { SEED_ALERTS } from '@/lib/constants';
 
 export function useAlerts() {
-  const { alerts, addAlert, setAlerts } = useNexusStore();
+  const { alerts, setAlerts } = useNexusStore();
 
   useEffect(() => {
     const loadInitial = async () => {
@@ -24,12 +24,14 @@ export function useAlerts() {
     loadInitial();
 
     const channel = supabase
-      .channel('alerts')
+      .channel(`alerts_realtime_${Math.random().toString(36).slice(2, 7)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'alerts' },
         (payload) => {
-          addAlert(payload.new as never);
+          if (payload.new) {
+            useNexusStore.getState().addAlert(payload.new as never);
+          }
         }
       )
       .subscribe();
@@ -37,7 +39,7 @@ export function useAlerts() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [addAlert, setAlerts]);
+  }, []);
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     const { error } = await supabase

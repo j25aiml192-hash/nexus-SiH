@@ -24,7 +24,7 @@ def build_graph(complaint_id: str):
 
     previous_node = victim_node
     for mule in mule_data:
-        mule_node = f"mule:{mule["node_index"]}"
+        mule_node = f"mule:{mule['node_index']}"
         graph.add_node(
             mule_node,
             type="mule",

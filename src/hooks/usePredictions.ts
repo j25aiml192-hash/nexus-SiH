@@ -4,7 +4,7 @@ import { useNexusStore } from '@/store/nexusStore';
 import { SEED_PREDICTIONS } from '@/lib/constants';
 
 export function usePredictions() {
-  const { predictions, addPrediction, updatePrediction, setPredictions } = useNexusStore();
+  const { predictions, setPredictions } = useNexusStore();
 
   useEffect(() => {
     const loadInitial = async () => {
@@ -24,19 +24,23 @@ export function usePredictions() {
     loadInitial();
 
     const channel = supabase
-      .channel('predictions')
+      .channel(`predictions_realtime_${Math.random().toString(36).slice(2, 7)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'predictions' },
         (payload) => {
-          addPrediction(payload.new as never);
+          if (payload.new) {
+            useNexusStore.getState().addPrediction(payload.new as never);
+          }
         }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'predictions' },
         (payload) => {
-          updatePrediction((payload.new as { id: string }).id, payload.new as never);
+          if (payload.new) {
+            useNexusStore.getState().updatePrediction((payload.new as { id: string }).id, payload.new as never);
+          }
         }
       )
       .subscribe();
@@ -44,7 +48,7 @@ export function usePredictions() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [addPrediction, updatePrediction, setPredictions]);
+  }, []);
 
   return predictions;
 }

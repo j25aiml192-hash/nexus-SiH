@@ -1,54 +1,237 @@
-import { ArrowRight, CircleDollarSign, Flag, Landmark, UserRound } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabase';
 
-type Node = {
-  id: string;
+interface MuleNode {
   node_index: number;
-  account_hash: string;
   bank: string;
   state: string;
   transaction_velocity: number;
   is_flagged: boolean;
-};
+  kyc_lat: number;
+  kyc_lng: number;
+}
 
-export default function MuleChainGraph({ nodes = [] }: { nodes?: Node[] }) {
-  return (
-    <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-[#1A2035] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-white">Mule Chain Trace</h3>
-        <span className="font-mono text-[11px] text-[#A8B4CC]">{nodes.length} HOPS DETECTED</span>
+interface Props {
+  complaintId?: string;
+}
+
+export default function MuleChainGraph({ complaintId }: Props) {
+  const [nodes, setNodes] = useState<MuleNode[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!complaintId) {
+      setLoading(false);
+      return;
+    }
+    
+    const fetchNodes = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('mule_chain_nodes')
+          .select('*')
+          .eq('complaint_id', complaintId)
+          .order('node_index', { ascending: true });
+        
+        if (error) throw error;
+        setNodes(data || []);
+      } catch (err) {
+        console.error('Mule chain fetch error:', err);
+        setNodes([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNodes();
+  }, [complaintId]);
+
+  if (loading) {
+    return (
+      <div style={{
+        background: '#0A0F2C',
+        borderRadius: '12px',
+        padding: '20px',
+        textAlign: 'center',
+        color: '#8A9BB5',
+        fontSize: '13px'
+      }}>
+        Loading chain data...
       </div>
-      <div className="flex min-w-max items-center gap-2 py-2">
-        {nodes.slice(0, 6).map((node, index) => (
-          <div key={node.id} className="flex items-center gap-2">
-            {index > 0 && <ArrowRight size={18} className="text-[#94A3B8]" />}
-            <div
-              className={`relative w-36 rounded-lg border p-3 ${
-                index === 0
-                  ? 'border-[#1E40AF] bg-[#1E40AF]/20'
-                  : index === nodes.length - 1
-                  ? 'border-[#DC2626] bg-[#DC2626]/20'
-                  : 'border-[#D97706] bg-[#D97706]/20'
-              }`}
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase text-[#A8B4CC]">
-                  {index === 0 ? 'Victim' : index === nodes.length - 1 ? 'Cash-out' : `Mule hop ${index}`}
-                </span>
-                {index === 0 ? (
-                  <UserRound size={14} className="text-[#38BDF8]" />
-                ) : index === nodes.length - 1 ? (
-                  <CircleDollarSign size={14} className="text-[#F87171]" />
-                ) : (
-                  <Landmark size={14} className="text-[#FBBF24]" />
-                )}
+    );
+  }
+
+  // Build display nodes: victim + mule nodes + cash-out
+  const displayNodes = [
+    { label: 'VICTIM', type: 'victim', bank: 'Origin Account', 
+      state: 'Unknown', velocity: 0, flagged: false },
+    ...nodes.map(n => ({
+      label: `MULE ${n.node_index}`,
+      type: 'mule',
+      bank: n.bank || 'Unknown Bank',
+      state: n.state || 'Unknown',
+      velocity: n.transaction_velocity || 0,
+      flagged: n.is_flagged || false
+    })),
+    { label: 'CASH-OUT', type: 'cashout', bank: 'ATM Withdrawal', 
+      state: 'Predicted Zone', velocity: 0, flagged: true }
+  ];
+
+  const nodeColor = (type: string) => {
+    if (type === 'victim') return '#3B82F6';
+    if (type === 'cashout') return '#FF4444';
+    return '#FF9900';
+  };
+
+  if (nodes.length === 0) {
+    return (
+      <div style={{
+        background: '#0A0F2C',
+        borderRadius: '12px',
+        padding: '16px'
+      }}>
+        <div style={{ 
+          color: '#8A9BB5', fontSize: '11px', 
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+          marginBottom: '12px'
+        }}>
+          MULE CHAIN TRACE
+        </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          {['VICTIM', 'MULE →', 'MULE →', 'CASH-OUT'].map((label, i) => (
+            <React.Fragment key={i}>
+              <div style={{
+                background: i === 0 ? '#3B82F620' : 
+                            i === 3 ? '#FF444420' : '#FF990020',
+                border: `1px solid ${i === 0 ? '#3B82F6' : 
+                                     i === 3 ? '#FF4444' : '#FF9900'}`,
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '11px',
+                color: i === 0 ? '#3B82F6' : 
+                       i === 3 ? '#FF4444' : '#FF9900',
+                textAlign: 'center',
+                minWidth: '60px'
+              }}>
+                {label.replace(' →', '')}
+                <div style={{ 
+                  color: '#8A9BB5', fontSize: '10px', marginTop: '2px'
+                }}>
+                  {i === 0 ? 'Origin' : 
+                   i === 3 ? 'ATM Zone' : 'Processing'}
+                </div>
               </div>
-              <p className="font-mono text-[11px] font-medium text-white">{node.account_hash}</p>
-              <p className="mt-1 text-[10px] text-[#A8B4CC]">
-                {node.bank} · {node.state}
-              </p>
-              {node.is_flagged && <Flag size={12} className="absolute right-2 top-2 text-[#F87171]" />}
+              {i < 3 && (
+                <div style={{ 
+                  color: '#00D4FF', fontSize: '16px', flexShrink: 0 
+                }}>→</div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+        <div style={{ 
+          color: '#8A9BB5', fontSize: '11px', marginTop: '8px' 
+        }}>
+          Chain topology estimated — detailed node data loads after 
+          backend processes complaint
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: '#0A0F2C',
+      borderRadius: '12px',
+      padding: '16px'
+    }}>
+      <div style={{ 
+        color: '#8A9BB5', fontSize: '11px',
+        textTransform: 'uppercase', letterSpacing: '0.1em',
+        marginBottom: '12px',
+        display: 'flex',
+        justifyContent: 'space-between'
+      }}>
+        <span>MULE CHAIN TRACE</span>
+        <span style={{ color: '#00D4FF' }}>
+          {nodes.length} HOPS DETECTED
+        </span>
+      </div>
+      
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        overflowX: 'auto',
+        paddingBottom: '8px'
+      }}>
+        {displayNodes.map((node, i) => (
+          <React.Fragment key={i}>
+            <div style={{
+              background: nodeColor(node.type) + '20',
+              border: `1px solid ${nodeColor(node.type)}`,
+              borderRadius: '8px',
+              padding: '10px 12px',
+              minWidth: '90px',
+              flexShrink: 0,
+              position: 'relative'
+            }}>
+              {node.flagged && node.type !== 'cashout' && (
+                <div style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  background: '#FF4444',
+                  borderRadius: '50%',
+                  width: '12px',
+                  height: '12px',
+                  fontSize: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white'
+                }}>!</div>
+              )}
+              <div style={{ 
+                color: nodeColor(node.type), 
+                fontSize: '10px', 
+                fontWeight: 700,
+                textTransform: 'uppercase'
+              }}>
+                {node.label}
+              </div>
+              <div style={{ 
+                color: '#FFFFFF', fontSize: '11px', marginTop: '4px' 
+              }}>
+                {node.bank}
+              </div>
+              <div style={{ 
+                color: '#8A9BB5', fontSize: '10px' 
+              }}>
+                {node.state}
+              </div>
+              {node.velocity > 0 && (
+                <div style={{ 
+                  color: '#FF9900', fontSize: '10px', marginTop: '2px' 
+                }}>
+                  {node.velocity} txn/4h
+                </div>
+              )}
             </div>
-          </div>
+            {i < displayNodes.length - 1 && (
+              <div style={{ 
+                color: '#00D4FF', 
+                fontSize: '18px', 
+                flexShrink: 0,
+                animation: 'pulse 1.5s infinite'
+              }}>→</div>
+            )}
+          </React.Fragment>
         ))}
       </div>
     </div>

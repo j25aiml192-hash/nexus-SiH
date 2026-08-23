@@ -17,6 +17,7 @@ import PredictionDetail from '@/pages/i4c/PredictionDetail';
 import NationalHeatmap from '@/pages/i4c/NationalHeatmap';
 import Reports from '@/pages/i4c/Reports';
 import DailyBrief from '@/pages/i4c/DailyBrief';
+import Sentinel from '@/pages/i4c/Sentinel';
 import StateDashboard from '@/pages/lea/StateDashboard';
 import AlertDetail from '@/pages/lea/AlertDetail';
 import CaseHistory from '@/pages/lea/CaseHistory';
@@ -75,6 +76,7 @@ export default function App() {
         <Route element={<ProtectedLayout />}>
           <Route path="/console" element={<HomeRedirect />} />
           <Route path="/dashboard" element={<Guarded roles={[ROLES.I4C_NATIONAL]}><CommandCenter /></Guarded>} />
+          <Route path="/sentinel" element={<Guarded roles={[ROLES.I4C_NATIONAL]}><Sentinel /></Guarded>} />
           <Route path="/complaints" element={<Guarded roles={[ROLES.I4C_NATIONAL]}><Complaints /></Guarded>} />
           <Route path="/prediction/:id" element={<Guarded roles={[ROLES.I4C_NATIONAL, ROLES.STATE_LEA]}><PredictionDetail /></Guarded>} />
           <Route path="/heatmap" element={<Guarded roles={[ROLES.I4C_NATIONAL]}><NationalHeatmap /></Guarded>} />

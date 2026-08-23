@@ -11,6 +11,7 @@ import RecoveryRing from '@/components/predictions/RecoveryRing';
 import MuleChainGraph from '@/components/predictions/MuleChainGraph';
 import NarrativeCard from '@/components/predictions/NarrativeCard';
 import StatusBadge from '@/components/shared/StatusBadge';
+import SentinelPanel from '@/components/sentinel/SentinelPanel';
 import { Link } from 'react-router-dom';
 
 export default function CommandCenter() {
@@ -73,7 +74,7 @@ export default function CommandCenter() {
                 </div>
               </div>
 
-              <MuleChainGraph nodes={(SEED_MULE_CHAINS[selected.complaint_id] || []).slice(0, 3)} />
+              <MuleChainGraph complaintId={selected.complaint_id} />
               <NarrativeCard narrative={selected.llm_narrative} />
 
               <div className="flex gap-3">
@@ -107,6 +108,10 @@ export default function CommandCenter() {
               ))}
             </>
           )}
+
+          <div style={{ marginTop: '16px' }}>
+            <SentinelPanel />
+          </div>
         </div>
       </div>
 

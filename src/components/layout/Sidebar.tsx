@@ -1,4 +1,4 @@
-import { BarChart3, BellRing, BriefcaseBusiness, FileText, History, LayoutDashboard, LogOut, Map, Radar, WalletCards } from 'lucide-react';
+import { BarChart3, BellRing, BriefcaseBusiness, FileText, History, LayoutDashboard, LogOut, Map, Radar, Shield, WalletCards } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useNexusStore } from '@/store/nexusStore';
 import { ROLES } from '@/lib/constants';
@@ -7,6 +7,7 @@ import SystemLogWidget from '@/components/shared/SystemLogWidget';
 const navigation: Record<string, { label: string; to: string; icon: typeof LayoutDashboard }[]> = {
   [ROLES.I4C_NATIONAL]: [
     { label: 'Command Center', to: '/dashboard', icon: LayoutDashboard },
+    { label: 'Sentinel', to: '/sentinel', icon: Shield },
     { label: 'Complaints', to: '/complaints', icon: FileText },
     { label: 'National Heatmap', to: '/heatmap', icon: Map },
     { label: 'Reports', to: '/reports', icon: BarChart3 },

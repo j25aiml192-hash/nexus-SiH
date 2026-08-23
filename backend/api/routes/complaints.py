@@ -46,3 +46,10 @@ def ingest_complaint(complaint: ComplaintCreate):
         "status": "created",
         "complaint_id": complaint.complaint_id
     }
+
+
+@router.get("/list")
+def list_complaints(limit: int = 50):
+    result = supabase.table('complaints').select('*')\
+             .order('created_at', desc=True).limit(limit).execute()
+    return result.data
