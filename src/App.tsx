@@ -24,6 +24,7 @@ import BankAlerts from '@/pages/bank/BankAlerts';
 import FlaggedAccounts from '@/pages/bank/FlaggedAccounts';
 import Assignment from '@/pages/field/Assignment';
 import IncidentReport from '@/pages/field/IncidentReport';
+import Home from '@/pages/Home';
 
 import Toast from '@/components/shared/Toast';
 
@@ -67,10 +68,12 @@ export default function App() {
   return (
     <>
       <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route element={<ProtectedLayout />}>
-          <Route path="/" element={<HomeRedirect />} />
+          <Route path="/console" element={<HomeRedirect />} />
           <Route path="/dashboard" element={<Guarded roles={[ROLES.I4C_NATIONAL]}><CommandCenter /></Guarded>} />
           <Route path="/complaints" element={<Guarded roles={[ROLES.I4C_NATIONAL]}><Complaints /></Guarded>} />
           <Route path="/prediction/:id" element={<Guarded roles={[ROLES.I4C_NATIONAL, ROLES.STATE_LEA]}><PredictionDetail /></Guarded>} />

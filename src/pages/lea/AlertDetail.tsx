@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   CheckCircle2,
   FolderOpen,
