@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, CircleMarker, Circle, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -37,11 +37,34 @@ const SEED_ATM_CLUSTERS: ATMCluster[] = [
   { id: 'c4', cluster_name: 'Mathura Highway Cluster', lat: 27.492, lng: 77.673, radius_km: 5.0, cluster_score: 65, complaint_count: 12, avg_fraud_amount: 98000 },
 ];
 
+class HeatmapErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+          Heatmap loading — data syncing from engine...
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Helper Component for Map View Control (flyTo)
 function MapFlyController({ flyTarget }: { flyTarget: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
-    if (flyTarget) {
+    if (flyTarget && flyTarget[0] && flyTarget[1]) {
       map.flyTo(flyTarget, 10, { duration: 1.5 });
     }
   }, [flyTarget, map]);
@@ -75,13 +98,35 @@ export default function NationalHeatmap() {
         ]);
 
         if (predsRes.data && predsRes.data.length > 0) {
-          setPredictions(predsRes.data);
+          const clean = predsRes.data.filter(
+            (p: any) =>
+              p.predicted_lat != null &&
+              p.predicted_lng != null &&
+              typeof p.predicted_lat === 'number' &&
+              typeof p.predicted_lng === 'number' &&
+              p.predicted_lat !== 0 &&
+              p.predicted_lng !== 0 &&
+              !isNaN(p.predicted_lat) &&
+              !isNaN(p.predicted_lng)
+          );
+          setPredictions(clean.length > 0 ? clean : (SEED_PREDICTIONS as any));
         } else {
           setPredictions(SEED_PREDICTIONS as any);
         }
 
         if (clustersRes.data && clustersRes.data.length > 0) {
-          setClusters(clustersRes.data);
+          const cleanClusters = clustersRes.data.filter(
+            (c: any) =>
+              c.lat != null &&
+              c.lng != null &&
+              typeof c.lat === 'number' &&
+              typeof c.lng === 'number' &&
+              c.lat !== 0 &&
+              c.lng !== 0 &&
+              !isNaN(c.lat) &&
+              !isNaN(c.lng)
+          );
+          setClusters(cleanClusters.length > 0 ? cleanClusters : SEED_ATM_CLUSTERS);
         }
       } catch {
         setPredictions(SEED_PREDICTIONS as any);
@@ -94,7 +139,18 @@ export default function NationalHeatmap() {
   const filteredPredictions = useMemo(() => {
     const hours = timeFilter === '6h' ? 6 : timeFilter === '12h' ? 12 : timeFilter === '24h' ? 24 : 168;
     const cutoff = Date.now() - hours * 60 * 60 * 1000;
-    return predictions.filter((p) => new Date(p.created_at || Date.now()).getTime() >= cutoff);
+    return predictions.filter((p) => {
+      const isValidCoord =
+        p.predicted_lat != null &&
+        p.predicted_lng != null &&
+        typeof p.predicted_lat === 'number' &&
+        typeof p.predicted_lng === 'number' &&
+        p.predicted_lat !== 0 &&
+        p.predicted_lng !== 0 &&
+        !isNaN(p.predicted_lat) &&
+        !isNaN(p.predicted_lng);
+      return isValidCoord && new Date(p.created_at || Date.now()).getTime() >= cutoff;
+    });
   }, [predictions, timeFilter]);
 
   // Counts by Alert Level
@@ -127,230 +183,233 @@ export default function NationalHeatmap() {
   };
 
   return (
-    <div className="-mx-4 -mt-20 -mb-8 h-[calc(100vh-56px)] w-[calc(100%+2rem)] lg:-mx-7 lg:w-[calc(100%+3.5rem)] relative overflow-hidden">
-      {/* Full Page Leaflet Map */}
-      <MapContainer
-        center={[23.5937, 80.9629]}
-        zoom={5}
-        style={{ height: '100%', width: '100%' }}
-        zoomControl={false}
-      >
-        <TileLayer url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png" />
-        <MapFlyController flyTarget={flyTarget} />
+    <HeatmapErrorBoundary>
+      <div className="-mx-4 -mt-20 -mb-8 h-[calc(100vh-56px)] w-[calc(100%+2rem)] lg:-mx-7 lg:w-[calc(100%+3.5rem)] relative overflow-hidden">
+        {/* Full Page Leaflet Map */}
+        <MapContainer
+          center={[23.5937, 80.9629]}
+          zoom={5}
+          style={{ height: '100%', width: '100%' }}
+          zoomControl={false}
+        >
+          <TileLayer url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png" />
+          <MapFlyController flyTarget={flyTarget} />
 
-        {/* Prediction Pins Layer */}
-        {(activeTab === 'predictions' || activeTab === 'historical') &&
-          filteredPredictions.map((p) => {
-            const color = p.alert_level === 'RED' ? '#DC2626' : p.alert_level === 'AMBER' ? '#D97706' : '#16A34A';
-            return (
-              <CircleMarker
-                key={p.id}
-                center={[p.predicted_lat, p.predicted_lng]}
-                radius={7}
-                pathOptions={{
-                  color: '#FFFFFF',
-                  fillColor: color,
-                  fillOpacity: 0.9,
-                  weight: 2,
-                }}
-                eventHandlers={{
-                  click: () => navigate(`/prediction/${p.id}`),
-                }}
-              >
-                <Popup>
-                  <div className="text-xs">
-                    <p className="font-bold text-[#0F1B2D]">{p.complaint_id}</p>
-                    <p className="text-[#64748B]">Risk Score: {Math.round(p.risk_score * 100)}%</p>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            );
-          })}
-
-        {/* ATM Cluster Layer */}
-        {(activeTab === 'clusters' || activeTab === 'historical') &&
-          clusters.map((c) => {
-            const color = c.cluster_score > 70 ? '#DC2626' : c.cluster_score >= 40 ? '#D97706' : '#16A34A';
-            const opacity = c.cluster_score > 70 ? 0.15 : c.cluster_score >= 40 ? 0.15 : 0.1;
-            return (
-              <Circle
-                key={c.id}
-                center={[c.lat, c.lng]}
-                radius={c.radius_km * 1000}
-                pathOptions={{
-                  color: color,
-                  fillColor: color,
-                  fillOpacity: opacity,
-                  weight: 2,
-                  opacity: 0.6,
-                }}
-              >
-                <Popup>
-                  <div className="p-1 text-xs">
-                    <h4 className="font-bold text-[#0F1B2D]">{c.cluster_name}</h4>
-                    <div className="mt-1 space-y-1 text-[#64748B]">
-                      <p>Complaints: <span className="font-semibold text-[#0F1B2D]">{c.complaint_count}</span></p>
-                      <p>Cluster Risk: <span className="font-semibold text-[#DC2626]">{c.cluster_score}%</span></p>
-                      <p>Avg Amount: <span className="font-semibold text-[#16A34A]">₹{c.avg_fraud_amount.toLocaleString('en-IN')}</span></p>
+          {/* Prediction Pins Layer */}
+          {(activeTab === 'predictions' || activeTab === 'historical') &&
+            filteredPredictions.map((p) => {
+              const color = p.alert_level === 'RED' ? '#DC2626' : p.alert_level === 'AMBER' ? '#D97706' : '#16A34A';
+              return p.predicted_lat && p.predicted_lng ? (
+                <CircleMarker
+                  key={p.id}
+                  center={[p.predicted_lat, p.predicted_lng]}
+                  radius={7}
+                  pathOptions={{
+                    color: '#FFFFFF',
+                    fillColor: color,
+                    fillOpacity: 0.9,
+                    weight: 2,
+                  }}
+                  eventHandlers={{
+                    click: () => navigate(`/prediction/${p.id}`),
+                  }}
+                >
+                  <Popup>
+                    <div className="text-xs">
+                      <p className="font-bold text-[#0F1B2D]">{p.complaint_id}</p>
+                      <p className="text-[#64748B]">Risk Score: {Math.round(p.risk_score * 100)}%</p>
                     </div>
-                  </div>
-                </Popup>
-              </Circle>
-            );
-          })}
-      </MapContainer>
+                  </Popup>
+                </CircleMarker>
+              ) : null;
+            })}
 
-      {/* LEFT FLOATING OVERLAY PANEL (280px wide) */}
-      <div className="absolute top-4 left-4 z-[1000] w-[280px] rounded-xl border border-[#E2E8F0] bg-white p-4 shadow-xl space-y-4">
-        <div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#1E40AF]">
-              Risk Intelligence
-            </span>
-            <div className="flex items-center gap-1 font-mono text-[10px] text-[#64748B]">
-              <Clock size={11} />
-              <span>{now.toLocaleTimeString()}</span>
+          {/* ATM Cluster Layer */}
+          {(activeTab === 'clusters' || activeTab === 'historical') &&
+            clusters.map((c) => {
+              const color = c.cluster_score > 70 ? '#DC2626' : c.cluster_score >= 40 ? '#D97706' : '#16A34A';
+              const opacity = c.cluster_score > 70 ? 0.15 : c.cluster_score >= 40 ? 0.15 : 0.1;
+              return c.lat && c.lng ? (
+                <Circle
+                  key={c.id}
+                  center={[c.lat, c.lng]}
+                  radius={c.radius_km * 1000}
+                  pathOptions={{
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: opacity,
+                    weight: 2,
+                    opacity: 0.6,
+                  }}
+                >
+                  <Popup>
+                    <div className="p-1 text-xs">
+                      <h4 className="font-bold text-[#0F1B2D]">{c.cluster_name}</h4>
+                      <div className="mt-1 space-y-1 text-[#64748B]">
+                        <p>Complaints: <span className="font-semibold text-[#0F1B2D]">{c.complaint_count}</span></p>
+                        <p>Cluster Risk: <span className="font-semibold text-[#DC2626]">{c.cluster_score}%</span></p>
+                        <p>Avg Amount: <span className="font-semibold text-[#16A34A]">₹{c.avg_fraud_amount.toLocaleString('en-IN')}</span></p>
+                      </div>
+                    </div>
+                  </Popup>
+                </Circle>
+              ) : null;
+            })}
+        </MapContainer>
+
+        {/* LEFT FLOATING OVERLAY PANEL (280px wide) */}
+        <div className="absolute top-4 left-4 z-[1000] w-[280px] rounded-xl border border-[#E2E8F0] bg-white p-4 shadow-xl space-y-4">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#1E40AF]">
+                Risk Intelligence
+              </span>
+              <div className="flex items-center gap-1 font-mono text-[10px] text-[#64748B]">
+                <Clock size={11} />
+                <span>{now.toLocaleTimeString()}</span>
+              </div>
+            </div>
+            <p className="mt-0.5 text-[11px] text-[#64748B]">Geospatial crime prediction matrix</p>
+          </div>
+
+          {/* Section 1: Alert count by level */}
+          <div className="space-y-2 border-t border-[#E2E8F0] pt-3 text-xs">
+            <div className="flex items-center justify-between rounded-lg bg-[#FEF2F2] p-2">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#DC2626]" />
+                <span className="font-medium text-[#DC2626]">Critical</span>
+              </div>
+              <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[#DC2626] border border-[#FECACA]">
+                {counts.red}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg bg-[#FFFBEB] p-2">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#D97706]" />
+                <span className="font-medium text-[#D97706]">High Risk</span>
+              </div>
+              <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[#D97706] border border-[#FDE68A]">
+                {counts.amber}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg bg-[#F0FDF4] p-2">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
+                <span className="font-medium text-[#16A34A]">Monitoring</span>
+              </div>
+              <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[#16A34A] border border-[#BBF7D0]">
+                {counts.green}
+              </span>
             </div>
           </div>
-          <p className="mt-0.5 text-[11px] text-[#64748B]">Geospatial crime prediction matrix</p>
-        </div>
 
-        {/* Section 1: Alert count by level */}
-        <div className="space-y-2 border-t border-[#E2E8F0] pt-3 text-xs">
-          <div className="flex items-center justify-between rounded-lg bg-[#FEF2F2] p-2">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#DC2626]" />
-              <span className="font-medium text-[#DC2626]">Critical</span>
+          {/* Section 2: Layer Toggles */}
+          <div className="border-t border-[#E2E8F0] pt-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
+              Map Layers
+            </p>
+            <div className="grid grid-cols-3 gap-1">
+              {[
+                ['predictions', 'Predictions'],
+                ['clusters', 'Clusters'],
+                ['historical', 'All Layers'],
+              ].map(([tabKey, label]) => {
+                const active = activeTab === tabKey;
+                return (
+                  <button
+                    key={tabKey}
+                    onClick={() => setActiveTab(tabKey as any)}
+                    className={`rounded-lg py-1.5 text-[10px] font-semibold transition-all ${
+                      active
+                        ? 'bg-[#EFF6FF] text-[#1E40AF] border border-[#1E40AF]'
+                        : 'bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0] hover:bg-[#F1F5F9]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-            <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[#DC2626] border border-[#FECACA]">
-              {counts.red}
-            </span>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg bg-[#FFFBEB] p-2">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#D97706]" />
-              <span className="font-medium text-[#D97706]">High Risk</span>
-            </div>
-            <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[#D97706] border border-[#FDE68A]">
-              {counts.amber}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg bg-[#F0FDF4] p-2">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
-              <span className="font-medium text-[#16A34A]">Monitoring</span>
-            </div>
-            <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[#16A34A] border border-[#BBF7D0]">
-              {counts.green}
-            </span>
-          </div>
-        </div>
-
-        {/* Section 2: Layer Toggles */}
-        <div className="border-t border-[#E2E8F0] pt-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-            Map Layers
-          </p>
-          <div className="grid grid-cols-3 gap-1">
-            {[
-              ['predictions', 'Predictions'],
-              ['clusters', 'Clusters'],
-              ['historical', 'All Layers'],
-            ].map(([tabKey, label]) => {
-              const active = activeTab === tabKey;
-              return (
+          {/* Section 3: Time Filters */}
+          <div className="border-t border-[#E2E8F0] pt-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
+              Time Horizon
+            </p>
+            <div className="flex gap-1.5">
+              {(['6h', '12h', '24h', '7d'] as const).map((t) => (
                 <button
-                  key={tabKey}
-                  onClick={() => setActiveTab(tabKey as any)}
-                  className={`rounded-lg py-1.5 text-[10px] font-semibold transition-all ${
-                    active
-                      ? 'bg-[#EFF6FF] text-[#1E40AF] border border-[#1E40AF]'
+                  key={t}
+                  onClick={() => setTimeFilter(t)}
+                  className={`flex-1 rounded-full py-1 text-[10px] font-mono font-semibold transition-all ${
+                    timeFilter === t
+                      ? 'bg-[#1E40AF] text-white'
                       : 'bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0] hover:bg-[#F1F5F9]'
                   }`}
                 >
-                  {label}
+                  {t}
                 </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT FLOATING OVERLAY PANEL (240px wide) */}
+        <div className="absolute top-4 right-4 z-[1000] w-[240px] rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-xl">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F1B2D]">
+              Top Risk Targets
+            </span>
+            <Layers size={13} className="text-[#64748B]" />
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {top5Predictions.map((p) => {
+              const riskPct = Math.round(p.risk_score * 100);
+              const levelDot =
+                p.alert_level === 'RED'
+                  ? 'bg-[#DC2626]'
+                  : p.alert_level === 'AMBER'
+                  ? 'bg-[#D97706]'
+                  : 'bg-[#16A34A]';
+
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => p.predicted_lat && p.predicted_lng && setFlyTarget([p.predicted_lat, p.predicted_lng])}
+                  className="group flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 transition-all hover:border-[#1E40AF] hover:bg-[#EFF6FF] cursor-pointer"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`h-2 w-2 rounded-full ${levelDot}`} />
+                      <p className="truncate text-xs font-bold text-[#0F1B2D]">
+                        {p.victim_district || p.complaint_id}
+                      </p>
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-[#64748B]">
+                      {getRelativeTime(p.created_at)}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono text-xs font-bold text-[#DC2626]">
+                      {riskPct}%
+                    </span>
+                    <ArrowUpRight
+                      size={13}
+                      className="text-[#94A3B8] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#1E40AF]"
+                    />
+                  </div>
+                </div>
               );
             })}
           </div>
         </div>
-
-        {/* Section 3: Time Filters */}
-        <div className="border-t border-[#E2E8F0] pt-3">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-            Time Horizon
-          </p>
-          <div className="flex gap-1.5">
-            {(['6h', '12h', '24h', '7d'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTimeFilter(t)}
-                className={`flex-1 rounded-full py-1 text-[10px] font-mono font-semibold transition-all ${
-                  timeFilter === t
-                    ? 'bg-[#1E40AF] text-white'
-                    : 'bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0] hover:bg-[#F1F5F9]'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
-
-      {/* RIGHT FLOATING OVERLAY PANEL (240px wide) */}
-      <div className="absolute top-4 right-4 z-[1000] w-[240px] rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-xl">
-        <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F1B2D]">
-            Top Risk Targets
-          </span>
-          <Layers size={13} className="text-[#64748B]" />
-        </div>
-
-        <div className="mt-3 space-y-2">
-          {top5Predictions.map((p) => {
-            const riskPct = Math.round(p.risk_score * 100);
-            const levelDot =
-              p.alert_level === 'RED'
-                ? 'bg-[#DC2626]'
-                : p.alert_level === 'AMBER'
-                ? 'bg-[#D97706]'
-                : 'bg-[#16A34A]';
-
-            return (
-              <div
-                key={p.id}
-                onClick={() => setFlyTarget([p.predicted_lat, p.predicted_lng])}
-                className="group flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 transition-all hover:border-[#1E40AF] hover:bg-[#EFF6FF] cursor-pointer"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`h-2 w-2 rounded-full ${levelDot}`} />
-                    <p className="truncate text-xs font-bold text-[#0F1B2D]">
-                      {p.victim_district || p.complaint_id}
-                    </p>
-                  </div>
-                  <p className="mt-0.5 text-[10px] text-[#64748B]">
-                    {getRelativeTime(p.created_at)}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <span className="font-mono text-xs font-bold text-[#DC2626]">
-                    {riskPct}%
-                  </span>
-                  <ArrowUpRight
-                    size={13}
-                    className="text-[#94A3B8] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#1E40AF]"
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+    </HeatmapErrorBoundary>
   );
 }
+

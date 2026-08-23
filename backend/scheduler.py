@@ -1,5 +1,5 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from core import autosim, interceptor_score, cluster_detector
+from core import autosim, interceptor_score, cluster_detector, sentinel
 
 def start_scheduler():
     scheduler = BackgroundScheduler()
@@ -24,9 +24,17 @@ def start_scheduler():
         id="clusters",
         max_instances=1
     )
+    scheduler.add_job(
+        sentinel.compute_sentinel_scores,
+        "interval",
+        minutes=3,
+        id="sentinel",
+        max_instances=1
+    )
     scheduler.start()
     print("NEXUS Autonomous Engine started.")
     print("  AutoSim:     every 90 seconds")
     print("  Interceptor: every 5 minutes")
     print("  Clusters:    every 30 minutes")
+    print("  Sentinel:    every 3 minutes")
     return scheduler

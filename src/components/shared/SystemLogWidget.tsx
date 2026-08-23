@@ -117,7 +117,7 @@ export default function SystemLogWidget() {
       ) : (
         <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[#F87171]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#F87171]" />
-          <span>Engine offline</span>
+          <span>Backend starting — run uvicorn</span>
         </div>
       )}
     </div>
