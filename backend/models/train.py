@@ -6,6 +6,19 @@ from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 
+FEATURES = [
+    "fraud_type_risk",
+    "log_amount",
+    "hour",
+    "day_of_week",
+    "phone_prefix_risk",
+    "bank_risk",
+    "mule_chain_depth",
+    "transaction_velocity",
+    "prior_flags",
+    "victim_accused_distance",
+]
+
 def genData(n=5000):
     rng = np.random.default_rng(42)
     fraud_types = rng.choice(
@@ -118,6 +131,8 @@ def train():
 
     df = genData(5000)
 
+    print(df.head(5))
+
     X = df[FEATURES]
     y = df["target"]
 
@@ -152,7 +167,10 @@ def train():
 
     print("\nModel results:")
     print(classification_report(y_test, predictions))
-
+    print(os.path.join(
+        os.path.dirname(__file__),
+        "model.pkl",
+    ))
     # Save model next to train.py
     model_path = os.path.join(
         os.path.dirname(__file__),
@@ -165,5 +183,5 @@ def train():
     print(model_path)
 
 
-# if __name__ == "__main__":
-#     train()
+if __name__ == "__main__":
+    train()
