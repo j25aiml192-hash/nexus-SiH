@@ -13,3 +13,4 @@ python-dotenv
 requests
 anthropic
 python-multipart
+joblib
