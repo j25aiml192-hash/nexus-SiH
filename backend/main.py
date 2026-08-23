@@ -6,8 +6,9 @@ from api.routes import alerts
 from api.routes import incidents
 from api.routes import briefs
 from api.routes import mule
+from scheduler import start_scheduler
 
-
+start_scheduler()
 app = FastAPI(
     title="Nexus Cybercrime Intelligence API",
     description="Predictive cybercrime and cash-out risk intelligence backend",
