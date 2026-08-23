@@ -1,0 +1,129 @@
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background-color: #F4F6F9;
+    color: #0F1B2D;
+    font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F4F6F9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+}
+
+@layer components {
+  .nexus-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    padding: 20px;
+  }
+  .nexus-input {
+    background-color: #F8FAFC;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    color: #0F1B2D;
+    padding: 10px 14px;
+    width: 100%;
+    transition: all 0.2s;
+  }
+  .nexus-input:focus {
+    outline: none;
+    border-color: #1E40AF;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+  }
+  .nexus-btn {
+    background-color: #1E40AF;
+    color: #FFFFFF;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 20px;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+  }
+  .nexus-btn:hover {
+    background-color: #1E3A8A;
+  }
+  .nexus-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .nexus-btn-secondary {
+    background-color: #F1F5F9;
+    color: #0F1B2D;
+    border: 1px solid #E2E8F0;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 20px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .nexus-btn-secondary:hover {
+    background-color: #E2E8F0;
+  }
+}
+
+.leaflet-container {
+  background-color: #1A2035 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: #FFFFFF !important;
+  color: #0F1B2D !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+.leaflet-popup-tip {
+  background-color: #FFFFFF !important;
+}
+
+.prediction-pin-wrapper {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+
+.prediction-pin-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+.skeleton-line {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 1.5s linear infinite;
+  border-radius: 4px;
+}
+

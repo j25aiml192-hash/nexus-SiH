@@ -1,0 +1,6 @@
+-- NEXUS schema is applied to the connected Supabase project through the database migration.
+-- This reference file documents the main tables used by the application.
+-- Tables: users, complaints, predictions, mule_chain_nodes, alerts, atm_locations,
+-- atm_clusters, incident_reports, daily_briefs, system_logs, deployments.
+-- All tables use Row Level Security and realtime is enabled for predictions, alerts,
+-- and system_logs. See the applied migration for the complete definitions and policies.

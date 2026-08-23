@@ -1,0 +1,16 @@
+{
+  "name": "NEXUS — Predictive Intelligence Platform",
+  "short_name": "NEXUS",
+  "description": "Autonomous cybercrime prediction and alert platform for India's law enforcement agencies",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060B1A",
+  "theme_color": "#00D4FF",
+  "icons": [
+    {
+      "src": "/nx-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
