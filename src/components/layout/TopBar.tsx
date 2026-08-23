@@ -42,7 +42,7 @@ export default function TopBar({ onNewComplaint }: { onNewComplaint: () => void 
       <div className="flex items-center gap-4">
         <button
           onClick={onNewComplaint}
-          className="hidden items-center gap-1.5 rounded-lg bg-[#1E40AF] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1E3A8A] sm:flex"
+          className="hidden items-center gap-1.5 rounded-lg bg-black px-3.5 py-1.5 text-xs font-semibold text-white sm:flex"
         >
           <Plus size={15} /> New complaint
         </button>
