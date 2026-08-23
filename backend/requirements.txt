@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+supabase
+xgboost
+scikit-learn
+shap
+networkx
+faker
+apscheduler
+pandas
+numpy
+python-dotenv
+requests
+anthropic
+python-multipart
+joblib
