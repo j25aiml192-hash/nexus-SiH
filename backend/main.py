@@ -5,8 +5,11 @@ from api.routes import predictions
 from api.routes import alerts
 from api.routes import incidents
 from api.routes import briefs
+from api.routes import mule
+from api.routes import atms
+from scheduler import start_scheduler
 
-
+start_scheduler()
 app = FastAPI(
     title="Nexus Cybercrime Intelligence API",
     description="Predictive cybercrime and cash-out risk intelligence backend",
@@ -19,10 +22,8 @@ app.include_router(predictions.router, prefix="/predictions", tags=["Predictions
 app.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
 app.include_router(incidents.router, prefix="/incidents", tags=["Incidents"])
 app.include_router(briefs.router, prefix="/briefs", tags=["Briefs"])
-
-@app.get("/")
-def home():
-    return {"running": "True", "port": "8080"}
+app.include_router(mule.router, prefix="/mule", tags=["Mule"])
+app.include_router(atms.router, prefix="/atms", tags=["Atm"])
 
 
 @app.get("/health")
