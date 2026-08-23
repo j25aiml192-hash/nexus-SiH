@@ -25,7 +25,7 @@ export default function CommandCenter() {
   const funds = active.reduce((sum, p) => sum + (p.risk_score || 0) * 500000, 0);
 
   useEffect(() => {
-    const t = setInterval(() => {}, 60000);
+    const t = setInterval(() => { }, 60000);
     return () => clearInterval(t);
   }, []);
 
@@ -39,9 +39,9 @@ export default function CommandCenter() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
-        <div className="relative min-h-[500px]">
+        <div className="relative z-0 min-h-[500px]">
           <NationalMap predictions={active} onPinClick={setSelected} />
-          <div className="absolute left-4 top-4 z-[400] rounded-xl border border-[#E2E8F0] bg-white/95 px-4 py-3 shadow-md backdrop-blur-xs">
+          <div className="absolute left-4 top-4 z-[10] rounded-xl border border-[#E2E8F0] bg-white/95 px-4 py-3 shadow-md backdrop-blur-xs">
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1E40AF]">National threat surface</p>
             <p className="mt-0.5 font-mono text-xs font-medium text-[#0F1B2D]">{active.length} active zones · live</p>
           </div>
@@ -109,9 +109,7 @@ export default function CommandCenter() {
             </>
           )}
 
-          <div style={{ marginTop: '16px' }}>
-            <SentinelPanel />
-          </div>
+
         </div>
       </div>
 

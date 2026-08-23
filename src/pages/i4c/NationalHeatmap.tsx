@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, CircleMarker, Circle, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ArrowUpRight, Clock, Layers } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -51,7 +50,7 @@ class HeatmapErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+        <div className="flex items-center justify-center h-full text-neutral-400 text-sm font-mono bg-black">
           Heatmap loading — data syncing from engine...
         </div>
       );
@@ -184,12 +183,12 @@ export default function NationalHeatmap() {
 
   return (
     <HeatmapErrorBoundary>
-      <div className="-mx-4 -mt-20 -mb-8 h-[calc(100vh-56px)] w-[calc(100%+2rem)] lg:-mx-7 lg:w-[calc(100%+3.5rem)] relative overflow-hidden">
+      <div className="-mx-4 -mt-20 -mb-8 h-[calc(100vh-36px)] w-[calc(100%+2rem)] lg:-mx-7 lg:w-[calc(100%+3.5rem)] relative overflow-hidden bg-black">
         {/* Full Page Leaflet Map */}
         <MapContainer
           center={[23.5937, 80.9629]}
           zoom={5}
-          style={{ height: '100%', width: '100%' }}
+          style={{ height: '100%', width: '100%', backgroundColor: '#000000' }}
           zoomControl={false}
         >
           <TileLayer url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png" />
@@ -215,9 +214,9 @@ export default function NationalHeatmap() {
                   }}
                 >
                   <Popup>
-                    <div className="text-xs">
-                      <p className="font-bold text-[#0F1B2D]">{p.complaint_id}</p>
-                      <p className="text-[#64748B]">Risk Score: {Math.round(p.risk_score * 100)}%</p>
+                    <div className="text-xs p-1">
+                      <p className="font-bold text-black">{p.complaint_id}</p>
+                      <p className="text-neutral-600">Risk Score: <span className="font-bold text-[#DC2626]">{Math.round(p.risk_score * 100)}%</span></p>
                     </div>
                   </Popup>
                 </CircleMarker>
@@ -228,7 +227,7 @@ export default function NationalHeatmap() {
           {(activeTab === 'clusters' || activeTab === 'historical') &&
             clusters.map((c) => {
               const color = c.cluster_score > 70 ? '#DC2626' : c.cluster_score >= 40 ? '#D97706' : '#16A34A';
-              const opacity = c.cluster_score > 70 ? 0.15 : c.cluster_score >= 40 ? 0.15 : 0.1;
+              const opacity = c.cluster_score > 70 ? 0.18 : c.cluster_score >= 40 ? 0.15 : 0.1;
               return c.lat && c.lng ? (
                 <Circle
                   key={c.id}
@@ -239,14 +238,14 @@ export default function NationalHeatmap() {
                     fillColor: color,
                     fillOpacity: opacity,
                     weight: 2,
-                    opacity: 0.6,
+                    opacity: 0.7,
                   }}
                 >
                   <Popup>
                     <div className="p-1 text-xs">
-                      <h4 className="font-bold text-[#0F1B2D]">{c.cluster_name}</h4>
-                      <div className="mt-1 space-y-1 text-[#64748B]">
-                        <p>Complaints: <span className="font-semibold text-[#0F1B2D]">{c.complaint_count}</span></p>
+                      <h4 className="font-bold text-black">{c.cluster_name}</h4>
+                      <div className="mt-1 space-y-1 text-neutral-600">
+                        <p>Complaints: <span className="font-semibold text-black">{c.complaint_count}</span></p>
                         <p>Cluster Risk: <span className="font-semibold text-[#DC2626]">{c.cluster_score}%</span></p>
                         <p>Avg Amount: <span className="font-semibold text-[#16A34A]">₹{c.avg_fraud_amount.toLocaleString('en-IN')}</span></p>
                       </div>
@@ -257,57 +256,57 @@ export default function NationalHeatmap() {
             })}
         </MapContainer>
 
-        {/* LEFT FLOATING OVERLAY PANEL (280px wide) */}
-        <div className="absolute top-4 left-4 z-[1000] w-[280px] rounded-xl border border-[#E2E8F0] bg-white p-4 shadow-xl space-y-4">
+        {/* LEFT FLOATING OVERLAY PANEL (Black & White Monochrome Theme) */}
+        <div className="absolute top-18 left-4 z-[10] w-[280px] rounded-xl border border-neutral-800 bg-[#0A0A0A]/95 text-white p-4 shadow-2xl backdrop-blur-md space-y-4">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#1E40AF]">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                 Risk Intelligence
               </span>
-              <div className="flex items-center gap-1 font-mono text-[10px] text-[#64748B]">
+              <div className="flex items-center gap-1 font-mono text-[10px] text-neutral-400">
                 <Clock size={11} />
                 <span>{now.toLocaleTimeString()}</span>
               </div>
             </div>
-            <p className="mt-0.5 text-[11px] text-[#64748B]">Geospatial crime prediction matrix</p>
+            <p className="mt-0.5 text-[11px] text-neutral-400">Geospatial crime prediction matrix</p>
           </div>
 
-          {/* Section 1: Alert count by level */}
-          <div className="space-y-2 border-t border-[#E2E8F0] pt-3 text-xs">
-            <div className="flex items-center justify-between rounded-lg bg-[#FEF2F2] p-2">
+          {/* Section 1: Alert count by level (Preserved Critical Red, Yellow/Amber, Green) */}
+          <div className="space-y-2 border-t border-neutral-800 pt-3 text-xs">
+            <div className="flex items-center justify-between rounded-lg bg-red-950/40 border border-red-900/60 p-2">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#DC2626]" />
-                <span className="font-medium text-[#DC2626]">Critical</span>
+                <span className="h-2 w-2 rounded-full bg-[#DC2626] animate-pulse" />
+                <span className="font-medium text-red-400">Critical</span>
               </div>
-              <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[#DC2626] border border-[#FECACA]">
+              <span className="rounded-md bg-black px-2 py-0.5 font-mono font-bold text-[#DC2626] border border-red-900/80">
                 {counts.red}
               </span>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg bg-[#FFFBEB] p-2">
+            <div className="flex items-center justify-between rounded-lg bg-amber-950/40 border border-amber-900/60 p-2">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-[#D97706]" />
-                <span className="font-medium text-[#D97706]">High Risk</span>
+                <span className="font-medium text-amber-400">High Risk</span>
               </div>
-              <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[#D97706] border border-[#FDE68A]">
+              <span className="rounded-md bg-black px-2 py-0.5 font-mono font-bold text-[#D97706] border border-amber-900/80">
                 {counts.amber}
               </span>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg bg-[#F0FDF4] p-2">
+            <div className="flex items-center justify-between rounded-lg bg-emerald-950/40 border border-emerald-900/60 p-2">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
-                <span className="font-medium text-[#16A34A]">Monitoring</span>
+                <span className="font-medium text-emerald-400">Monitoring</span>
               </div>
-              <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[#16A34A] border border-[#BBF7D0]">
+              <span className="rounded-md bg-black px-2 py-0.5 font-mono font-bold text-[#16A34A] border border-emerald-900/80">
                 {counts.green}
               </span>
             </div>
           </div>
 
-          {/* Section 2: Layer Toggles */}
-          <div className="border-t border-[#E2E8F0] pt-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
+          {/* Section 2: Layer Toggles (Strict Monochrome) */}
+          <div className="border-t border-neutral-800 pt-3">
+            <p className="mb-2 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-400">
               Map Layers
             </p>
             <div className="grid grid-cols-3 gap-1">
@@ -323,8 +322,8 @@ export default function NationalHeatmap() {
                     onClick={() => setActiveTab(tabKey as any)}
                     className={`rounded-lg py-1.5 text-[10px] font-semibold transition-all ${
                       active
-                        ? 'bg-[#EFF6FF] text-[#1E40AF] border border-[#1E40AF]'
-                        : 'bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0] hover:bg-[#F1F5F9]'
+                        ? 'bg-white text-black border border-white font-bold'
+                        : 'bg-neutral-900 text-neutral-400 border border-neutral-800 hover:bg-neutral-800 hover:text-white'
                     }`}
                   >
                     {label}
@@ -334,9 +333,9 @@ export default function NationalHeatmap() {
             </div>
           </div>
 
-          {/* Section 3: Time Filters */}
-          <div className="border-t border-[#E2E8F0] pt-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
+          {/* Section 3: Time Filters (Strict Monochrome) */}
+          <div className="border-t border-neutral-800 pt-3">
+            <p className="mb-2 text-[10px] font-mono font-semibold uppercase tracking-wider text-neutral-400">
               Time Horizon
             </p>
             <div className="flex gap-1.5">
@@ -346,8 +345,8 @@ export default function NationalHeatmap() {
                   onClick={() => setTimeFilter(t)}
                   className={`flex-1 rounded-full py-1 text-[10px] font-mono font-semibold transition-all ${
                     timeFilter === t
-                      ? 'bg-[#1E40AF] text-white'
-                      : 'bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0] hover:bg-[#F1F5F9]'
+                      ? 'bg-white text-black font-bold'
+                      : 'bg-neutral-900 text-neutral-400 border border-neutral-800 hover:bg-neutral-800 hover:text-white'
                   }`}
                 >
                   {t}
@@ -357,13 +356,13 @@ export default function NationalHeatmap() {
           </div>
         </div>
 
-        {/* RIGHT FLOATING OVERLAY PANEL (240px wide) */}
-        <div className="absolute top-4 right-4 z-[1000] w-[240px] rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-xl">
-          <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F1B2D]">
+        {/* RIGHT FLOATING OVERLAY PANEL (Top Risk Targets - Monochrome with Red Risk Code) */}
+        <div className="absolute top-18 right-4 z-[10] w-[250px] rounded-xl border border-neutral-800 bg-[#0A0A0A]/95 text-white p-3.5 shadow-2xl backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-white">
               Top Risk Targets
             </span>
-            <Layers size={13} className="text-[#64748B]" />
+            <Layers size={13} className="text-neutral-400" />
           </div>
 
           <div className="mt-3 space-y-2">
@@ -380,27 +379,28 @@ export default function NationalHeatmap() {
                 <div
                   key={p.id}
                   onClick={() => p.predicted_lat && p.predicted_lng && setFlyTarget([p.predicted_lat, p.predicted_lng])}
-                  className="group flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 transition-all hover:border-[#1E40AF] hover:bg-[#EFF6FF] cursor-pointer"
+                  className="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/80 p-2.5 transition-all hover:border-neutral-500 hover:bg-neutral-800 cursor-pointer"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className={`h-2 w-2 rounded-full ${levelDot}`} />
-                      <p className="truncate text-xs font-bold text-[#0F1B2D]">
+                      <span className={`h-2 w-2 rounded-full shrink-0 ${levelDot}`} />
+                      <p className="truncate text-xs font-bold text-white group-hover:text-neutral-100">
                         {p.victim_district || p.complaint_id}
                       </p>
                     </div>
-                    <p className="mt-0.5 text-[10px] text-[#64748B]">
+                    <p className="mt-0.5 text-[10px] font-mono text-neutral-400">
                       {getRelativeTime(p.created_at)}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5 pl-2">
+                    {/* Red colour code on the top risk target part */}
                     <span className="font-mono text-xs font-bold text-[#DC2626]">
                       {riskPct}%
                     </span>
                     <ArrowUpRight
                       size={13}
-                      className="text-[#94A3B8] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#1E40AF]"
+                      className="text-neutral-500 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white"
                     />
                   </div>
                 </div>
@@ -412,4 +412,3 @@ export default function NationalHeatmap() {
     </HeatmapErrorBoundary>
   );
 }
-

@@ -29,6 +29,18 @@ interface BriefSummary {
   generated_at: string;
 }
 
+// Monochrome palette
+const C = {
+  bg: '#FFFFFF',
+  surface: '#FAFAFA',
+  border: 'rgba(0,0,0,0.1)',
+  borderStrong: 'rgba(0,0,0,0.2)',
+  text: '#0A0A0A',
+  muted: '#6B6B6B',
+  faint: '#9A9A9A',
+  invert: '#FFFFFF',
+};
+
 export default function DailyBrief() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -56,7 +68,6 @@ export default function DailyBrief() {
     const today = new Date().toISOString().split('T')[0];
 
     try {
-      // 1. Attempt backend generation
       const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
       const res = await fetch(`${apiBase}/briefs/generate`, {
         method: 'POST',
@@ -75,7 +86,6 @@ export default function DailyBrief() {
       }
       throw new Error('Backend generation unavailable');
     } catch {
-      // 2. Client-side fallback via Anthropic API
       const apiKey = import.meta.env.VITE_ANTHROPIC_KEY;
       if (apiKey && apiKey !== 'your_key_here') {
         try {
@@ -119,7 +129,6 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
         }
       }
 
-      // 3. Deterministic heuristic fallback
       setNarrative(
         `NEXUS intelligence systems have tracked ${summaryData.totalComplaints} cyber fraud complaints today, generating ${summaryData.totalPredictions} predictive intercept vectors with ${summaryData.highRiskCount} critical RED alert escalations. Over ${formatCrore(
           summaryData.fundsAtRisk
@@ -173,13 +182,11 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
         fraudCounts['job_fraud'] = 3;
       }
 
-      // 7-day state counts
       const stateMap: Record<string, number> = {};
       (complaints7dRes.data || []).forEach((c: any) => {
         const st = c.victim_state || c.state || 'Jharkhand';
         if (st) stateMap[st] = (stateMap[st] || 0) + 1;
       });
-      // Ensure key states exist if sparse
       ['Jharkhand', 'Haryana', 'Uttar Pradesh', 'West Bengal', 'Bihar', 'Maharashtra', 'Delhi', 'Rajasthan', 'Karnataka', 'Telangana'].forEach((s) => {
         if (!stateMap[s]) stateMap[s] = Math.floor(Math.random() * 15) + 1;
       });
@@ -238,20 +245,11 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
     buildBrief();
   }, []);
 
-  const alertColor = (level: string) => {
-    if (level === 'RED') return '#FF4444';
-    if (level === 'AMBER') return '#FF9900';
-    return '#00C48C';
-  };
-
-  const getFraudColor = (type: string) => {
-    const key = type.toLowerCase();
-    if (key.includes('upi')) return '#00D4FF';
-    if (key.includes('arrest') || key.includes('digital')) return '#FF4444';
-    if (key.includes('invest')) return '#FF9900';
-    if (key.includes('vish')) return '#9B59B6';
-    if (key.includes('job')) return '#00C48C';
-    return '#8A9BB5';
+  // Alert level now maps to grayscale weight, not color
+  const alertStyle = (level: string) => {
+    if (level === 'RED') return { color: C.text, weight: 800, border: C.text };
+    if (level === 'AMBER') return { color: C.muted, weight: 700, border: C.borderStrong };
+    return { color: C.faint, weight: 600, border: C.border };
   };
 
   const formatFraudLabel = (type: string) => {
@@ -276,14 +274,14 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
   if (loading) return <LoadingPulse />;
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1100px', margin: '0 auto' }} className="space-y-6">
+    <div style={{ padding: '24px', maxWidth: '1100px', margin: '0 auto', background: C.bg }} className="space-y-6">
       {/* HEADER ROW */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, paddingBottom: '20px' }}>
         <div>
-          <h1 style={{ color: '#FFFFFF', fontSize: '24px', fontWeight: 700, margin: 0 }}>
+          <h1 style={{ color: C.text, fontSize: '24px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
             Daily Intelligence Brief
           </h1>
-          <div style={{ color: '#8A9BB5', fontSize: '13px', marginTop: '4px' }}>
+          <div style={{ color: C.muted, fontSize: '13px', marginTop: '4px' }}>
             {summary
               ? `Generated: ${new Date(summary.generated_at).toLocaleString('en-IN')}`
               : 'Generating...'}
@@ -291,15 +289,13 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
         </div>
 
         <button
-          onClick={() => {
-            buildBrief();
-          }}
+          onClick={() => buildBrief()}
           disabled={narrativeLoading}
           style={{
-            background: '#00D4FF',
-            color: '#0D1533',
-            border: 'none',
-            borderRadius: '8px',
+            background: C.text,
+            color: C.invert,
+            border: `1px solid ${C.text}`,
+            borderRadius: '6px',
             padding: '10px 20px',
             fontSize: '13px',
             fontWeight: 700,
@@ -309,7 +305,7 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
             gap: '8px',
             transition: 'opacity 0.2s',
           }}
-          onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.9')}
+          onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.75')}
           onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
         >
           <RefreshCw size={14} className={narrativeLoading ? 'animate-spin' : ''} />
@@ -320,135 +316,84 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
       {/* ROW 1 — 4 KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
         {[
-          { label: 'Complaints Today', value: summary?.total_complaints || 0, color: '#00D4FF' },
-          { label: 'Predictions Generated', value: summary?.total_predictions || 0, color: '#00D4FF' },
-          { label: 'RED Alerts', value: summary?.high_risk_count || 0, color: '#FF4444' },
-          { label: 'Funds at Risk', value: formatCrore(summary?.funds_at_risk || 0), color: '#FF9900' },
+          { label: 'Complaints Today', value: summary?.total_complaints || 0 },
+          { label: 'Predictions Generated', value: summary?.total_predictions || 0 },
+          { label: 'RED Alerts', value: summary?.high_risk_count || 0, emphasis: true },
+          { label: 'Funds at Risk', value: formatCrore(summary?.funds_at_risk || 0), emphasis: true },
         ].map((kpi, i) => (
           <div
             key={i}
             style={{
-              background: '#0D1533',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '12px',
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: '10px',
               padding: '18px',
             }}
           >
-            <div style={{ color: '#8A9BB5', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            <div style={{ color: C.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
               {kpi.label}
             </div>
-            <div style={{ color: kpi.color, fontSize: '26px', fontWeight: 700, marginTop: '8px' }}>
+            <div style={{ color: C.text, fontSize: '26px', fontWeight: kpi.emphasis ? 800 : 700, marginTop: '8px' }}>
               {kpi.value}
             </div>
           </div>
         ))}
       </div>
 
-      {/* ROW 2 — 3 New Stat Cards */}
+      {/* ROW 2 — 3 Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-        {/* Card 1: Avg Risk Score */}
-        <div
-          style={{
-            background: '#0D1533',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '12px',
-            padding: '18px',
-          }}
-        >
-          <div style={{ color: '#8A9BB5', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '18px' }}>
+          <div style={{ color: C.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Avg Risk Score Today
           </div>
-          <div
-            style={{
-              color: (summary?.avg_risk_score || 0) > 60 ? '#FF9900' : '#00C48C',
-              fontSize: '26px',
-              fontWeight: 700,
-              marginTop: '8px',
-            }}
-          >
+          <div style={{ color: C.text, fontSize: '26px', fontWeight: 700, marginTop: '8px' }}>
             {summary?.avg_risk_score || 0}%
           </div>
-          <div style={{ color: '#8A9BB5', fontSize: '11px', marginTop: '6px' }}>
+          <div style={{ color: C.faint, fontSize: '11px', marginTop: '6px' }}>
             Mean confidence across all active predictions
           </div>
         </div>
 
-        {/* Card 2: Fastest Cash-out Window */}
-        <div
-          style={{
-            background: '#0D1533',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '12px',
-            padding: '18px',
-          }}
-        >
-          <div style={{ color: '#8A9BB5', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '18px' }}>
+          <div style={{ color: C.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Fastest Cash-out Window
           </div>
-          <div
-            style={{
-              color:
-                (summary?.fastest_window || 0) < 8
-                  ? '#FF4444'
-                  : (summary?.fastest_window || 0) < 16
-                  ? '#FF9900'
-                  : '#00C48C',
-              fontSize: '26px',
-              fontWeight: 700,
-              marginTop: '8px',
-            }}
-          >
+          <div style={{ color: C.text, fontSize: '26px', fontWeight: 700, marginTop: '8px' }}>
             {summary?.fastest_window || 0} hours
           </div>
-          <div style={{ color: '#8A9BB5', fontSize: '11px', marginTop: '6px' }}>
+          <div style={{ color: C.faint, fontSize: '11px', marginTop: '6px' }}>
             Shortest predicted interception window
           </div>
         </div>
 
-        {/* Card 3: Active ATM Clusters */}
-        <div
-          style={{
-            background: '#0D1533',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '12px',
-            padding: '18px',
-          }}
-        >
-          <div style={{ color: '#8A9BB5', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '18px' }}>
+          <div style={{ color: C.muted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Active ATM Clusters
           </div>
-          <div style={{ color: '#00D4FF', fontSize: '26px', fontWeight: 700, marginTop: '8px' }}>
+          <div style={{ color: C.text, fontSize: '26px', fontWeight: 700, marginTop: '8px' }}>
             {summary?.active_clusters_count || 0}
           </div>
-          <div style={{ color: '#8A9BB5', fontSize: '11px', marginTop: '6px' }}>
+          <div style={{ color: C.faint, fontSize: '11px', marginTop: '6px' }}>
             Geographic threat concentrations
           </div>
         </div>
       </div>
 
-      {/* ROW 3 — Two Columns: Top Predictions (60%) & Fraud Breakdown (40%) */}
+      {/* ROW 3 — Predictions & Fraud Breakdown */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-        {/* LEFT COLUMN: Top Risk Predictions */}
-        <div
-          style={{
-            flex: 1.5,
-            background: '#0D1533',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '12px',
-            padding: '20px',
-          }}
-        >
+        {/* LEFT: Top Risk Predictions */}
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ color: '#FFFFFF', fontSize: '14px', fontWeight: 600 }}>
+            <div style={{ color: C.text, fontSize: '14px', fontWeight: 700 }}>
               Top Risk Predictions Today
             </div>
             {selectedState && (
               <button
                 onClick={() => setSelectedState(null)}
                 style={{
-                  background: 'rgba(0,212,255,0.15)',
-                  color: '#00D4FF',
-                  border: '1px solid #00D4FF',
+                  background: C.text,
+                  color: C.invert,
+                  border: `1px solid ${C.text}`,
                   borderRadius: '4px',
                   padding: '2px 8px',
                   fontSize: '11px',
@@ -461,25 +406,25 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
           </div>
 
           {filteredPredictions.length === 0 ? (
-            <div style={{ color: '#8A9BB5', fontSize: '13px', padding: '16px 0' }}>
+            <div style={{ color: C.muted, fontSize: '13px', padding: '16px 0' }}>
               No predictions matching current filter today yet.
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                     {['Complaint ID', 'Alert', 'Risk Score', 'Zone', 'Window'].map((h) => (
                       <th
                         key={h}
                         style={{
-                          color: '#8A9BB5',
+                          color: C.muted,
                           fontSize: '10px',
                           textTransform: 'uppercase',
                           letterSpacing: '0.1em',
                           padding: '8px 6px',
                           textAlign: 'left',
-                          fontWeight: 500,
+                          fontWeight: 600,
                         }}
                       >
                         {h}
@@ -490,22 +435,21 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
                 <tbody>
                   {filteredPredictions.map((p) => {
                     const riskPct = Math.round(p.risk_score * 100);
-                    const riskColor = riskPct > 70 ? '#FF4444' : riskPct > 40 ? '#FF9900' : '#00C48C';
-                    const rowBorderColor = alertColor(p.alert_level);
+                    const a = alertStyle(p.alert_level);
 
                     return (
                       <tr
                         key={p.id}
                         style={{
-                          borderBottom: '1px solid rgba(255,255,255,0.04)',
-                          borderLeft: `3px solid ${rowBorderColor}`,
+                          borderBottom: `1px solid ${C.border}`,
+                          borderLeft: `3px solid ${a.border}`,
                         }}
                       >
                         <td style={{ padding: '10px 8px' }}>
                           <span
                             onClick={() => navigate(`/prediction/${p.id}`)}
                             style={{
-                              color: '#00D4FF',
+                              color: C.text,
                               fontSize: '12px',
                               fontFamily: 'monospace',
                               cursor: 'pointer',
@@ -518,25 +462,25 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
                         <td style={{ padding: '10px 6px' }}>
                           <span
                             style={{
-                              background: alertColor(p.alert_level) + '20',
-                              color: alertColor(p.alert_level),
-                              border: `1px solid ${alertColor(p.alert_level)}`,
+                              background: C.bg,
+                              color: a.color,
+                              border: `1px solid ${a.border}`,
                               borderRadius: '4px',
                               padding: '2px 6px',
                               fontSize: '10px',
-                              fontWeight: 700,
+                              fontWeight: a.weight,
                             }}
                           >
                             {p.alert_level}
                           </span>
                         </td>
-                        <td style={{ color: riskColor, fontSize: '12px', fontWeight: 700, padding: '10px 6px' }}>
+                        <td style={{ color: C.text, fontSize: '12px', fontWeight: 700, padding: '10px 6px' }}>
                           {riskPct}%
                         </td>
-                        <td style={{ color: '#8A9BB5', fontSize: '12px', padding: '10px 6px' }}>
+                        <td style={{ color: C.muted, fontSize: '12px', padding: '10px 6px' }}>
                           {p.predicted_district}
                         </td>
-                        <td style={{ color: '#FFFFFF', fontSize: '12px', fontFamily: 'monospace', padding: '10px 6px' }}>
+                        <td style={{ color: C.text, fontSize: '12px', fontFamily: 'monospace', padding: '10px 6px' }}>
                           {p.cashout_window_hours || 4}h
                         </td>
                       </tr>
@@ -548,42 +492,26 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
           )}
         </div>
 
-        {/* RIGHT COLUMN: Fraud Type Breakdown */}
-        <div
-          style={{
-            flex: 1,
-            background: '#0D1533',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '12px',
-            padding: '20px',
-          }}
-        >
-          <div style={{ color: '#FFFFFF', fontSize: '14px', fontWeight: 600, marginBottom: '16px' }}>
+        {/* RIGHT: Fraud Type Breakdown */}
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '20px' }}>
+          <div style={{ color: C.text, fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>
             Fraud Type Breakdown
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {Object.entries(summary?.fraud_type_counts || {}).map(([type, count]) => {
               const barWidth = Math.max(8, Math.round((count / maxFraudCount) * 100));
-              const color = getFraudColor(type);
 
               return (
                 <div key={type}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
-                    <span style={{ color: '#FFFFFF', fontWeight: 500 }}>{formatFraudLabel(type)}</span>
-                    <span style={{ color: '#8A9BB5', fontFamily: 'monospace' }}>{count} cases</span>
+                    <span style={{ color: C.text, fontWeight: 600 }}>{formatFraudLabel(type)}</span>
+                    <span style={{ color: C.muted, fontFamily: 'monospace' }}>{count} cases</span>
                   </div>
-                  <div
-                    style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      borderRadius: '4px',
-                      height: '8px',
-                      overflow: 'hidden',
-                    }}
-                  >
+                  <div style={{ background: C.border, borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
                     <div
                       style={{
-                        background: color,
+                        background: C.text,
                         height: '100%',
                         width: `${barWidth}%`,
                         borderRadius: '4px',
@@ -598,22 +526,20 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
         </div>
       </div>
 
-      {/* ROW 4 — NEXUS Intelligence Narrative (Full Width Card) */}
+      {/* ROW 4 — NEXUS Intelligence Narrative */}
       <div
         style={{
-          background: '#0A0F2C',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderLeft: '3px solid #00D4FF',
-          borderRadius: '12px',
+          background: C.text,
+          borderRadius: '10px',
           padding: '22px',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <span
             style={{
-              background: 'rgba(0,212,255,0.15)',
-              color: '#00D4FF',
-              border: '1px solid rgba(0,212,255,0.4)',
+              background: 'rgba(255,255,255,0.1)',
+              color: C.invert,
+              border: '1px solid rgba(255,255,255,0.3)',
               borderRadius: '6px',
               padding: '3px 10px',
               fontSize: '11px',
@@ -621,57 +547,50 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
               letterSpacing: '0.05em',
             }}
           >
-            🧠 NEXUS AI ANALYSIS
+            NEXUS AI ANALYSIS
           </span>
           {narrativeTime && (
-            <span style={{ color: '#64748B', fontSize: '11px' }}>Generated at {narrativeTime}</span>
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Generated at {narrativeTime}</span>
           )}
         </div>
 
         {narrativeLoading ? (
           <div className="space-y-2 py-4">
-            <div className="h-4 bg-white/10 rounded animate-pulse w-full" />
-            <div className="h-4 bg-white/10 rounded animate-pulse w-5/6" />
-            <div className="h-4 bg-white/10 rounded animate-pulse w-4/6" />
+            <div className="h-4 bg-white/15 rounded animate-pulse w-full" />
+            <div className="h-4 bg-white/15 rounded animate-pulse w-5/6" />
+            <div className="h-4 bg-white/15 rounded animate-pulse w-4/6" />
           </div>
         ) : (
-          <p style={{ color: '#FFFFFF', fontSize: '15px', lineHeight: 1.7, margin: '8px 0 0 0' }}>
+          <p style={{ color: C.invert, fontSize: '15px', lineHeight: 1.7, margin: '8px 0 0 0' }}>
             {narrative || 'Intelligence summary generating...'}
           </p>
         )}
       </div>
 
-      {/* ROW 5 — State Activity Heatmap (Full Width) */}
-      <div
-        style={{
-          background: '#0D1533',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '12px',
-          padding: '20px',
-        }}
-      >
+      {/* ROW 5 — State Activity (Full Width) */}
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '20px' }}>
         <div style={{ marginBottom: '14px' }}>
-          <div style={{ color: '#FFFFFF', fontSize: '14px', fontWeight: 600 }}>
+          <div style={{ color: C.text, fontSize: '14px', fontWeight: 700 }}>
             7-Day State Activity Surface
           </div>
-          <div style={{ color: '#8A9BB5', fontSize: '11px', marginTop: '2px' }}>
+          <div style={{ color: C.muted, fontSize: '11px', marginTop: '2px' }}>
             Click any state pill to filter top risk predictions
           </div>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {summary?.state_counts_7d.map(({ state, count }) => {
-            const opacity = count === 0 ? 0.1 : count <= 5 ? 0.3 : count <= 15 ? 0.6 : 1.0;
             const isSelected = selectedState === state;
+            const intensity = count === 0 ? 0.04 : count <= 5 ? 0.08 : count <= 15 ? 0.14 : 0.22;
 
             return (
               <button
                 key={state}
                 onClick={() => setSelectedState(isSelected ? null : state)}
                 style={{
-                  background: isSelected ? '#00D4FF' : `rgba(0, 212, 255, ${opacity * 0.3})`,
-                  border: isSelected ? '1px solid #00D4FF' : `1px solid rgba(0, 212, 255, ${Math.max(0.2, opacity)})`,
-                  color: isSelected ? '#0D1533' : '#FFFFFF',
+                  background: isSelected ? C.text : `rgba(0,0,0,${intensity})`,
+                  border: isSelected ? `1px solid ${C.text}` : `1px solid ${C.border}`,
+                  color: isSelected ? C.invert : C.text,
                   borderRadius: '20px',
                   padding: '6px 14px',
                   fontSize: '12px',
@@ -686,8 +605,8 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
                 <span>{state}</span>
                 <span
                   style={{
-                    background: isSelected ? '#0D1533' : 'rgba(255,255,255,0.15)',
-                    color: isSelected ? '#00D4FF' : '#00D4FF',
+                    background: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)',
+                    color: isSelected ? C.invert : C.text,
                     borderRadius: '10px',
                     padding: '1px 6px',
                     fontSize: '10px',

@@ -91,7 +91,7 @@ export default function ComplaintModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="max-h-[90vh] w-full max-w-xl overflow-auto rounded-2xl border border-[#E2E8F0] bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-[#E2E8F0] p-5">
           <div>

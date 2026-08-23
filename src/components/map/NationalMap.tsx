@@ -58,7 +58,7 @@ export default function NationalMap({
 }) {
   return (
     <MapErrorBoundary>
-      <div className="h-full min-h-[420px] overflow-hidden rounded-xl border border-[#E2E8F0] shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
+      <div className="relative z-0 h-full min-h-[420px] overflow-hidden rounded-xl border border-[#E2E8F0] shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
         <MapContainer center={center} zoom={zoom} zoomControl={false} className="h-full w-full">
           <MapCenter center={center} zoom={zoom} />
           <TileLayer
