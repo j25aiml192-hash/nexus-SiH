@@ -21,12 +21,12 @@ export default function SystemLogWidget() {
         const { data, error } = await supabase
           .from('system_logs')
           .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .order('created_at', { ascending: false, nullsFirst: false })
+          .limit(1);
 
-        if (!error && data) {
-          setLatestLog(data);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setLatestLog(data[0]);
         } else {
           setLatestLog(null);
         }
