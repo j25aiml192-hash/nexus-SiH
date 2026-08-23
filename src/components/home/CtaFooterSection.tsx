@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ShieldCheck, Terminal, Lock } from 'lucide-react';
+import NexusLogo from '@/components/shared/NexusLogo';
 
 export default function CtaFooterSection() {
   const navigate = useNavigate();
@@ -39,9 +40,9 @@ export default function CtaFooterSection() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-12 border-b border-neutral-900">
           {/* Col 1: Brand Info */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded bg-white text-black font-mono text-xs font-bold">
-                NX
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-700 bg-neutral-900 p-1">
+                <NexusLogo className="h-full w-full" color="#FFFFFF" />
               </div>
               <span className="font-bold tracking-tight text-white text-sm">NEXUS UFDR</span>
             </div>

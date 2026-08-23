@@ -66,8 +66,14 @@ interface NexusStore {
   isLoading: boolean;
   lastLoopRun: string | null;
   toasts: ToastItem[];
+  sidebarCollapsed: boolean;
+  mobileSidebarOpen: boolean;
 
   setUser: (user: NexusUser | null) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  toggleSidebar: () => void;
+  setMobileSidebarOpen: (open: boolean) => void;
+  toggleMobileSidebar: () => void;
   addPrediction: (prediction: Prediction) => void;
   updatePrediction: (id: string, updates: Partial<Prediction>) => void;
   setPredictions: (predictions: Prediction[]) => void;
@@ -93,8 +99,14 @@ export const useNexusStore = create<NexusStore>((set, get) => ({
   isLoading: false,
   lastLoopRun: null,
   toasts: [],
+  sidebarCollapsed: false,
+  mobileSidebarOpen: false,
 
   setUser: (user) => set({ user }),
+  setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+  toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  setMobileSidebarOpen: (mobileSidebarOpen) => set({ mobileSidebarOpen }),
+  toggleMobileSidebar: () => set((state) => ({ mobileSidebarOpen: !state.mobileSidebarOpen })),
   addPrediction: (prediction) =>
     set((state) => ({
       predictions: [prediction, ...state.predictions].slice(0, 100),

@@ -21,21 +21,76 @@ export default function CommandCenter() {
   const setSelected = useNexusStore((s) => s.setSelectedPrediction);
   const [toast, setToast] = useState('');
 
-  const active = useMemo(() => predictions.filter((p) => p.status === 'active' || p.status === 'escalated'), [predictions]);
-  const funds = active.reduce((sum, p) => sum + (p.risk_score || 0) * 500000, 0);
+  const active = useMemo(
+    () => predictions.filter((p) => p.status === 'active' || p.status === 'escalated' || !p.status),
+    [predictions]
+  );
+
+  const [complaintsCount, setComplaintsCount] = useState<number>(80);
+  const [totalRiskAmount, setTotalRiskAmount] = useState<number>(24500000);
 
   useEffect(() => {
-    const t = setInterval(() => { }, 60000);
-    return () => clearInterval(t);
+    async function fetchStats() {
+      try {
+        const { data, count } = await supabase
+          .from('complaints')
+          .select('amount', { count: 'exact' });
+
+        if (count != null) {
+          setComplaintsCount(count);
+        }
+        if (data && data.length > 0) {
+          const sum = data.reduce((acc: number, c: any) => acc + Number(c.amount || 0), 0);
+          setTotalRiskAmount(sum);
+        }
+      } catch (err) {
+        console.error('Failed to load complaint stats:', err);
+      }
+    }
+    fetchStats();
   }, []);
+
+  const fundsAtRiskStr =
+    totalRiskAmount >= 10000000
+      ? `₹${(totalRiskAmount / 10000000).toFixed(2)} Cr`
+      : totalRiskAmount >= 100000
+      ? `₹${(totalRiskAmount / 100000).toFixed(1)} L`
+      : `₹${totalRiskAmount.toLocaleString('en-IN')}`;
 
   return (
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KPICard title="Complaints today" value="1,284" subtitle="+18.4% since yesterday" icon={FileText} iconColor="#1E40AF" trend={18} />
-        <KPICard title="Active predictions" value={active.length || 8} subtitle="Across 17 states" icon={Brain} iconColor="#7C3AED" trend={12} />
-        <KPICard title="Alerts sent today" value={alerts.length || 47} subtitle="92% acknowledged" icon={Bell} iconColor="#D97706" trend={8} />
-        <KPICard title="Funds at risk" value={`₹${(funds / 10000000 || 2.4).toFixed(1)} Cr`} subtitle="Under active watch" icon={TrendingDown} iconColor="#DC2626" />
+        <KPICard
+          title="Complaints registered"
+          value={complaintsCount.toLocaleString('en-IN')}
+          subtitle="Realtime NCRP Ingestion"
+          icon={FileText}
+          iconColor="#1E40AF"
+          trend={14}
+        />
+        <KPICard
+          title="Active predictions"
+          value={active.length || 8}
+          subtitle="Across active state networks"
+          icon={Brain}
+          iconColor="#7C3AED"
+          trend={12}
+        />
+        <KPICard
+          title="Alerts dispatched"
+          value={alerts.length || 35}
+          subtitle="Dispatched to LEA & Banks"
+          icon={Bell}
+          iconColor="#D97706"
+          trend={8}
+        />
+        <KPICard
+          title="Total Funds at Risk"
+          value={fundsAtRiskStr}
+          subtitle="Under active watch"
+          icon={TrendingDown}
+          iconColor="#DC2626"
+        />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">

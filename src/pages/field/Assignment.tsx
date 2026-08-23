@@ -97,21 +97,20 @@ export default function Assignment() {
 
   if (!assignment) {
     return (
-      <div
-        style={{
-          padding: '16px',
-          maxWidth: '480px',
-          margin: '0 auto',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#8A9BB5',
-          fontSize: '14px',
-          textAlign: 'center',
-        }}
-      >
-        <div>No active assignment. Stand by for deployment orders.</div>
+      <div className="mx-auto max-w-[480px] min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[#1E40AF] mb-4">
+          <Navigation size={26} />
+        </div>
+        <h3 className="text-base font-bold text-[#0F1B2D]">No Active Dispatch Orders</h3>
+        <p className="mt-1 max-w-xs text-xs text-[#64748B] leading-relaxed">
+          Stand by for field deployment orders. When a cash-out prediction triggers, your target ATM coordinates will appear here.
+        </p>
+        <button
+          onClick={() => navigate('/field/report')}
+          className="mt-5 rounded-lg bg-[#1E40AF] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A8A] transition"
+        >
+          File Standalone Incident Report
+        </button>
       </div>
     );
   }

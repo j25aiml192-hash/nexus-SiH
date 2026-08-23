@@ -1,4 +1,5 @@
-import { Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Check, Clock, AlertTriangle } from 'lucide-react';
 
 export default function RecoveryRing({
   cashoutWindowHours,
@@ -11,12 +12,41 @@ export default function RecoveryRing({
   status: string;
   size?: number;
 }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const intercepted = status === 'intercepted';
-  const elapsed = (Date.now() - new Date(createdAt).getTime()) / 36e5;
-  const remaining = Math.max(0, 1 - elapsed / cashoutWindowHours);
-  const hours = Math.floor(remaining * cashoutWindowHours);
-  const mins = Math.floor((remaining * cashoutWindowHours - hours) * 60);
-  const color = intercepted ? '#1E40AF' : remaining > 0.6 ? '#16A34A' : remaining > 0.3 ? '#D97706' : '#DC2626';
+  const createdDate = new Date(createdAt || Date.now());
+  const expiresAt = new Date(
+    createdDate.getTime() + (cashoutWindowHours || 4) * 60 * 60 * 1000
+  ).getTime();
+
+  const remainingMs = expiresAt - now;
+  const isExpired = remainingMs <= 0;
+
+  const totalWindowMs = (cashoutWindowHours || 4) * 60 * 60 * 1000;
+  const fractionRemaining = Math.max(0, Math.min(1, remainingMs / totalWindowMs));
+
+  const hours = Math.max(0, Math.floor(remainingMs / 3600000));
+  const minutes = Math.max(0, Math.floor((remainingMs % 3600000) / 60000));
+  const seconds = Math.max(0, Math.floor((remainingMs % 60000) / 1000));
+
+  const color = intercepted
+    ? '#1E40AF'
+    : isExpired
+    ? '#DC2626'
+    : fractionRemaining > 0.5
+    ? '#16A34A'
+    : fractionRemaining > 0.25
+    ? '#D97706'
+    : '#DC2626';
+
   const stroke = 2 * Math.PI * 45;
 
   return (
@@ -33,25 +63,48 @@ export default function RecoveryRing({
             strokeWidth="6"
             strokeLinecap="round"
             strokeDasharray={stroke}
-            strokeDashoffset={intercepted ? 0 : stroke * (1 - remaining)}
-            className="transition-all duration-700"
+            strokeDashoffset={
+              intercepted
+                ? 0
+                : isExpired
+                ? stroke
+                : stroke * (1 - fractionRemaining)
+            }
+            className="transition-all duration-300"
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {intercepted ? (
-            <Check size={25} className="text-[#16A34A]" />
+            <div className="flex flex-col items-center">
+              <Check size={26} className="text-[#1E40AF]" />
+              <span className="mt-1 font-mono text-[10px] font-bold text-[#1E40AF]">
+                SECURED
+              </span>
+            </div>
+          ) : isExpired ? (
+            <div className="flex flex-col items-center">
+              <AlertTriangle size={20} className="text-[#DC2626]" />
+              <span className="mt-0.5 font-mono text-xs font-extrabold text-[#DC2626]">
+                EXPIRED
+              </span>
+            </div>
           ) : (
             <>
-              <span className="font-mono text-lg font-bold text-[#0F1B2D]">
-                {hours}h {mins}m
+              <span className="font-mono text-base font-bold text-[#0F1B2D]">
+                {hours}h {minutes}m
               </span>
-              <span className="mt-0.5 text-[10px] uppercase tracking-wider text-[#64748B]">remaining</span>
+              <span className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-[#64748B]">
+                {seconds}s left
+              </span>
             </>
           )}
         </div>
       </div>
-      <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color }}>
-        {intercepted ? 'INTERCEPTED' : 'Recovery Window'}
+      <p
+        className="mt-2.5 text-[11px] font-bold uppercase tracking-wider"
+        style={{ color }}
+      >
+        {intercepted ? 'INTERCEPTED' : isExpired ? 'WINDOW EXPIRED' : 'CASH-OUT WINDOW'}
       </p>
     </div>
   );

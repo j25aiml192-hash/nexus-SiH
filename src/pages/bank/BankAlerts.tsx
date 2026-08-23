@@ -25,9 +25,8 @@ export default function BankAlerts() {
       const { data, error } = await supabase
         .from('alerts')
         .select('*, predictions(*)')
-        .eq('recipient_role', 'state_lea')
         .order('sent_at', { ascending: false })
-        .limit(20);
+        .limit(30);
 
       if (error) throw error;
       setAlerts(data || []);

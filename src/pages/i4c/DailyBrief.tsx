@@ -151,7 +151,7 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
         supabase.from('predictions').select('*').gte('created_at', todayStart).order('risk_score', { ascending: false }).limit(50),
         supabase.from('alerts').select('*', { count: 'exact' }).gte('sent_at', todayStart),
         supabase.from('atm_clusters').select('*'),
-        supabase.from('complaints').select('victim_state, state').gte('created_at', sevenDaysAgo),
+        supabase.from('complaints').select('victim_state').gte('created_at', sevenDaysAgo),
       ]);
 
       const complaints = complaintsRes.data || [];
@@ -174,21 +174,11 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
         const ft = c.fraud_type || 'upi_fraud';
         fraudCounts[ft] = (fraudCounts[ft] || 0) + 1;
       });
-      if (Object.keys(fraudCounts).length === 0) {
-        fraudCounts['upi_fraud'] = 14;
-        fraudCounts['investment_scam'] = 9;
-        fraudCounts['digital_arrest'] = 7;
-        fraudCounts['vishing'] = 5;
-        fraudCounts['job_fraud'] = 3;
-      }
 
       const stateMap: Record<string, number> = {};
       (complaints7dRes.data || []).forEach((c: any) => {
-        const st = c.victim_state || c.state || 'Jharkhand';
+        const st = c.victim_state;
         if (st) stateMap[st] = (stateMap[st] || 0) + 1;
-      });
-      ['Jharkhand', 'Haryana', 'Uttar Pradesh', 'West Bengal', 'Bihar', 'Maharashtra', 'Delhi', 'Rajasthan', 'Karnataka', 'Telangana'].forEach((s) => {
-        if (!stateMap[s]) stateMap[s] = Math.floor(Math.random() * 15) + 1;
       });
 
       const stateCounts7d = Object.entries(stateMap)
@@ -206,18 +196,18 @@ Top predicted zones: Deoghar (Jharkhand), Nuh (Haryana), Giridih (Jharkhand)`,
         cashout_window_hours: p.cashout_window_hours || 4,
       }));
 
-      const topFraudType = Object.entries(fraudCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'UPI Fraud';
+      const topFraudType = Object.entries(fraudCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'upi_fraud';
 
       const summaryData: BriefSummary = {
         top_predictions: topPreds,
-        total_complaints: complaints.length || 38,
-        total_predictions: preds.length || 19,
-        total_alerts: alertsRes.count || 24,
-        funds_at_risk: fundsAtRisk || 18500000,
-        high_risk_count: highRiskCount || 7,
+        total_complaints: complaints.length,
+        total_predictions: preds.length,
+        total_alerts: alertsRes.count || 0,
+        funds_at_risk: fundsAtRisk,
+        high_risk_count: highRiskCount,
         avg_risk_score: avgRiskScore,
         fastest_window: fastestWindow,
-        active_clusters_count: activeClusters.length || 4,
+        active_clusters_count: activeClusters.length,
         fraud_type_counts: fraudCounts,
         state_counts_7d: stateCounts7d,
         generated_at: new Date().toISOString(),

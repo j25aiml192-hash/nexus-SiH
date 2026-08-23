@@ -34,13 +34,18 @@ function ProtectedLayout() {
   const { alerts } = useAlerts();
   const navigate = useNavigate();
   const [modal, setModal] = useState(false);
+  const collapsed = useNexusStore((s) => s.sidebarCollapsed);
   if (loading) return <LoadingPulse />;
   if (!user) return <Navigate to="/login" replace />;
   return (
     <div className="min-h-screen bg-[#F4F6F9] pb-9">
       <Sidebar onLogout={async () => { await signOut(); navigate('/login'); }} />
       <TopBar onNewComplaint={() => setModal(true)} />
-      <main className="min-h-screen px-4 pb-8 pt-20 lg:ml-60 lg:px-7">
+      <main
+        className={`min-h-screen px-4 pb-8 pt-20 transition-all duration-300 ease-in-out lg:px-7 ${
+          collapsed ? 'lg:ml-[72px]' : 'lg:ml-64'
+        }`}
+      >
         <Outlet />
       </main>
       <AlertTicker alerts={alerts} />

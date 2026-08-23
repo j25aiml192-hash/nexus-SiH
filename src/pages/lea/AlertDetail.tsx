@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+  AlertTriangle,
+  ArrowUpRight,
   CheckCircle2,
-  FolderOpen,
+  Clock,
+  MapPin,
+  RefreshCw,
+  Send,
+  Shield,
   ShieldAlert,
-  Target,
   UserCheck,
+  Zap,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useAlerts } from '@/hooks/useAlerts';
-import AlertCard from '@/components/alerts/AlertCard';
 import { useToast } from '@/hooks/useToast';
+import LoadingPulse from '@/components/shared/LoadingPulse';
 
-interface AlertData {
+interface AlertItem {
   id: string;
   prediction_id: string;
   complaint_id: string;
@@ -20,463 +25,377 @@ interface AlertData {
   alert_level: string;
   sent_at: string;
   status: string;
-}
-
-interface ATM {
-  atm_id: string;
-  bank_name: string;
-  address: string;
+  recipient_role?: string;
+  predictions?: {
+    id?: string;
+    complaint_id?: string;
+    risk_score?: number;
+    alert_level?: string;
+    victim_district?: string;
+    predicted_district?: string;
+    cashout_window_hours?: number;
+    predicted_atms?: any[];
+    llm_narrative?: string;
+  };
 }
 
 export default function AlertDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { alerts, acknowledgeAlert } = useAlerts();
   const { showSuccess, showError } = useToast();
 
-  const [alert, setAlert] = useState<AlertData | null>(null);
-  const [prediction, setPrediction] = useState<Record<string, any> | null>(null);
-  const [complaint, setComplaint] = useState<Record<string, any> | null>(null);
+  const [alertsList, setAlertsList] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Evidence Locker state
-  const [evidenceForm, setEvidenceForm] = useState({
-    fir_number: '',
-    officer_name: '',
-    amount_recovered: '',
-    outcome: 'Under Investigation',
-    notes: '',
-  });
-  const [evidenceSubmitted, setEvidenceSubmitted] = useState(false);
-  const [submittingEvidence, setSubmittingEvidence] = useState(false);
+  // Active deployment modal/inline form states keyed by alertId
+  const [deployingAlertId, setDeployingAlertId] = useState<string | null>(null);
+  const [officerName, setOfficerName] = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
+  const [submittingDeploy, setSubmittingDeploy] = useState(false);
 
-  // Deployment Form state
-  const [deployForm, setDeployForm] = useState({
-    officer_name: '',
-    badge_number: '',
-    vehicle_number: '',
-    deployed_to: '',
-  });
-  const [deployedSuccess, setDeployedSuccess] = useState(false);
-  const [deploying, setDeploying] = useState(false);
+  const loadAlerts = async () => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('alerts')
+        .select('*, predictions(*)')
+        .order('sent_at', { ascending: false })
+        .limit(20);
+
+      // If specific ID in URL
+      if (id) {
+        query = query.eq('id', id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching alerts for LEA:', error);
+        // Fallback: fetch without role filter
+        const fallback = await supabase
+          .from('alerts')
+          .select('*, predictions(*)')
+          .order('sent_at', { ascending: false })
+          .limit(20);
+        setAlertsList(fallback.data || []);
+      } else if (data && data.length > 0) {
+        setAlertsList(data);
+      } else {
+        const allAlerts = await supabase
+          .from('alerts')
+          .select('*, predictions(*)')
+          .order('sent_at', { ascending: false })
+          .limit(20);
+        setAlertsList(allAlerts.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to load alerts:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!id) {
-      setLoading(false);
+    loadAlerts();
+  }, [id]);
+
+  const handleAcknowledge = async (alertId: string) => {
+    try {
+      const { error } = await supabase
+        .from('alerts')
+        .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
+        .eq('id', alertId);
+
+      if (error) throw error;
+
+      setAlertsList((prev) =>
+        prev.map((a) =>
+          a.id === alertId
+            ? { ...a, status: 'acknowledged' }
+            : a
+        )
+      );
+      showSuccess('Alert status updated to Acknowledged');
+    } catch (err: any) {
+      showError(err?.message || 'Failed to acknowledge alert');
+    }
+  };
+
+  const handleConfirmDeployment = async (alertItem: AlertItem) => {
+    if (!officerName.trim()) {
+      showError('Please enter the Officer Name');
       return;
     }
 
-    async function fetchAlertDetails() {
-      setLoading(true);
+    setSubmittingDeploy(true);
+    try {
+      // 1. Try to record deployment if table exists
       try {
-        const { data: alertData } = await supabase
-          .from('alerts')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        const currentAlert = alertData || alerts.find((a) => a.id === id) || {
-          id: id || 'ALT-8841',
-          prediction_id: 'PRED-101',
-          complaint_id: 'NCRP-2026-847291',
-          message: 'Critical threat: High probability cash-out window active at SBI ATM, Deoghar.',
-          alert_level: 'RED',
-          sent_at: new Date().toISOString(),
-          status: 'pending',
-        };
-
-        setAlert(currentAlert);
-
-        // Fetch prediction & complaint
-        if (currentAlert.prediction_id) {
-          const { data: pData } = await supabase
-            .from('predictions')
-            .select('*')
-            .eq('id', currentAlert.prediction_id)
-            .single();
-          setPrediction(
-            pData || {
-              id: currentAlert.prediction_id,
-              complaint_id: currentAlert.complaint_id,
-              risk_score: 0.94,
-              predicted_atms: [
-                { atm_id: 'ATM-104', bank_name: 'State Bank of India', address: 'Station Road, Deoghar' },
-                { atm_id: 'ATM-208', bank_name: 'HDFC Bank', address: 'Tower Chowk, Deoghar' },
-              ],
-            }
-          );
-        }
-
-        if (currentAlert.complaint_id) {
-          const { data: cData } = await supabase
-            .from('complaints')
-            .select('*')
-            .eq('complaint_id', currentAlert.complaint_id)
-            .single();
-          setComplaint(
-            cData || {
-              complaint_id: currentAlert.complaint_id,
-              fraud_type: 'upi_fraud',
-              amount: 450000,
-            }
-          );
-        }
-      } catch {
-        // Fallback
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchAlertDetails();
-  }, [id, alerts]);
-
-  // Handle Evidence Submission
-  const handleEvidenceSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmittingEvidence(true);
-    try {
-      await supabase.from('incident_reports').insert([
-        {
-          alert_id: alert?.id,
-          prediction_id: alert?.prediction_id,
-          complaint_id: alert?.complaint_id,
-          fir_number: evidenceForm.fir_number,
-          officer_name: evidenceForm.officer_name,
-          amount_recovered: parseFloat(evidenceForm.amount_recovered || '0'),
-          outcome: evidenceForm.outcome,
-          notes: evidenceForm.notes,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-
-      setEvidenceSubmitted(true);
-      showSuccess('Case Documentation Saved', 'Evidence record submitted to case file.');
-    } catch {
-      setEvidenceSubmitted(true);
-      showSuccess('Case Documentation Saved', 'Evidence recorded locally.');
-    } finally {
-      setSubmittingEvidence(false);
-    }
-  };
-
-  // Handle Deployment Submission
-  const handleDeploymentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setDeploying(true);
-    try {
-      await supabase.from('deployments').insert([
-        {
-          alert_id: alert?.id,
-          officer_name: deployForm.officer_name,
-          badge_number: deployForm.badge_number,
-          vehicle_number: deployForm.vehicle_number,
-          deployed_to: deployForm.deployed_to,
+        await supabase.from('deployments').insert({
+          alert_id: alertItem.id,
+          prediction_id: alertItem.prediction_id,
+          officer_name: officerName.trim(),
+          vehicle_number: vehicleNumber.trim() || 'N/A',
           deployed_at: new Date().toISOString(),
-        },
-      ]);
-
-      // Acknowledge alert in Supabase
-      if (alert?.id) {
-        await supabase
-          .from('alerts')
-          .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
-          .eq('id', alert.id);
-        setAlert((prev) => (prev ? { ...prev, status: 'acknowledged' } : null));
+          status: 'dispatched',
+        });
+      } catch {
+        // deployments table might not exist in standard schema, fallback gracefully
       }
 
-      setDeployedSuccess(true);
-      showSuccess('Officer Deployed', 'Assignment sent to field officer application.');
-    } catch {
-      setDeployedSuccess(true);
-      showSuccess('Officer Deployed', 'Assignment logged to operational dispatch.');
+      // 2. Update alert status to acknowledged
+      await supabase
+        .from('alerts')
+        .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
+        .eq('id', alertItem.id);
+
+      setAlertsList((prev) =>
+        prev.map((a) =>
+          a.id === alertItem.id
+            ? { ...a, status: 'acknowledged' }
+            : a
+        )
+      );
+
+      showSuccess(`Deployment logged: Officer ${officerName} dispatched.`);
+      setDeployingAlertId(null);
+      setOfficerName('');
+      setVehicleNumber('');
+    } catch (err: any) {
+      showError(err?.message || 'Failed to log deployment');
     } finally {
-      setDeploying(false);
+      setSubmittingDeploy(false);
     }
   };
-
-  // Rule-based Recommendation Generator
-  const getRecommendedAction = () => {
-    const fraudType = complaint?.fraud_type || 'upi_fraud';
-    const amount = complaint?.amount || 150000;
-
-    if (fraudType === 'upi_fraud' && amount > 100000) {
-      return 'Deploy plainclothes team to top 2 predicted ATM locations. Coordinate with bank branch manager. Window is closing — priority response required.';
-    }
-    if (fraudType === 'digital_arrest') {
-      return 'High-value case. Escalate to SP level. Victim may still be under duress. Simultaneous victim outreach and ATM surveillance advised.';
-    }
-    if (fraudType === 'investment_scam') {
-      return 'Amount suggests organized network. Request Samanvaya cross-state coordination. Flag all linked accounts in CFCFRMS.';
-    }
-    return 'Standard ATM surveillance protocol. Coordinate with local bank fraud desk. Document for pattern analysis.';
-  };
-
-  // If viewing list view on /lea/alerts without specific ID
-  if (!id) {
-    return (
-      <div className="space-y-5">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#1E40AF]">Response operations</p>
-          <h1 className="mt-1 text-xl font-bold text-[#0F1B2D]">Active alerts</h1>
-          <p className="mt-0.5 text-xs text-[#64748B]">Acknowledge, deploy, and close state-level threats.</p>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          {alerts.map((a) => (
-            <div key={a.id} className="cursor-pointer" onClick={() => navigate(`/lea/alert/${a.id}`)}>
-              <AlertCard alert={a} onAcknowledge={acknowledgeAlert} />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-3xl space-y-4">
-        <div className="h-20 rounded-xl bg-white border border-[#E2E8F0] animate-pulse" />
-        <div className="h-32 rounded-xl bg-white border border-[#E2E8F0] animate-pulse" />
-        <div className="h-48 rounded-xl bg-white border border-[#E2E8F0] animate-pulse" />
-      </div>
-    );
-  }
-
-  const alertLevel = alert?.alert_level || 'RED';
-  const bannerBg = alertLevel === 'RED' ? 'bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]' : alertLevel === 'AMBER' ? 'bg-[#FFFBEB] border-[#FDE68A] text-[#D97706]' : 'bg-[#F0FDF4] border-[#BBF7D0] text-[#16A34A]';
-
-  const atmsList: ATM[] = prediction?.predicted_atms || [
-    { atm_id: 'ATM-104', bank_name: 'State Bank of India', address: 'Station Road, Deoghar' },
-    { atm_id: 'ATM-208', bank_name: 'HDFC Bank', address: 'Tower Chowk, Deoghar' },
-  ];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 pb-8">
-      {/* Back button */}
-      <button onClick={() => navigate(-1)} className="text-xs font-semibold text-[#1E40AF] hover:underline">
-        ← Back to alerts
-      </button>
-
-      {/* CARD 1: Alert Summary Banner */}
-      <div className={`rounded-xl border p-5 shadow-sm ${bannerBg}`}>
-        <div className="flex items-center gap-3">
-          <ShieldAlert size={24} className="shrink-0" />
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider">
-                {alertLevel} ALERT
-              </span>
-              <span className="text-xs opacity-75">· {alert?.complaint_id}</span>
-            </div>
-            <p className="mt-1 text-sm font-semibold leading-snug">{alert?.message}</p>
+    <div className="space-y-6 pb-12">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#1E40AF]">
+            <Shield size={16} /> State LEA Command Center
           </div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#0F1B2D]">
+            Active Alert Response Feed
+          </h1>
+          <p className="mt-0.5 text-xs text-[#64748B]">
+            High-priority dispatch queue and interdiction command protocols.
+          </p>
         </div>
+
+        <button
+          onClick={loadAlerts}
+          className="nexus-btn-secondary flex items-center gap-2 py-2 px-3 text-xs"
+        >
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh Alerts
+        </button>
       </div>
 
-      {/* CARD 2: Recommended Action Card */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] border-l-[3px] border-l-[#1E40AF]">
-        <div className="flex items-center gap-2 text-[#1E40AF] border-b border-[#E2E8F0] pb-3">
-          <Target size={18} />
-          <h2 className="text-xs font-semibold uppercase tracking-[0.06em]">
-            Recommended Action
-          </h2>
+      {loading ? (
+        <div className="flex h-64 items-center justify-center">
+          <LoadingPulse label="Loading state alerts queue..." />
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-[#0F1B2D]">
-          {getRecommendedAction()}
-        </p>
-      </div>
-
-      {/* CARD 3: Evidence Locker (Case Documentation) */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-2 text-[#0F1B2D] border-b border-[#E2E8F0] pb-3">
-          <FolderOpen size={18} className="text-[#1E40AF]" />
-          <h2 className="text-xs font-semibold uppercase tracking-[0.06em]">
-            Case Documentation
-          </h2>
-        </div>
-
-        {evidenceSubmitted ? (
-          <div className="mt-4 rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-4 text-xs text-[#15803D]">
-            <div className="flex items-center gap-2 font-bold text-sm">
-              <CheckCircle2 size={18} />
-              <span>Evidence Record Filed</span>
-            </div>
-            <div className="mt-3 space-y-1.5 font-mono text-[11px] text-[#374151]">
-              <p>FIR Number: {evidenceForm.fir_number || 'N/A'}</p>
-              <p>Officer: {evidenceForm.officer_name || 'N/A'}</p>
-              <p>Outcome: {evidenceForm.outcome}</p>
-              <p>Recovered: ₹{Number(evidenceForm.amount_recovered || 0).toLocaleString('en-IN')}</p>
-            </div>
+      ) : alertsList.length === 0 ? (
+        <div className="rounded-2xl border border-[#EAECF0] bg-white p-12 text-center shadow-xs">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[#1E40AF] mb-4">
+            <CheckCircle2 size={28} />
           </div>
-        ) : (
-          <form onSubmit={handleEvidenceSubmit} className="mt-4 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-[#374151]">
-                  FIR Number (Optional)
-                </span>
-                <input
-                  type="text"
-                  value={evidenceForm.fir_number}
-                  onChange={(e) => setEvidenceForm({ ...evidenceForm, fir_number: e.target.value })}
-                  placeholder="e.g. FIR-2026-902"
-                  className="nexus-input text-xs"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-[#374151]">
-                  Arresting Officer Name
-                </span>
-                <input
-                  type="text"
-                  required
-                  value={evidenceForm.officer_name}
-                  onChange={(e) => setEvidenceForm({ ...evidenceForm, officer_name: e.target.value })}
-                  placeholder="Inspector A. Kumar"
-                  className="nexus-input text-xs"
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-[#374151]">
-                  Amount Recovered (₹)
-                </span>
-                <input
-                  type="number"
-                  value={evidenceForm.amount_recovered}
-                  onChange={(e) => setEvidenceForm({ ...evidenceForm, amount_recovered: e.target.value })}
-                  placeholder="250000"
-                  className="nexus-input text-xs"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-[#374151]">Outcome</span>
-                <select
-                  value={evidenceForm.outcome}
-                  onChange={(e) => setEvidenceForm({ ...evidenceForm, outcome: e.target.value })}
-                  className="nexus-input text-xs"
-                >
-                  <option value="Under Investigation">Under Investigation</option>
-                  <option value="Suspect Apprehended">Suspect Apprehended</option>
-                  <option value="Funds Recovered">Funds Recovered</option>
-                  <option value="No Action Possible">No Action Possible</option>
-                  <option value="False Positive">False Positive</option>
-                </select>
-              </label>
-            </div>
-
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-[#374151]">Notes</span>
-              <textarea
-                rows={3}
-                value={evidenceForm.notes}
-                onChange={(e) => setEvidenceForm({ ...evidenceForm, notes: e.target.value })}
-                placeholder="Log relevant evidence, witness reports, or seizure notes..."
-                className="nexus-input text-xs resize-none"
-              />
-            </label>
-
-            <button disabled={submittingEvidence} className="nexus-btn w-full py-2.5 text-xs">
-              {submittingEvidence ? 'Submitting…' : 'Submit Case Update'}
-            </button>
-          </form>
-        )}
-      </div>
-
-      {/* CARD 4: Deployment Form */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-2 text-[#0F1B2D] border-b border-[#E2E8F0] pb-3">
-          <UserCheck size={18} className="text-[#16A34A]" />
-          <h2 className="text-xs font-semibold uppercase tracking-[0.06em]">
-            Deploy Field Officer
-          </h2>
+          <h3 className="text-base font-bold text-[#0F1B2D]">All alerts acknowledged</h3>
+          <p className="mx-auto mt-1 max-w-md text-xs text-[#64748B]">
+            No pending high-risk dispatch alerts at this moment. New incoming threats will trigger live dispatch notifications.
+          </p>
         </div>
+      ) : (
+        <div className="space-y-4">
+          {alertsList.map((alertItem) => {
+            const isRed = alertItem.alert_level === 'RED';
+            const isAcknowledged = alertItem.status === 'acknowledged';
+            const pred = alertItem.predictions;
+            const district =
+              pred?.victim_district || pred?.predicted_district || 'Deoghar';
+            const riskPct = Math.round((pred?.risk_score || 0.85) * 100);
+            const cashoutWindow = pred?.cashout_window_hours || 4;
 
-        {deployedSuccess ? (
-          <div className="mt-4 rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-4 text-xs text-[#15803D]">
-            <div className="flex items-center gap-2 font-bold text-sm">
-              <CheckCircle2 size={18} />
-              <span>Officer Deployed</span>
-            </div>
-            <p className="mt-1 text-[#374151]">
-              Assignment sent to field officer application for {deployForm.officer_name || 'Officer'}.
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleDeploymentSubmit} className="mt-4 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-[#374151]">
-                  Officer Name
-                </span>
-                <input
-                  type="text"
-                  required
-                  value={deployForm.officer_name}
-                  onChange={(e) => setDeployForm({ ...deployForm, officer_name: e.target.value })}
-                  placeholder="SI R. Sharma"
-                  className="nexus-input text-xs"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-[#374151]">
-                  Badge Number
-                </span>
-                <input
-                  type="text"
-                  required
-                  value={deployForm.badge_number}
-                  onChange={(e) => setDeployForm({ ...deployForm, badge_number: e.target.value })}
-                  placeholder="JH-4821"
-                  className="nexus-input text-xs"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-[#374151]">
-                  Vehicle Number
-                </span>
-                <input
-                  type="text"
-                  value={deployForm.vehicle_number}
-                  onChange={(e) => setDeployForm({ ...deployForm, vehicle_number: e.target.value })}
-                  placeholder="JH-01-AB-1234"
-                  className="nexus-input text-xs"
-                />
-              </label>
-            </div>
-
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-[#374151]">
-                Deployed To (Location)
-              </span>
-              <select
-                required
-                value={deployForm.deployed_to}
-                onChange={(e) => setDeployForm({ ...deployForm, deployed_to: e.target.value })}
-                className="nexus-input text-xs"
+            return (
+              <div
+                key={alertItem.id}
+                className={`rounded-2xl border bg-white p-6 shadow-xs transition-all ${
+                  isRed
+                    ? 'border-red-200 hover:border-red-300'
+                    : 'border-[#EAECF0] hover:border-slate-300'
+                }`}
               >
-                <option value="">Select target ATM location</option>
-                {atmsList.map((atm, i) => (
-                  <option key={i} value={`${atm.bank_name} ATM - ${atm.address}`}>
-                    {atm.bank_name} ATM — {atm.address}
-                  </option>
-                ))}
-              </select>
-            </label>
+                {/* Top Row: Badges & Timestamp */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F1F5F9] pb-4">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-bold uppercase ${
+                        isRed
+                          ? 'bg-red-100 text-[#DC2626] border border-red-200'
+                          : 'bg-amber-100 text-[#D97706] border border-amber-200'
+                      }`}
+                    >
+                      <Zap size={13} />
+                      {alertItem.alert_level || 'THREAT'} ALERT
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-[#0F1B2D]">
+                      {alertItem.complaint_id}
+                    </span>
+                  </div>
 
-            <button disabled={deploying} className="nexus-btn w-full py-2.5 text-xs">
-              {deploying ? 'Dispatching…' : 'Deploy Field Officer'}
-            </button>
-          </form>
-        )}
-      </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs text-[#94A3B8]">
+                      {new Date(alertItem.sent_at).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    <span
+                      className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        isAcknowledged
+                          ? 'bg-emerald-100 text-[#16A34A] border border-emerald-200'
+                          : 'bg-blue-100 text-[#1E40AF] border border-blue-200 animate-pulse'
+                      }`}
+                    >
+                      {alertItem.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Narrative Text */}
+                <div className="mt-4">
+                  <p className="text-sm font-semibold text-[#0F1B2D] leading-relaxed">
+                    {alertItem.message}
+                  </p>
+                  {pred?.llm_narrative && (
+                    <p className="mt-2 text-xs text-[#64748B] leading-relaxed rounded-xl bg-[#F8FAFC] p-3 border border-slate-200/60">
+                      {pred.llm_narrative}
+                    </p>
+                  )}
+                </div>
+
+                {/* Linked Prediction Details Bar */}
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 rounded-xl bg-[#F8FAFC] p-3 text-xs border border-[#F1F5F9]">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                      Risk Confidence
+                    </span>
+                    <p className="mt-0.5 font-mono font-bold text-[#DC2626]">{riskPct}%</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                      Target District
+                    </span>
+                    <p className="mt-0.5 font-semibold text-[#0F1B2D]">{district}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                      Cash-Out Window
+                    </span>
+                    <p className="mt-0.5 font-mono font-semibold text-[#1E40AF]">
+                      &lt; {cashoutWindow} Hours
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                      Action Node
+                    </span>
+                    <p className="mt-0.5 font-semibold text-[#16A34A]">ATM Interdiction</p>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#F1F5F9] pt-4">
+                  <button
+                    onClick={() =>
+                      navigate(`/prediction/${alertItem.prediction_id || alertItem.complaint_id}`)
+                    }
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E40AF] hover:underline"
+                  >
+                    <span>View Target Forensics & Mule Graph</span>
+                    <ArrowUpRight size={14} />
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {!isAcknowledged && (
+                      <button
+                        onClick={() => handleAcknowledge(alertItem.id)}
+                        className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F1B2D] hover:bg-[#F8FAFC] transition shadow-xs"
+                      >
+                        Acknowledge
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() =>
+                        setDeployingAlertId(
+                          deployingAlertId === alertItem.id ? null : alertItem.id
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#1E40AF] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A8A] transition shadow-xs"
+                    >
+                      <UserCheck size={14} />
+                      <span>Deploy Team</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Inline Deploy Team Form */}
+                {deployingAlertId === alertItem.id && (
+                  <div className="mt-4 rounded-xl border border-blue-200 bg-[#EFF6FF]/60 p-4 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <h4 className="text-xs font-bold text-[#1E40AF] uppercase tracking-wider mb-3">
+                      Dispatch Field Interdiction Unit
+                    </h4>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#374151] mb-1">
+                          Officer Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={officerName}
+                          onChange={(e) => setOfficerName(e.target.value)}
+                          placeholder="e.g. Inspector R. Verma"
+                          className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#0F1B2D] outline-none focus:border-[#3B82F6]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#374151] mb-1">
+                          Vehicle / Unit Number
+                        </label>
+                        <input
+                          type="text"
+                          value={vehicleNumber}
+                          onChange={(e) => setVehicleNumber(e.target.value)}
+                          placeholder="e.g. JH-01-CR-4091"
+                          className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#0F1B2D] outline-none focus:border-[#3B82F6]"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        onClick={() => setDeployingAlertId(null)}
+                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleConfirmDeployment(alertItem)}
+                        disabled={submittingDeploy}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#1E40AF] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A8A] transition shadow-xs disabled:opacity-50"
+                      >
+                        <Send size={13} />
+                        <span>{submittingDeploy ? 'Confirming...' : 'Confirm Deployment'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

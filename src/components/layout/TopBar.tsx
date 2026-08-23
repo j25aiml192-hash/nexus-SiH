@@ -1,7 +1,7 @@
-import { Bell, Plus, RefreshCw } from 'lucide-react';
+import { Menu, Plus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useNexusStore } from '@/store/nexusStore';
-import { ROLES } from '@/lib/constants';
+import NotificationBell from './NotificationBell';
 
 const titles: Record<string, string> = {
   '/dashboard': 'National Command Center',
@@ -18,58 +18,42 @@ const titles: Record<string, string> = {
   '/field/report': 'Incident Report',
 };
 
-const roleBadges: Record<string, { bg: string; text: string; border: string }> = {
-  [ROLES.I4C_NATIONAL]: { bg: 'bg-[#EFF6FF]', text: 'text-[#1E40AF]', border: 'border-[#BFDBFE]' },
-  [ROLES.STATE_LEA]: { bg: 'bg-[#F0FDF4]', text: 'text-[#16A34A]', border: 'border-[#BBF7D0]' },
-  [ROLES.BANK_OFFICER]: { bg: 'bg-[#FDF4FF]', text: 'text-[#7C3AED]', border: 'border-[#E9D5FF]' },
-  [ROLES.FIELD_OFFICER]: { bg: 'bg-[#FFF7ED]', text: 'text-[#D97706]', border: 'border-[#FED7AA]' },
-};
-
 export default function TopBar({ onNewComplaint }: { onNewComplaint: () => void }) {
   const location = useLocation();
-  const user = useNexusStore((s) => s.user);
-  const last = useNexusStore((s) => s.lastLoopRun);
-  const diff = last ? Math.max(0, Math.floor((Date.now() - new Date(last).getTime()) / 60000)) : 2;
-
-  const roleStyle = roleBadges[user?.role || ROLES.I4C_NATIONAL] || roleBadges[ROLES.I4C_NATIONAL];
+  const collapsed = useNexusStore((s) => s.sidebarCollapsed);
+  const toggleMobileSidebar = useNexusStore((s) => s.toggleMobileSidebar);
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-20 flex h-[56px] items-center justify-between border-b border-[#E2E8F0] bg-white px-5 lg:left-60">
-      <div>
-        <h1 className="text-base font-semibold text-[#0F1B2D]">{titles[location.pathname] || 'NEXUS Operations'}</h1>
+    <header
+      className={`fixed right-0 top-0 z-[1000] flex h-[56px] items-center justify-between border-b border-[#EAECF0] bg-white px-4 transition-all duration-300 ease-in-out sm:px-5 ${
+        collapsed ? 'left-0 lg:left-[72px]' : 'left-0 lg:left-64'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        {/* Mobile Hamburger Button */}
+        <button
+          onClick={toggleMobileSidebar}
+          className="rounded-lg p-1.5 text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition lg:hidden"
+          title="Open Menu"
+        >
+          <Menu size={20} />
+        </button>
+
+        <h1 className="text-sm font-semibold text-[#0F1B2D] sm:text-base">
+          {titles[location.pathname] || 'NEXUS Operations'}
+        </h1>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <button
           onClick={onNewComplaint}
-          className="hidden items-center gap-1.5 rounded-lg bg-black px-3.5 py-1.5 text-xs font-semibold text-white sm:flex"
+          className="flex items-center gap-1.5 rounded-lg bg-[#1E40AF] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#1E3A8A] transition"
         >
           <Plus size={15} /> New complaint
         </button>
 
-        <div className="hidden items-center gap-2 rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1 md:flex">
-          <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
-          <span className="text-xs font-medium text-[#16A34A]">ENGINE ACTIVE</span>
-        </div>
-
-        <div className="flex items-center gap-2 border-l border-[#E2E8F0] pl-4">
-          <div className="hidden text-right sm:block">
-            <p className="text-xs font-semibold text-[#0F1B2D]">{user?.name || 'Operator'}</p>
-            <span
-              className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase border ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}
-            >
-              {user?.role || 'operator'}
-            </span>
-          </div>
-        </div>
-
-        <div className="hidden items-center gap-1.5 text-xs text-[#64748B] xl:flex">
-          <RefreshCw size={13} className="text-[#64748B]" /> Last sync: {diff} min ago
-        </div>
-
-        <button className="text-[#64748B] transition hover:text-[#0F1B2D]">
-          <Bell size={18} />
-        </button>
+        {/* Responsive Circular Notification Bell with Badge & Popover */}
+        <NotificationBell />
       </div>
     </header>
   );

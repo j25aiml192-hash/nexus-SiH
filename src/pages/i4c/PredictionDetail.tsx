@@ -503,56 +503,84 @@ export default function PredictionDetail() {
               </span>
             </div>
 
-            <div className="h-[280px] w-full rounded-lg bg-[#1A2035] overflow-hidden">
-              <ReactFlow
-                nodes={flowNodes}
-                edges={flowEdges}
-                nodeTypes={nodeTypes}
-                nodesDraggable={false}
-                nodesConnectable={false}
-                elementsSelectable={false}
-                zoomOnScroll={false}
-                panOnDrag={false}
-                fitView
-                fitViewOptions={{ padding: 0.2 }}
-              >
-                <Background color="#334155" gap={16} size={1} />
-              </ReactFlow>
-            </div>
+            {nodes && nodes.length > 0 ? (
+              <>
+                <div className="h-[280px] w-full rounded-lg bg-[#0F172A] overflow-hidden">
+                  <ReactFlow
+                    nodes={flowNodes}
+                    edges={flowEdges}
+                    nodeTypes={nodeTypes}
+                    nodesDraggable={false}
+                    nodesConnectable={false}
+                    elementsSelectable={false}
+                    zoomOnScroll={false}
+                    panOnDrag={false}
+                    fitView
+                    fitViewOptions={{ padding: 0.2 }}
+                  >
+                    <Background color="#334155" gap={16} size={1} />
+                  </ReactFlow>
+                </div>
 
-            <div className="mt-3 flex items-center gap-2 text-xs text-[#64748B]">
-              <ArrowRight size={14} className="text-[#1E40AF]" />
-              <span>
-                Money moved across {uniqueStatesCount} states in estimated 4-6 hours
-              </span>
-            </div>
+                <div className="mt-3 flex items-center gap-2 text-xs text-[#64748B]">
+                  <ArrowRight size={14} className="text-[#1E40AF]" />
+                  <span>
+                    Money moved across {uniqueStatesCount} states in estimated 4-6 hours
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-[#F8FAFC] py-12 px-6 text-center text-xs text-[#64748B]">
+                <GitBranch size={28} className="mx-auto text-slate-400 mb-2" />
+                <p className="font-semibold text-slate-700">Mule chain analysis pending</p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Backend engine will populate this within 90 seconds of complaint ingestion.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* SECTION 3: Predicted ATM Locations */}
           <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.06em] text-[#0F1B2D]">
-              Predicted Cash-Out Locations
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.06em] text-[#0F1B2D]">
+                Predicted Cash-Out Locations
+              </h2>
+              <span className="text-[11px] font-mono font-semibold text-[#1E40AF]">
+                {atms?.length || 0} Identified
+              </span>
+            </div>
 
             {atms && atms.length > 0 ? (
               <div className="mt-4 space-y-2.5">
                 {atms.map((atm, idx) => (
                   <div
                     key={atm.atm_id || idx}
-                    className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs"
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-start gap-2.5 min-w-0">
                       <MapPin size={16} className="mt-0.5 shrink-0 text-[#DC2626]" />
-                      <div>
-                        <p className="font-bold text-[#0F1B2D]">
-                          {atm.bank_name} ATM ({atm.atm_id})
+                      <div className="min-w-0">
+                        <p className="font-bold text-[#0F1B2D] truncate">
+                          {atm.bank_name} ATM
                         </p>
-                        <p className="mt-0.5 text-[#64748B]">{atm.address}</p>
+                        <p className="mt-0.5 text-[#64748B] truncate">{atm.address}</p>
                       </div>
                     </div>
-                    <span className="shrink-0 font-mono text-[11px] font-medium text-[#64748B]">
-                      {atm.distance_km ? `${atm.distance_km} km away` : '1.4 km away'}
-                    </span>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="font-mono text-[11px] font-bold text-[#1E40AF] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                        {atm.distance_km ? `${atm.distance_km} km away` : '1.4 km away'}
+                      </span>
+                      <button
+                        onClick={() =>
+                          window.open(`https://maps.google.com/?q=${atm.lat},${atm.lng}`, '_blank')
+                        }
+                        className="rounded-lg bg-white border border-[#E2E8F0] px-2.5 py-1 text-[11px] font-semibold text-[#0F1B2D] hover:bg-slate-50 transition shadow-2xs"
+                      >
+                        View on Map ↗
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

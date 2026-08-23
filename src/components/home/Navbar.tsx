@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Menu, X, Shield, Terminal } from 'lucide-react';
+import NexusLogo from '@/components/shared/NexusLogo';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -11,8 +12,8 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
         {/* Brand / Logo */}
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-black text-white font-mono text-sm font-bold tracking-tight transition-transform group-hover:scale-105">
-            NX
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 p-1.5 shadow-xs transition-transform group-hover:scale-105">
+            <NexusLogo className="h-full w-full" color="#000000" />
           </div>
           <div className="flex flex-col">
             <span className="font-extrabold tracking-tight text-black">
