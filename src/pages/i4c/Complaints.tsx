@@ -73,16 +73,13 @@ export default function Complaints() {
   useEffect(() => {
     fetchComplaintsAndPredictions();
 
-    // Subscribe to realtime insert events on complaints table
     const channel = supabase
-      .channel('complaints_realtime')
+      .channel('complaints-changes')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'complaints' },
         (payload) => {
-          if (payload.new) {
-            setComplaints((prev) => [payload.new as Record<string, unknown>, ...prev]);
-          }
+          setComplaints((prev) => [payload.new as Record<string, unknown>, ...prev]);
         }
       )
       .subscribe();
@@ -251,16 +248,13 @@ export default function Complaints() {
               ) : (
                 paginatedComplaints.map((c) => {
                   const compId = String(c.complaint_id || '');
-                  const predId = predictionMap[compId] || (compId.includes('NCRP') ? compId : null);
                   const fraudObj = FRAUD_TYPES.find((f) => f.value === c.fraud_type);
 
                   return (
                     <tr
                       key={String(c.id || compId)}
-                      onClick={() => predId && navigate(`/prediction/${predId}`)}
-                      className={`transition-colors hover:bg-[#F8FAFC] ${
-                        predId ? 'cursor-pointer' : ''
-                      }`}
+                      onClick={() => compId && navigate(`/prediction/${compId}`)}
+                      className="transition-colors hover:bg-[#F8FAFC] cursor-pointer"
                     >
                       <td className="py-3.5 px-4 font-mono font-bold text-[#1A2035]">
                         {compId}
@@ -287,18 +281,12 @@ export default function Complaints() {
                         <StatusBadge status={String(c.status || 'pending')} />
                       </td>
                       <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                        {predId ? (
-                          <button
-                            onClick={() => navigate(`/prediction/${predId}`)}
-                            className="nexus-btn-secondary px-3 py-1 text-[11px]"
-                          >
-                            View
-                          </button>
-                        ) : (
-                          <span className="text-[11px] font-medium text-[#94A3B8]">
-                            Processing...
-                          </span>
-                        )}
+                        <button
+                          onClick={() => navigate(`/prediction/${compId}`)}
+                          className="nexus-btn-secondary px-3 py-1 text-[11px]"
+                        >
+                          View
+                        </button>
                       </td>
                     </tr>
                   );

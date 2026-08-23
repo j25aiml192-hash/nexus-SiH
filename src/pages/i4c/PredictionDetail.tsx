@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Building2,
@@ -158,7 +158,7 @@ export default function PredictionDetail() {
     try {
       // Parallel Supabase Queries
       const [predRes, nodesRes, complaintRes] = await Promise.all([
-        supabase.from('predictions').select('*').eq('id', id).single(),
+        supabase.from('predictions').select('*').eq('complaint_id', id).single(),
         supabase.from('mule_chain_nodes').select('*').order('node_index', { ascending: true }),
         supabase.from('complaints').select('*'),
       ]);
