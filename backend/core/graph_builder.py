@@ -7,7 +7,7 @@ def build_graph(complaint_id: str):
     complaint = complaints_res.data
     
     if not complaint:
-        print("ERROR1")
+        print(f"complaint with id {complaint_id} not found")
         return
 
     mule_res = supabase.table("mule_chain_nodes").select("*").eq("complaint_id", complaint_id).execute()
