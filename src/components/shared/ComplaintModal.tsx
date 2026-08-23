@@ -49,14 +49,14 @@ export default function ComplaintModal({ onClose }: { onClose: () => void }) {
         complaint_id,
         fraud_type: form.fraud_type,
         amount: parseFloat(form.amount),
+        filed_at: new Date(form.filed_at).toISOString(),
         victim_state: form.victim_state,
         victim_district: form.victim_district,
         accused_phone_prefix: form.accused_phone_prefix,
         accused_bank: form.accused_bank || 'State Bank of India',
         accused_account_hash,
-        filed_at: new Date(form.filed_at).toISOString(),
+        mule_chain_depth: 2,
         status: 'pending',
-        alert_level: 'GREEN',
       };
 
       // 1. Insert directly into Supabase complaints table
