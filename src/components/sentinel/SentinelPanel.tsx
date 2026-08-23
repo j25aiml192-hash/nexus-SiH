@@ -18,11 +18,17 @@ export default function SentinelPanel() {
 
   useEffect(() => {
     const fetchScores = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('sentinel_scores')
         .select('*')
         .order('surge_score', { ascending: false })
         .limit(8);
+      if (error) {
+        console.error('Sentinel panel fetch error:', error);
+        setScores([]);
+        setLoading(false);
+        return;
+      }
       setScores(data || []);
       setLoading(false);
     };

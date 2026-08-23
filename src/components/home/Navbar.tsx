@@ -52,7 +52,7 @@ export default function Navbar() {
         {/* Action Button */}
         <div className="hidden md:flex items-center gap-4">
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/dashboard')}
             className="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-neutral-800"
           >
             <span>Operator Console</span>
@@ -111,7 +111,7 @@ export default function Navbar() {
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
-                navigate('/login');
+                navigate('/dashboard');
               }}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-black py-3 text-xs font-bold uppercase tracking-wider text-white"
             >

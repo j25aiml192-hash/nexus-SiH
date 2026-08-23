@@ -24,7 +24,7 @@ export default function CtaFooterSection() {
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md">
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/dashboard')}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-white px-8 py-4 text-sm font-bold uppercase tracking-wider text-black transition-all hover:bg-neutral-200 active:scale-[0.98]"
             >
               <span>Access Operator Console</span>

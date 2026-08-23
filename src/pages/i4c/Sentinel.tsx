@@ -25,11 +25,17 @@ export default function Sentinel() {
   const fetchAllScores = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('sentinel_scores')
         .select('*')
-        .order('surge_score', { ascending: false });
+        .order('surge_score', { ascending: false })
+        .limit(50);
 
+      if (error) {
+        console.error('Sentinel fetch error:', error);
+        setScores([]);
+        return;
+      }
       setScores(data || []);
     } catch (err) {
       console.error('Error fetching all sentinel scores:', err);
