@@ -80,3 +80,34 @@ def get_mules(complaint_id: str):
         "complaint_id": complaint_id,
         "mule_nodes": result.data
     }
+
+
+@router.get("/details/{complaint_id}")
+def get_mule_complaint_full_details(complaint_id: str):
+    """
+    Executes single optimized RPC function in Postgres returning
+    complaint, mule chain traversal, prediction scores, and cashout nodes.
+    """
+    try:
+        response = supabase.rpc("get_mule_complaint_details", {"p_complaint_id": complaint_id}).execute()
+        if response.data:
+            return response.data
+    except Exception as e:
+        print(f"RPC call notice: {e}")
+
+    # Fallback to PostgREST relational query if RPC is not deployed yet
+    complaint = (
+        supabase
+        .table("complaints")
+        .select("*, mule_chain_nodes(*), predictions(*)")
+        .eq("complaint_id", complaint_id)
+        .execute()
+    )
+
+    if not complaint.data:
+        raise HTTPException(
+            status_code=404,
+            detail="Complaint not found"
+        )
+
+    return complaint.data[0]

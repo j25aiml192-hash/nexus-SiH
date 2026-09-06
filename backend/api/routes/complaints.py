@@ -52,4 +52,21 @@ def ingest_complaint(complaint: ComplaintCreate):
 def list_complaints(limit: int = 50):
     result = supabase.table('complaints').select('*')\
              .order('created_at', desc=True).limit(limit).execute()
-    return result.data
+    return result.data
+
+
+@router.get("/enriched")
+def list_enriched_complaints(limit: int = 50):
+    """
+    Fetches complaints enriched with mule chain count and active predictions.
+    """
+    result = (
+        supabase
+        .table("complaints")
+        .select("*, mule_chain_nodes(*), predictions(*)")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data
+
