@@ -348,7 +348,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.alerts;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.system_logs;
 
 -- ============================================================
--- INDEXES
+-- INDEXES & PERFORMANCE OPTIMIZATIONS
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_complaints_status ON public.complaints(status);
 CREATE INDEX IF NOT EXISTS idx_complaints_created_at ON public.complaints(created_at);
@@ -357,3 +357,76 @@ CREATE INDEX IF NOT EXISTS idx_predictions_complaint_id ON public.predictions(co
 CREATE INDEX IF NOT EXISTS idx_alerts_status ON public.alerts(status);
 CREATE INDEX IF NOT EXISTS idx_alerts_recipient_id ON public.alerts(recipient_id);
 CREATE INDEX IF NOT EXISTS idx_mule_chain_complaint_id ON public.mule_chain_nodes(complaint_id);
+CREATE INDEX IF NOT EXISTS idx_mule_nodes_account ON public.mule_chain_nodes(account_hash);
+CREATE INDEX IF NOT EXISTS idx_alerts_prediction_id ON public.alerts(prediction_id);
+CREATE INDEX IF NOT EXISTS idx_atm_locations_lat_lng ON public.atm_locations(lat, lng);
+
+-- ============================================================
+-- MODEL TRAINING DATASET VIEW
+-- ============================================================
+CREATE OR REPLACE VIEW model_training_dataset AS
+SELECT 
+    c.complaint_id,
+    c.fraud_type,
+    CASE 
+        WHEN c.fraud_type = 'digital_arrest' THEN 0.90
+        WHEN c.fraud_type = 'investment' THEN 0.75
+        WHEN c.fraud_type = 'upi' THEN 0.65
+        WHEN c.fraud_type = 'loan' THEN 0.55
+        ELSE 0.45
+    END AS fraud_type_risk,
+    LN(c.amount + 1) AS log_amount,
+    EXTRACT(HOUR FROM c.filed_at) AS hour,
+    EXTRACT(DOW FROM c.filed_at) AS day_of_week,
+    COALESCE(mule_stats.mule_chain_depth, 0) AS mule_chain_depth,
+    COALESCE(mule_stats.max_velocity, 0) AS transaction_velocity,
+    CASE 
+        WHEN c.status IN ('flagged', 'alerted', 'intercepted') THEN 1 
+        ELSE 0 
+    END AS target
+FROM public.complaints c
+LEFT JOIN (
+    SELECT 
+        complaint_id,
+        COUNT(id) AS mule_chain_depth,
+        MAX(transaction_velocity) AS max_velocity
+    FROM public.mule_chain_nodes
+    GROUP BY complaint_id
+) mule_stats ON c.complaint_id = mule_stats.complaint_id;
+
+-- ============================================================
+-- RPC FUNCTION: get_mule_complaint_details
+-- ============================================================
+CREATE OR REPLACE FUNCTION get_mule_complaint_details(p_complaint_id TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    SELECT jsonb_build_object(
+        'complaint', row_to_json(c),
+        'mule_chain', (
+            SELECT jsonb_agg(m ORDER BY m.node_index ASC)
+            FROM public.mule_chain_nodes m
+            WHERE m.complaint_id = p_complaint_id
+        ),
+        'predictions', (
+            SELECT jsonb_agg(p)
+            FROM public.predictions p
+            WHERE p.complaint_id = p_complaint_id
+        ),
+        'cashout_atms', (
+            SELECT jsonb_agg(a)
+            FROM public.atm_locations a
+            WHERE a.state = c.victim_state
+            LIMIT 10
+        )
+    ) INTO result
+    FROM public.complaints c
+    WHERE c.complaint_id = p_complaint_id;
+
+    RETURN result;
+END;
+$$;

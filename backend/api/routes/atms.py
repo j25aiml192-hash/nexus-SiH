@@ -44,3 +44,18 @@ def get_atms(ids: str):
     )
 
     return result.data
+
+
+@router.get("/cashout-nodes")
+def get_cashout_atms(state: str | None = None, district: str | None = None, limit: int = 50):
+    """
+    Fetches ATM cashout nodes filtered by geographic location.
+    """
+    query = supabase.table("atm_locations").select("*")
+    if state:
+        query = query.eq("state", state)
+    if district:
+        query = query.eq("district", district)
+        
+    result = query.limit(limit).execute()
+    return result.data
