@@ -14,6 +14,10 @@ import {
 import { useMapData } from '../hooks/useNexusData';
 import { useNavigate } from 'react-router-dom';
 
+// CARTO API Key (optional for authenticated accounts / higher limits)
+const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY || '';
+const cartoKeyParam = CARTO_API_KEY ? `?api_key=${CARTO_API_KEY}` : '';
+
 // Light architectural 3D perspective basemap style
 const LIGHT_MAP_STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -21,10 +25,10 @@ const LIGHT_MAP_STYLE: maplibregl.StyleSpecification = {
     'carto-light-basemap': {
       type: 'raster',
       tiles: [
-        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+        `https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png${cartoKeyParam}`,
+        `https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png${cartoKeyParam}`,
+        `https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png${cartoKeyParam}`,
+        `https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png${cartoKeyParam}`,
       ],
       tileSize: 256,
       attribution: '&copy; CARTO &copy; OpenStreetMap contributors',
