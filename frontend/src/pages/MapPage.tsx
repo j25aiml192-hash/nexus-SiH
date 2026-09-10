@@ -16,19 +16,19 @@ import { useNavigate } from 'react-router-dom';
 
 // CARTO API Key (optional for authenticated accounts / higher limits)
 const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY || '';
-const cartoKeyParam = CARTO_API_KEY ? `?api_key=${CARTO_API_KEY}` : '';
+const cartoKeyParam = CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : '';
 
 // Light architectural 3D perspective basemap style
 const LIGHT_MAP_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
-    'carto-light-basemap': {
+    'carto-voyager-basemap': {
       type: 'raster',
       tiles: [
-        `https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png${cartoKeyParam}`,
-        `https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png${cartoKeyParam}`,
-        `https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png${cartoKeyParam}`,
-        `https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png${cartoKeyParam}`,
+        `https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
+        `https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
+        `https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
+        `https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
       ],
       tileSize: 256,
       attribution: '&copy; CARTO &copy; OpenStreetMap contributors',
@@ -36,9 +36,9 @@ const LIGHT_MAP_STYLE: maplibregl.StyleSpecification = {
   },
   layers: [
     {
-      id: 'carto-light-layer',
+      id: 'carto-voyager-layer',
       type: 'raster',
-      source: 'carto-light-basemap',
+      source: 'carto-voyager-basemap',
       minzoom: 0,
       maxzoom: 22,
       paint: {
@@ -727,9 +727,8 @@ export const MapPage: React.FC = () => {
                 <button
                   key={range}
                   onClick={() => setTimeFilter(range)}
-                  className={`nexus-pill-button text-xs ${
-                    timeFilter === range ? 'active' : ''
-                  }`}
+                  className={`nexus-pill-button text-xs ${timeFilter === range ? 'active' : ''
+                    }`}
                 >
                   {range.toUpperCase()}
                 </button>
