@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Shield,
   Map,
@@ -8,11 +8,13 @@ import {
   Cpu,
   LayoutDashboard,
   ListOrdered,
+  Share2,
 } from 'lucide-react';
 import { useNexusStore } from '../store/useNexusStore';
 
 export const Navigation: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const alerts = useNexusStore((state) => state.alerts);
   const incidents = useNexusStore((state) => state.incidents);
   const newAlertsCount = alerts.filter((a) => a.status === 'new').length;
@@ -65,6 +67,19 @@ export const Navigation: React.FC = () => {
             <ListOrdered size={20} />
           </div>
           <span className="nexus-sidebar-label">Complaint List</span>
+        </NavLink>
+
+        <NavLink
+          to="/complaints/C1030/network"
+          className={({ isActive }) =>
+            `nexus-sidebar-tab ${isActive || location.pathname.includes('/network') ? 'active' : ''}`
+          }
+          title="Network Graph"
+        >
+          <div className="nexus-sidebar-icon-wrapper">
+            <Share2 size={20} />
+          </div>
+          <span className="nexus-sidebar-label">Network Graph</span>
         </NavLink>
 
         <NavLink

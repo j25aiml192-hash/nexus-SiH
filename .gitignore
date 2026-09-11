@@ -24,4 +24,6 @@ dist-ssr
 
 __pycache__/
 *.pyc
-*.pkl
+*.pklfrontend/nexus-graph-explorer-main/
+/package.json
+/package-lock.json

@@ -32,6 +32,7 @@
   --risk-low-border: #C6EADB;
 
   --font-header: 'Archivo Black', sans-serif;
+  --font-archivo: 'Archivo Black', sans-serif;
   --font-sub: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-sans: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -2126,3 +2127,2378 @@ h4,
   padding: 60px 0;
   text-align: center;
 }
+
+/* ==========================================================================
+   Reference Design Styles - Vigilance Nexus Intelligence Console
+   ========================================================================== */
+
+/* Main Application Shell */
+.nexus-app,
+.nexus-app-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-secondary);
+  font-family: var(--font-sans);
+  color: #102A2A;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+.nexus-main-wrapper {
+  margin-left: 64px;
+  width: calc(100% - 64px);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
+  background-color: var(--bg-secondary);
+}
+
+.nexus-main-content {
+  flex: 1;
+  padding: 24px 32px;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.nexus-page-container {
+  width: 100%;
+  padding-bottom: 32px;
+}
+
+/* --------------------------------------------------------------------------
+   TopBar Component
+   -------------------------------------------------------------------------- */
+.nexus-topbar {
+  height: 54px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #E2E8E6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 28px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.nexus-topbar-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.nexus-topbar-search-form {
+  width: 100%;
+  max-width: 440px;
+}
+
+.nexus-topbar-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  padding: 6px 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nexus-topbar-search-wrapper:focus-within {
+  border-color: #087F5B;
+  box-shadow: 0 0 0 2px rgba(8, 127, 91, 0.12);
+}
+
+.nexus-search-icon {
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+.nexus-topbar-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: #102A2A;
+  width: 100%;
+  font-family: var(--font-sans);
+}
+
+.nexus-topbar-search-input::placeholder {
+  color: #94A3B8;
+}
+
+.nexus-search-shortcut {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: #64748B;
+  background-color: #F1F5F9;
+  border: 1px solid #E2E8E6;
+  border-radius: 4px;
+  padding: 1px 5px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.nexus-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nexus-topbar-icon-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid #E2E8E6;
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nexus-topbar-icon-btn:hover {
+  background-color: #F8FAFC;
+  color: #102A2A;
+}
+
+.nexus-notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #DC2626;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #FFFFFF;
+}
+
+.nexus-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.nexus-user-pill:hover {
+  background-color: #F8FAFC;
+}
+
+.nexus-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background-color: #E8F5EE;
+  color: #087F5B;
+  font-weight: 700;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #C6EADB;
+}
+
+.nexus-user-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.nexus-user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #102A2A;
+  line-height: 1.2;
+}
+
+.nexus-user-role {
+  font-size: 11px;
+  color: #64748B;
+  line-height: 1;
+}
+
+.nexus-user-chevron {
+  color: #94A3B8;
+  margin-left: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Dashboard Page Elements
+   -------------------------------------------------------------------------- */
+.nexus-dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.nexus-page-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #102A2A;
+  font-family: var(--font-archivo);
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+}
+
+.nexus-badge-system-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  background-color: #E8F5EE;
+  color: #087F5B;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border-radius: 12px;
+  border: 1px solid #C6EADB;
+}
+
+.nexus-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #087F5B;
+}
+
+.nexus-page-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin-top: 4px;
+}
+
+.nexus-operational-overview {
+  font-size: 11px;
+  color: #64748B;
+  letter-spacing: 0.4px;
+  margin-top: 6px;
+}
+
+.nexus-role-toggle {
+  display: flex;
+  background-color: #F1F5F9;
+  border-radius: 8px;
+  padding: 2px;
+  border: 1px solid #E2E8E6;
+}
+
+.nexus-role-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nexus-role-btn.active {
+  background-color: #E8F5EE;
+  color: #087F5B;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.nexus-timeframe-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #102A2A;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* KPI Summary Cards Grid */
+.nexus-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1024px) {
+  .nexus-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .nexus-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nexus-kpi-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 104px;
+}
+
+.nexus-kpi-card-funds {
+  border-color: #C6EADB;
+  background-color: #FAFCFB;
+}
+
+.nexus-kpi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 18px;
+}
+
+.nexus-kpi-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #64748B;
+  letter-spacing: 0.5px;
+}
+
+.nexus-kpi-trend {
+  font-size: 11px;
+  color: #087F5B;
+  font-weight: 600;
+}
+
+.nexus-kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #102A2A;
+  margin: 6px 0 2px;
+  line-height: 1.1;
+}
+
+.nexus-kpi-subtext {
+  font-size: 11px;
+  color: #64748B;
+}
+
+/* Incidents KPI Two-Column Split */
+.nexus-kpi-incidents-metrics {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.nexus-kpi-incident-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nexus-kpi-incident-item .nexus-kpi-value {
+  margin: 6px 0 2px;
+  line-height: 1.1;
+}
+
+.nexus-kpi-incident-item .nexus-kpi-subtext {
+  white-space: nowrap;
+}
+
+/* Dashboard 2-column main grid */
+.nexus-dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.05fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .nexus-dashboard-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Cards, Badges & Lists
+   -------------------------------------------------------------------------- */
+.nexus-box-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.nexus-box-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.nexus-box-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #102A2A;
+  font-family: var(--font-sans);
+}
+
+.nexus-box-subtitle {
+  font-size: 11.5px;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+/* Priority Alerts */
+.nexus-priority-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nexus-priority-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.nexus-priority-row:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.nexus-priority-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nexus-priority-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.nexus-priority-accounts {
+  font-size: 13px;
+}
+
+.nexus-priority-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nexus-badge-risk {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.4px;
+}
+
+.nexus-badge-critical {
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.nexus-badge-high {
+  background-color: #FFF7ED;
+  color: #EA580C;
+  border: 1px solid #FFEDD5;
+}
+
+.nexus-badge-medium {
+  background-color: #FEFCE8;
+  color: #D97706;
+  border: 1px solid #FEF08A;
+}
+
+.nexus-badge-low {
+  background-color: #E8F5EE;
+  color: #087F5B;
+  border: 1px solid #C6EADB;
+}
+
+.nexus-escalation-bar {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background-color: #F8FAFC;
+  border: 1px solid #EDF2F0;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+/* Live Activity */
+.nexus-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nexus-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 1px solid #F1F5F9;
+  background-color: #FFFFFF;
+  transition: all 0.15s ease;
+}
+
+.nexus-activity-row:hover {
+  background-color: #F8FAFC;
+  border-color: #E2E8E6;
+}
+
+.nexus-activity-icon-container {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  background-color: #F8FAFC;
+  border: 1px solid #EDF2F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nexus-activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.nexus-activity-main-text {
+  font-size: 12.5px;
+  color: #102A2A;
+}
+
+.nexus-activity-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nexus-activity-badge {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.4px;
+}
+
+.nexus-activity-badge-intake {
+  background-color: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+}
+
+.nexus-activity-badge-high {
+  background-color: #FFF7ED;
+  color: #EA580C;
+  border: 1px solid #FFEDD5;
+}
+
+.nexus-activity-badge-critical {
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.nexus-activity-badge-active {
+  background-color: #E8F5EE;
+  color: #087F5B;
+  border: 1px solid #C6EADB;
+}
+
+.nexus-activity-badge-closed {
+  background-color: #F0FDF4;
+  color: #16A34A;
+  border: 1px solid #BBF7D0;
+}
+
+.nexus-activity-badge-medium {
+  background-color: #FEFCE8;
+  color: #D97706;
+  border: 1px solid #FEF08A;
+}
+
+.nexus-activity-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #EDF2F0;
+}
+
+/* Quick Action Buttons */
+.nexus-quick-btn-primary {
+  background-color: #087F5B;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.nexus-quick-btn-primary:hover {
+  background-color: #06694b;
+}
+
+.nexus-quick-btn-secondary {
+  background-color: #FFFFFF;
+  color: #102A2A;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-radius: 6px;
+  border: 1px solid #E2E8E6;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nexus-quick-btn-secondary:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+/* Demonstration Footer */
+.nexus-demonstration-footer {
+  margin-top: 36px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: #94A3B8;
+  letter-spacing: 0.8px;
+}
+
+/* --------------------------------------------------------------------------
+   Complaints Registry & Table
+   -------------------------------------------------------------------------- */
+.nexus-complaints-header {
+  margin-bottom: 8px;
+}
+
+/* Complaints Summary Horizontal Container (60% / 40% split on desktop) */
+.nexus-complaints-summary-container {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  margin-top: 18px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .nexus-complaints-summary-container {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.nexus-complaints-summary-left {
+  flex: 6;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-bottom: 1px solid #E2E8E6;
+}
+
+@media (min-width: 768px) {
+  .nexus-complaints-summary-left {
+    border-bottom: none;
+    border-right: 1px solid #E2E8E6;
+    width: 60%;
+  }
+}
+
+.nexus-complaints-summary-right {
+  flex: 4;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .nexus-complaints-summary-right {
+    width: 40%;
+  }
+}
+
+.nexus-filter-bar {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 1024px) {
+  .nexus-filter-bar {
+    flex-wrap: nowrap;
+  }
+  .nexus-filter-search {
+    flex: 0 1 290px;
+    min-width: 220px;
+  }
+  .nexus-filter-dropdowns {
+    flex-wrap: nowrap;
+    flex: 1;
+  }
+}
+
+.nexus-filter-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  padding: 6px 12px;
+  min-width: 220px;
+}
+
+.nexus-filter-input {
+  border: none;
+  outline: none;
+  font-size: 12.5px;
+  color: #102A2A;
+  width: 100%;
+  background: transparent;
+}
+
+.nexus-filter-dropdowns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  flex: 2;
+}
+
+.nexus-filter-select-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nexus-filter-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #64748B;
+}
+
+.nexus-filter-select {
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  padding: 5px 22px 5px 8px;
+  font-size: 12px;
+  color: #102A2A;
+  background-color: #FFFFFF;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+}
+
+.nexus-filter-clear-btn {
+  border: 1px solid #E2E8E6;
+  background-color: transparent;
+  color: #64748B;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.nexus-filter-clear-btn:hover {
+  background-color: #F8FAFC;
+  color: #102A2A;
+}
+
+.nexus-table-wrapper {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.nexus-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.nexus-table th {
+  padding: 10px 16px;
+  background-color: #F8FAFC;
+  border-bottom: 1px solid #E2E8E6;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #64748B;
+  letter-spacing: 0.5px;
+}
+
+.nexus-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #EDF2F0;
+  font-size: 13px;
+}
+
+.nexus-table-row:hover {
+  background-color: #F8FAFC;
+}
+
+.nexus-pill-under-investigation {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #102A2A;
+  background-color: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  padding: 2px 8px;
+}
+
+.nexus-pill-new {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #087F5B;
+  background-color: #E8F5EE;
+  border: 1px solid #C6EADB;
+  border-radius: 12px;
+  padding: 2px 8px;
+}
+
+.nexus-pill-resolved {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #16A34A;
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 12px;
+  padding: 2px 8px;
+}
+
+.nexus-pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 4px;
+}
+
+.nexus-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nexus-page-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid #E2E8E6;
+  background-color: #FFFFFF;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #64748B;
+  cursor: pointer;
+}
+
+.nexus-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nexus-page-number {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #E2E8E6;
+  border-radius: 4px;
+  background-color: #FFFFFF;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: #64748B;
+  cursor: pointer;
+}
+
+.nexus-page-number.active {
+  background-color: #E8F5EE;
+  border-color: #087F5B;
+  color: #087F5B;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   Complaint Detail Page
+   -------------------------------------------------------------------------- */
+.nexus-detail-top-nav {
+  margin-bottom: 12px;
+}
+
+.nexus-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #087F5B;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.nexus-back-link:hover {
+  color: #0F9D72;
+}
+
+.nexus-breadcrumbs {
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 6px;
+}
+
+.nexus-breadcrumb-link {
+  color: #64748B;
+  text-decoration: none;
+}
+
+.nexus-breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.nexus-breadcrumb-current {
+  color: #102A2A;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.nexus-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.nexus-detail-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #102A2A;
+  font-family: var(--font-sans);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.nexus-detail-subtitle {
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 4px;
+}
+
+.nexus-detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 8-Box Metadata Grid */
+.nexus-metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background-color: #E2E8E6;
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+@media (max-width: 900px) {
+  .nexus-metadata-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .nexus-metadata-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nexus-metadata-box {
+  background-color: #FFFFFF;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 76px;
+}
+
+.nexus-metadata-label {
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.nexus-metadata-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #102A2A;
+  font-family: var(--font-sans);
+}
+
+.nexus-metadata-val.mono {
+  font-family: var(--font-mono);
+}
+
+/* Two-Column Detail Layout */
+.nexus-detail-main-layout {
+  display: grid;
+  grid-template-columns: 2fr 1.05fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .nexus-detail-main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nexus-detail-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.nexus-detail-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Complaint Details Key-Value */
+.nexus-detail-keyval-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 48px;
+}
+
+@media (max-width: 700px) {
+  .nexus-detail-keyval-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.nexus-keyval-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.nexus-keyval-key {
+  font-size: 12.5px;
+  color: #64748B;
+}
+
+.nexus-keyval-val {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #102A2A;
+}
+
+.nexus-keyval-val.mono {
+  font-family: var(--font-mono);
+}
+
+.nexus-detail-description {
+  border-top: 1px solid #E2E8E6;
+  margin-top: 20px;
+  padding-top: 16px;
+}
+
+.nexus-detail-description-label {
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.nexus-detail-description-text {
+  font-size: 12.5px;
+  color: #102A2A;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Timeline */
+.nexus-timeline-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.nexus-timeline-item {
+  display: flex;
+  gap: 14px;
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.nexus-timeline-item:last-child {
+  padding-bottom: 4px;
+}
+
+.nexus-timeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 14px;
+  padding-top: 3px;
+}
+
+.nexus-timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid #087F5B;
+  background-color: #FFFFFF;
+  flex-shrink: 0;
+}
+
+.nexus-timeline-line {
+  width: 1.5px;
+  background-color: #E2E8E6;
+  flex: 1;
+  margin-top: 4px;
+}
+
+.nexus-timeline-content {
+  flex: 1;
+}
+
+.nexus-timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #102A2A;
+}
+
+.nexus-timeline-desc {
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* Info Rows (Related Info & Case Info) */
+.nexus-info-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.nexus-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 12.5px;
+}
+
+.nexus-info-row:last-child {
+  border-bottom: none;
+}
+
+.nexus-info-key {
+  color: #64748B;
+}
+
+.nexus-info-val {
+  font-weight: 700;
+  color: #102A2A;
+}
+
+.nexus-info-link {
+  color: #087F5B;
+  font-weight: 700;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  transition: color 0.15s ease;
+}
+
+.nexus-info-link:hover {
+  text-decoration: underline;
+  color: #0F9D72;
+}
+
+/* Status Pills */
+.nexus-status-pill-under-investigation {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #102A2A;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 14px;
+  padding: 4px 12px;
+}
+
+.nexus-status-pill-small {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #102A2A;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+/* Action Buttons */
+.nexus-btn-assign-officer {
+  background-color: #087F5B;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.nexus-btn-assign-officer:hover {
+  background-color: #06694b;
+}
+
+.nexus-btn-outline-action {
+  background-color: #FFFFFF;
+  color: #102A2A;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid #E2E8E6;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.nexus-btn-outline-action:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.nexus-case-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nexus-case-action-btn-primary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background-color: #087F5B;
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.nexus-case-action-btn-primary:hover {
+  background-color: #06694b;
+}
+
+.nexus-case-action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background-color: #FFFFFF;
+  color: #102A2A;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #E2E8E6;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nexus-case-action-btn:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+/* Modals */
+.nexus-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(16, 42, 42, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.nexus-modal-container {
+  background-color: #FFFFFF;
+  border-radius: 8px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  border: 1px solid #E2E8E6;
+  width: 100%;
+  max-width: 440px;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.nexus-form-input {
+  width: 100%;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: #102A2A;
+  outline: none;
+  background-color: #FFFFFF;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.nexus-form-input:focus {
+  border-color: #087F5B;
+}
+
+.nexus-demonstration-footer {
+  margin-top: 36px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: #94A3B8;
+  letter-spacing: 0.8px;
+}
+
+/* ==========================================================================
+   Network Graph Explorer Page Styles
+   ========================================================================== */
+
+.nexus-network-page-container {
+  width: 100%;
+  padding-bottom: 24px;
+}
+
+/* Top Breadcrumb & Live Case Bar */
+.nexus-network-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.nexus-network-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.nexus-network-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  color: #64748B;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.nexus-network-breadcrumb-link:hover {
+  color: #087F5B;
+}
+
+.nexus-network-breadcrumb-separator {
+  color: #CBD5E1;
+}
+
+.nexus-network-breadcrumb-current {
+  color: #102A2A;
+  font-weight: 600;
+}
+
+.nexus-network-top-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nexus-network-live-pill {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  letter-spacing: 0.6px;
+}
+
+.nexus-network-user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #F1F5F9;
+  border: 1px solid #E2E8E6;
+  color: #334155;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Case Header Row */
+.nexus-network-case-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.nexus-network-case-title-area {
+  max-width: 500px;
+}
+
+.nexus-network-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #102A2A;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.nexus-network-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin: 4px 0 0 0;
+}
+
+.nexus-network-case-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.nexus-network-meta-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.nexus-network-meta-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.05em;
+  margin: 0 0 2px 0;
+}
+
+.nexus-network-meta-value {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #102A2A;
+  margin: 0;
+}
+
+.nexus-network-risk-pill {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  border: 1px solid #FECACA;
+}
+
+/* Main Workspace Card */
+.nexus-network-workspace-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 200px);
+  min-height: 640px;
+}
+
+/* Toolbar */
+.nexus-graph-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #E2E8E6;
+  background-color: #FFFFFF;
+}
+
+.nexus-graph-search-container {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+  max-width: 440px;
+}
+
+.nexus-graph-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+  pointer-events: none;
+}
+
+.nexus-graph-search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 32px 0 34px;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: var(--font-mono);
+  background-color: #FFFFFF;
+  color: #102A2A;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.nexus-graph-search-input:focus {
+  border-color: #087F5B;
+}
+
+.nexus-graph-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nexus-graph-search-clear:hover {
+  color: #102A2A;
+}
+
+/* Filter Popover */
+.nexus-graph-filter-wrapper {
+  position: relative;
+}
+
+.nexus-graph-btn-outline {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  color: #102A2A;
+  font-size: 12.5px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nexus-graph-btn-outline:hover,
+.nexus-graph-btn-outline.active {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.nexus-graph-badge-count {
+  background-color: #087F5B;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-family: var(--font-mono);
+}
+
+.nexus-graph-filter-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 250px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12);
+  padding: 14px;
+  z-index: 100;
+}
+
+.nexus-graph-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nexus-graph-filter-heading {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.nexus-graph-filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nexus-graph-filter-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #102A2A;
+  cursor: pointer;
+}
+
+.nexus-graph-checkbox {
+  accent-color: #087F5B;
+  cursor: pointer;
+}
+
+.nexus-graph-filter-divider {
+  height: 1px;
+  background-color: #F1F5F9;
+  margin: 10px 0;
+}
+
+.nexus-graph-filter-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nexus-graph-filter-switch-label {
+  font-size: 12.5px;
+  color: #102A2A;
+}
+
+/* Toggle Switch */
+.nexus-toggle-switch {
+  width: 34px;
+  height: 18px;
+  border-radius: 9999px;
+  background-color: #CBD5E1;
+  position: relative;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.nexus-toggle-switch.active {
+  background-color: #087F5B;
+}
+
+.nexus-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.nexus-toggle-switch.active .nexus-toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* Amounts & Timestamps Toggles Container */
+.nexus-graph-toggles-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+}
+
+.nexus-graph-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nexus-graph-toggle-label {
+  font-size: 12px;
+  color: #64748B;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Zoom Controls Group */
+.nexus-graph-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.nexus-graph-btn-icon {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  color: #102A2A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nexus-graph-btn-icon:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+/* Workspace Canvas + Inspector */
+.nexus-network-workspace-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.nexus-network-canvas-wrapper {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  background-color: #FFFFFF;
+  overflow: hidden;
+}
+
+/* Floating Legend */
+.nexus-graph-legend {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  width: 220px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  border: 1px solid #E2E8E6;
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+  z-index: 10;
+  font-size: 11px;
+}
+
+.nexus-graph-legend-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.06em;
+  margin: 0 0 8px 0;
+}
+
+.nexus-graph-legend-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.nexus-graph-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #102A2A;
+  font-size: 11px;
+}
+
+.nexus-graph-legend-shape {
+  width: 12px;
+  height: 12px;
+  border: 1.8px solid #64748B;
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.nexus-graph-legend-risks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.nexus-graph-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.nexus-graph-legend-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+  color: #64748B;
+  font-size: 10.5px;
+}
+
+.nexus-graph-legend-line-suspicious {
+  width: 20px;
+  height: 2px;
+  background-color: #DC2626;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.nexus-graph-legend-line-binding {
+  width: 20px;
+  height: 0;
+  border-top: 1.5px dashed #94A3B8;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Mobile Inspector Toggle */
+.nexus-network-mobile-details-btn {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #102A2A;
+  cursor: pointer;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Sidebar Inspector */
+.nexus-network-sidebar-inspector {
+  width: 340px;
+  flex-shrink: 0;
+  border-left: 1px solid #E2E8E6;
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Inspector Panel Internals */
+.nexus-inspector-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.nexus-inspector-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.nexus-inspector-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nexus-inspector-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #102A2A;
+  margin: 0;
+}
+
+.nexus-inspector-subtitle {
+  font-size: 12px;
+  color: #64748B;
+  margin: 2px 0 0 0;
+}
+
+.nexus-inspector-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.nexus-inspector-stat-box {
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.nexus-inspector-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.nexus-inspector-stat-value {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #102A2A;
+  margin: 2px 0 0 0;
+}
+
+.nexus-inspector-divider {
+  height: 1px;
+  background-color: #F1F5F9;
+}
+
+.nexus-inspector-section-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #102A2A;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px 0;
+}
+
+.nexus-text-risk-critical {
+  color: #DC2626;
+}
+
+.nexus-inspector-flagged-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nexus-inspector-flagged-item {
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background-color: #FFFFFF;
+}
+
+.nexus-inspector-flagged-route {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: #102A2A;
+  margin: 0;
+}
+
+.nexus-arrow {
+  color: #94A3B8;
+  margin: 0 2px;
+}
+
+.nexus-inspector-flagged-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.nexus-inspector-flagged-reason {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.nexus-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.nexus-risk-critical {
+  background-color: #FEF2F2;
+  color: #DC2626;
+}
+
+.nexus-risk-high {
+  background-color: #FFF7ED;
+  color: #EA580C;
+}
+
+.nexus-risk-medium {
+  background-color: #FEFCE8;
+  color: #D97706;
+}
+
+.nexus-risk-low {
+  background-color: #E8F5F0;
+  color: #087F5B;
+}
+
+.nexus-inspector-info-note {
+  background-color: #F8FAFC;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 11.5px;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+/* Entity View Specific */
+.nexus-inspector-entity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.nexus-inspector-entity-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #102A2A;
+  margin: 2px 0 0 0;
+  font-family: var(--font-mono);
+}
+
+.nexus-inspector-close-btn {
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nexus-inspector-close-btn:hover {
+  color: #102A2A;
+}
+
+.nexus-inspector-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.nexus-account-type-badge {
+  background-color: #F1F5F9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.nexus-inspector-last-activity {
+  font-size: 11px;
+  color: #64748B;
+  margin: 0;
+}
+
+.nexus-inspector-empty-txns {
+  font-size: 11.5px;
+  color: #94A3B8;
+  font-style: italic;
+  margin: 0;
+}
+
+.nexus-inspector-txns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nexus-inspector-txn-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nexus-inspector-txn-btn:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.nexus-txn-outgoing-icon {
+  color: #EA580C;
+  flex-shrink: 0;
+}
+
+.nexus-txn-incoming-icon {
+  color: #087F5B;
+  flex-shrink: 0;
+}
+
+.nexus-inspector-txn-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.nexus-inspector-txn-counterpart {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #102A2A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nexus-inspector-txn-time {
+  display: block;
+  font-size: 10px;
+  color: #94A3B8;
+}
+
+.nexus-inspector-txn-amount {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #102A2A;
+  white-space: nowrap;
+}
+
+/* Inspector Action Footer */
+.nexus-inspector-action-footer {
+  padding: 14px 16px;
+  border-top: 1px solid #E2E8E6;
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nexus-inspector-btn-predict {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #087F5B;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.nexus-inspector-btn-predict:hover {
+  background-color: #06694b;
+}
+
+.nexus-inspector-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.nexus-inspector-btn-secondary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid #E2E8E6;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  color: #102A2A;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nexus-inspector-btn-secondary:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+/* Spinner */
+@keyframes nexus-spin-kf {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.nexus-spin {
+  animation: nexus-spin-kf 1s linear infinite;
+}
+
+/* Responsive Inspector Drawer for Small Viewports */
+@media (max-width: 1024px) {
+  .nexus-network-mobile-details-btn {
+    display: flex;
+  }
+
+  .nexus-network-sidebar-inspector {
+    display: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 320px;
+    z-index: 30;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .nexus-network-sidebar-inspector.mobile-open {
+    display: flex;
+  }
+}
+
