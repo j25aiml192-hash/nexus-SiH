@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import * as maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import type { FeatureCollection, Feature } from 'geojson';
 import { cellToLatLng, cellToBoundary } from 'h3-js';
 import {
@@ -14,17 +14,21 @@ import {
 import { useMapData } from '../hooks/useNexusData';
 import { useNavigate } from 'react-router-dom';
 
+// CARTO API Key (optional for authenticated accounts / higher limits)
+const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY || '';
+const cartoKeyParam = CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : '';
+
 // Light architectural 3D perspective basemap style
-const LIGHT_MAP_STYLE: mapboxgl.Style = {
+const LIGHT_MAP_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
-    'carto-light-basemap': {
+    'carto-voyager-basemap': {
       type: 'raster',
       tiles: [
-        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+        `https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
+        `https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
+        `https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
+        `https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png${cartoKeyParam}`,
       ],
       tileSize: 256,
       attribution: '&copy; CARTO &copy; OpenStreetMap contributors',
@@ -32,9 +36,9 @@ const LIGHT_MAP_STYLE: mapboxgl.Style = {
   },
   layers: [
     {
-      id: 'carto-light-layer',
+      id: 'carto-voyager-layer',
       type: 'raster',
-      source: 'carto-light-basemap',
+      source: 'carto-voyager-basemap',
       minzoom: 0,
       maxzoom: 22,
       paint: {
@@ -62,8 +66,8 @@ export const MapPage: React.FC = () => {
   } = useMapData();
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   // Layer Visibility Toggles
@@ -272,25 +276,24 @@ export const MapPage: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = new mapboxgl.Map({
+    const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: LIGHT_MAP_STYLE,
       center: INITIAL_CENTER,
       zoom: INITIAL_ZOOM,
       pitch: INITIAL_PITCH,
       bearing: INITIAL_BEARING,
-      antialias: true,
     });
 
     // Add navigation controls (zoom, rotate, tilt)
     map.addControl(
-      new mapboxgl.NavigationControl({
+      new maplibregl.NavigationControl({
         visualizePitch: true,
       }),
       'top-right'
     );
 
-    const popup = new mapboxgl.Popup({
+    const popup = new maplibregl.Popup({
       closeButton: false,
       closeOnClick: false,
       offset: 14,
@@ -484,7 +487,7 @@ export const MapPage: React.FC = () => {
 
       // Interactive Events
       // Click H3 Hexagon
-      map.on('click', 'h3-hexagons-extrusion', (e) => {
+      map.on('click', 'h3-hexagons-extrusion', (e: maplibregl.MapLayerMouseEvent) => {
         if (e.features && e.features[0]) {
           const props = (e.features[0] as any).properties;
           setSelectedMapItem({
@@ -501,7 +504,7 @@ export const MapPage: React.FC = () => {
       });
 
       // Hover H3 Hexagon Tooltip
-      map.on('mouseenter', 'h3-hexagons-extrusion', (e) => {
+      map.on('mouseenter', 'h3-hexagons-extrusion', (e: maplibregl.MapLayerMouseEvent) => {
         map.getCanvas().style.cursor = 'pointer';
         if (e.features && e.features[0]) {
           const props = (e.features[0] as any).properties;
@@ -524,7 +527,7 @@ export const MapPage: React.FC = () => {
       });
 
       // Click ATM Marker
-      map.on('click', 'atm-markers-layer', (e) => {
+      map.on('click', 'atm-markers-layer', (e: maplibregl.MapLayerMouseEvent) => {
         if (e.features && e.features[0]) {
           const id = (e.features[0] as any).properties?.id;
           const found = atmLocations.find((a) => a.id === id);
@@ -535,7 +538,7 @@ export const MapPage: React.FC = () => {
       });
 
       // Hover ATM Tooltip
-      map.on('mouseenter', 'atm-markers-layer', (e) => {
+      map.on('mouseenter', 'atm-markers-layer', (e: maplibregl.MapLayerMouseEvent) => {
         map.getCanvas().style.cursor = 'pointer';
         if (e.features && e.features[0]) {
           const props = (e.features[0] as any).properties;
@@ -573,7 +576,7 @@ export const MapPage: React.FC = () => {
   // Update H3 source data when filtered
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
-    const source = mapRef.current.getSource('h3-source') as mapboxgl.GeoJSONSource | undefined;
+    const source = mapRef.current.getSource('h3-source') as maplibregl.GeoJSONSource | undefined;
     if (source) {
       source.setData(h3GeoJson);
     }
@@ -582,11 +585,11 @@ export const MapPage: React.FC = () => {
   // Update ATM source data when atmLocations change
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
-    const source = mapRef.current.getSource('atm-source') as mapboxgl.GeoJSONSource | undefined;
+    const source = mapRef.current.getSource('atm-source') as maplibregl.GeoJSONSource | undefined;
     if (source) {
       source.setData(atmGeoJson);
     }
-    const routeSource = mapRef.current.getSource('cyber-routes-source') as mapboxgl.GeoJSONSource | undefined;
+    const routeSource = mapRef.current.getSource('cyber-routes-source') as maplibregl.GeoJSONSource | undefined;
     if (routeSource) {
       routeSource.setData(cyberRoutesGeoJson);
     }
@@ -595,7 +598,7 @@ export const MapPage: React.FC = () => {
   // Update Hotspot source data when historicalHotspots change
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
-    const source = mapRef.current.getSource('hotspot-source') as mapboxgl.GeoJSONSource | undefined;
+    const source = mapRef.current.getSource('hotspot-source') as maplibregl.GeoJSONSource | undefined;
     if (source) {
       source.setData(hotspotGeoJson);
     }
@@ -724,9 +727,8 @@ export const MapPage: React.FC = () => {
                 <button
                   key={range}
                   onClick={() => setTimeFilter(range)}
-                  className={`nexus-pill-button text-xs ${
-                    timeFilter === range ? 'active' : ''
-                  }`}
+                  className={`nexus-pill-button text-xs ${timeFilter === range ? 'active' : ''
+                    }`}
                 >
                   {range.toUpperCase()}
                 </button>
