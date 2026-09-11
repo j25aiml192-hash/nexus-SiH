@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/cytoscape": "^3.21.9",
+    "cytoscape": "^3.34.3",
     "deck.gl": "^9.3.11",
     "h3-js": "^4.5.0",
     "lucide-react": "^1.41.0",
