@@ -11,12 +11,10 @@
   },
   "dependencies": {
     "@types/cytoscape": "^3.21.9",
-    "@types/mapbox-gl": "^3.4.1",
     "cytoscape": "^3.34.3",
     "deck.gl": "^9.3.11",
     "h3-js": "^4.5.0",
     "lucide-react": "^1.41.0",
-    "mapbox-gl": "^3.30.0",
     "maplibre-gl": "^6.7.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
