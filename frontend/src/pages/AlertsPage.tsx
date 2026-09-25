@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell,
   Search,
   MapPin,
   UserCheck,
   ExternalLink,
-  Clock,
-  CheckCircle,
   Plus,
   Loader2,
+  CheckCircle,
+  AlertTriangle,
+  X,
+  Check,
 } from 'lucide-react';
 import { useAlerts, useAssignOfficer } from '../hooks/useNexusData';
 import { useNexusStore } from '../store/useNexusStore';
-import { realtimeClient } from '../services/realtime';
 import { dataSource } from '../services/dataSource';
 
 export const AlertsPage: React.FC = () => {
@@ -22,307 +22,202 @@ export const AlertsPage: React.FC = () => {
     alerts,
     isLoading,
     error,
+    refetch,
     statusFilter,
     setStatusFilter,
-    riskFilter,
-    setRiskFilter,
     searchQuery,
     setSearchQuery,
   } = useAlerts();
 
   const { assign, isAssigning } = useAssignOfficer();
-  const setMapFocus = useNexusStore((state) => state.setMapFocus);
+  const setSelectedComplaintId = useNexusStore((state) => state.setSelectedComplaintId);
 
   const [assignModalAlertId, setAssignModalAlertId] = useState<string | null>(null);
-  const [officerIdInput, setOfficerIdInput] = useState('OFF-8841');
-  const [assignSuccessNotice, setAssignSuccessNotice] = useState<{
-    alertId: string;
-    incidentId: string;
-  } | null>(null);
+  const [selectedOfficer, setSelectedOfficer] = useState('Insp. R. Sharma');
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  const handleViewOnMap = (atmId?: string, h3Cell?: string) => {
-    const target = atmId || h3Cell;
-    if (target) {
-      setMapFocus({
-        cellOrAtmId: target,
-        zoom: 15,
-        timestamp: Date.now(),
-      });
-      navigate('/map');
+  const handleViewOnMap = (alert: any) => {
+    if (alert.complaintId || alert.complaint_id) {
+      setSelectedComplaintId(alert.complaintId || alert.complaint_id);
     }
+    navigate('/map');
   };
 
   const handleOpenAssign = (alertId: string) => {
     setAssignModalAlertId(alertId);
-    setOfficerIdInput(`OFF-${Math.floor(1000 + Math.random() * 9000)}`);
+    setSelectedOfficer('Insp. R. Sharma');
   };
 
   const handleConfirmAssign = async () => {
-    if (!assignModalAlertId || !officerIdInput.trim()) return;
-    const result = await assign(assignModalAlertId, officerIdInput.trim());
-    setAssignSuccessNotice({
-      alertId: assignModalAlertId,
-      incidentId: result.incident.id,
-    });
-    setAssignModalAlertId(null);
-    setTimeout(() => setAssignSuccessNotice(null), 5000);
+    if (!assignModalAlertId || !selectedOfficer.trim()) return;
+    try {
+      await assign(assignModalAlertId, selectedOfficer.trim());
+      setSuccessToast(`Alert ${assignModalAlertId} successfully assigned to ${selectedOfficer}. Persisted in database.`);
+      setAssignModalAlertId(null);
+      refetch();
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to assign officer.');
+    }
   };
 
-  // Quick simulate inbound alert for testing realtime push
-  const handleSimulateInboundAlert = () => {
-    const id = `ALT-${Math.floor(2000 + Math.random() * 7000)}`;
-    const mockAlert = {
-      id,
-      predictionId: 'PRED-ACC-89214',
-      atmId: 'ATM-DEL-042',
-      h3Cell: '882681a4bffffff',
-      status: 'new' as const,
-      createdAt: new Date().toISOString(),
-    };
-    realtimeClient.emitAlertCreated(mockAlert);
+  const handleSimulateInboundAlert = async () => {
+    setIsSimulating(true);
+    try {
+      const res = await dataSource.simulateAlert();
+      setSuccessToast(`Authentic simulation alert ${res.id} inserted into database.`);
+      refetch();
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Simulation failed.');
+    } finally {
+      setIsSimulating(false);
+    }
   };
 
   return (
-    <div className="alerts-container">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="alerts-header">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-wide mb-30">
-              Active Alerts
+            <h1 className="text-2xl font-bold text-slate-900 tracking-wide">
+              Active Alerts Feed
             </h1>
-
-
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-100 text-emerald-800">
+              {alerts.length} OPERATIONAL ALERTS
+            </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Transductive graph alerts prioritized by GNN severity score and chronological arrival.
+          <p className="text-xs text-slate-500 mt-1">
+            Realtime high-priority alerts prioritized by XGBoost risk level and chronological intake.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSimulateInboundAlert}
-            className="nexus-pill-button text-xs"
-            title="Simulate inbound socket event"
-          >
-            <Plus size={14} className="text-cyan-400" />
-            Simulate Inbound Alert
-          </button>
-        </div>
+        <button
+          onClick={handleSimulateInboundAlert}
+          disabled={isSimulating}
+          className="px-3.5 py-2 bg-[#087F5B] hover:bg-[#076D4E] text-white text-xs font-semibold rounded-md flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+        >
+          {isSimulating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={15} />}
+          <span>Simulate Live Inbound Alert</span>
+        </button>
       </div>
 
-      {/* Assignment Success Banner */}
-      {assignSuccessNotice && (
-        <div className="nexus-alert-banner">
-          <div className="flex items-center gap-3">
-            <CheckCircle size={22} className="text-emerald-400" />
-            <div>
-              <div className="font-bold text-slate-900 text-sm">
-                ALERT {assignSuccessNotice.alertId} ASSIGNED → INCIDENT{' '}
-                {assignSuccessNotice.incidentId} CREATED
-              </div>
-              <div className="text-xs text-emerald-700 font-semibold">
-                Case dossier initialized in tactical queue.
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate(`/incidents/${assignSuccessNotice.incidentId}`)}
-            className="nexus-pill-button text-xs"
-          >
-            Open Incident Dossier <ExternalLink size={12} />
+      {successToast && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center gap-2 font-medium">
+          <CheckCircle size={16} className="text-emerald-600" />
+          <span>{successToast}</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-3 text-sm">
+          <AlertTriangle size={18} />
+          <span>{error}</span>
+          <button onClick={() => refetch()} className="ml-auto underline font-semibold text-xs">
+            Retry
           </button>
         </div>
       )}
 
       {/* Filter and Search Bar */}
-      <div className="alerts-filter-bar">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[260px]">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-          />
+      <div className="flex flex-col md:flex-row items-center gap-3 bg-white p-3 border border-[#E2E8E6] rounded-xl shadow-xs">
+        <div className="relative flex-1 w-full">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by Alert ID, Account ID, ATM, or H3 Cell..."
+            placeholder="Search by Alert ID, case reference, or assigned officer..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="nexus-input pl-9 pr-3 py-2 text-xs w-full font-mono"
+            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-md font-mono"
           />
         </div>
 
-        {/* Status Filter */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-slate-400 font-mono mr-1">Status:</span>
-          {(['all', 'new', 'assigned', 'actioned'] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`nexus-pill-button text-xs uppercase ${statusFilter === st ? 'active' : ''
-                }`}
-            >
-              {st}
-            </button>
-          ))}
-        </div>
-
-        {/* Risk Filter */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-slate-400 font-mono mr-1">Risk:</span>
-          {(['all', 'critical', 'high', 'medium', 'low'] as const).map((rf) => (
-            <button
-              key={rf}
-              onClick={() => setRiskFilter(rf)}
-              className={`nexus-pill-button text-xs uppercase ${riskFilter === rf ? 'active' : ''
-                }`}
-            >
-              {rf}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="text-xs border border-slate-200 rounded-md p-1.5 bg-white font-medium"
+          >
+            <option value="all">All Statuses</option>
+            <option value="new">New</option>
+            <option value="assigned">Assigned</option>
+            <option value="actioned">Actioned</option>
+          </select>
         </div>
       </div>
 
       {/* Alerts Grid */}
-      <div className="alerts-grid">
-        {isLoading && alerts.length === 0 ? (
-          <div className="nexus-empty-state py-12">
-            <Loader2 size={36} className="nexus-spinner mx-auto mb-2 text-primary-brand animate-spin" />
-            <div className="text-slate-700 font-bold">STREAMING TACTICAL ALERTS...</div>
-            <div className="text-xs text-slate-500">Querying live event bus and transductive graph inference...</div>
-          </div>
-        ) : error ? (
-          <div className="nexus-empty-state py-12">
-            <div className="text-red-600 font-bold">Failed to load alerts</div>
-            <div className="text-xs text-slate-500">{error}</div>
+      <div className="space-y-3">
+        {isLoading ? (
+          <div className="text-center py-12 text-slate-500 text-xs flex justify-center items-center gap-2">
+            <Loader2 size={18} className="animate-spin text-emerald-600" />
+            Loading real alerts from NEXUS feed...
           </div>
         ) : alerts.length === 0 ? (
-          <div className="nexus-empty-state">
-            <Bell size={42} className="text-slate-600 mb-2" />
-            <div className="text-slate-300 font-bold">No matching alerts detected</div>
-            <div className="text-xs text-slate-500">
-              Adjust filters or emit a simulated alert to test queue.
-            </div>
+          <div className="text-center py-12 bg-white rounded-xl border border-slate-200 text-slate-500 text-xs">
+            No active alerts matching your search criteria.
           </div>
         ) : (
           alerts.map((alert) => {
-            const isCritical = alert.derivedRisk === 'critical';
-            const isHigh = alert.derivedRisk === 'high';
-            const isAssigned = alert.status === 'assigned';
-            const isNew = alert.status === 'new';
-
+            const isCrit = (alert.severity || '').toUpperCase().includes('CRIT') || alert.derivedRisk === 'critical';
             return (
               <div
                 key={alert.id}
-                className={`alert-card ${isCritical ? 'border-red-500/50' : ''}`}
+                className="bg-white p-4 rounded-xl border border-[#E2E8E6] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-300 transition-colors"
               >
-                {/* Header */}
-                <div className="alert-card-header">
+                <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="alert-card-id">{alert.id}</span>
-                    <span
-                      className={`risk-badge-pill ${isCritical
-                        ? 'risk-crit'
-                        : isHigh
-                          ? 'risk-hi'
-                          : alert.derivedRisk === 'medium'
-                            ? 'risk-med'
-                            : 'risk-lo'
-                        }`}
-                    >
-                      {alert.derivedRisk.toUpperCase()} RISK
+                    <span className="font-mono font-bold text-xs text-[#087F5B]">{alert.id}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${isCrit ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                      {alert.severity || 'HIGH'}
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Case: <span className="font-bold text-slate-800">{alert.complaintId || alert.complaint_id}</span>
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-100 rounded text-slate-600 capitalize">
+                      {alert.status}
                     </span>
                   </div>
 
-                  <span
-                    className={`status-chip ${isNew ? 'chip-new' : isAssigned ? 'chip-assigned' : 'chip-actioned'
-                      }`}
-                  >
-                    {alert.status.toUpperCase()}
-                  </span>
-                </div>
+                  <p className="text-xs text-slate-700 font-medium">
+                    {alert.message}
+                  </p>
 
-                {/* Body Details */}
-                <div className="alert-card-body">
-                  <div className="alert-detail-line">
-                    <span className="text-slate-400">Target Account:</span>
-                    <span
-                      className="text-cyan-400 cursor-pointer hover:underline"
-                      onClick={() => navigate(`/prediction/${alert.linkedAccountId}`)}
-                    >
-                      {alert.linkedAccountId}
-                    </span>
-                  </div>
-
-                  <div className="alert-detail-line">
-                    <span className="text-slate-400">Target H3 Cell:</span>
-                    <span className="font-mono text-slate-200">{alert.h3Cell}</span>
-                  </div>
-
-                  {alert.atmId && (
-                    <div className="alert-detail-line">
-                      <span className="text-slate-400">Target ATM Hub:</span>
-                      <span className="text-amber-400 font-bold">{alert.atmId}</span>
-                    </div>
-                  )}
-
-                  {alert.assignedOfficerId && (
-                    <div className="alert-detail-line">
-                      <span className="text-slate-400">Assigned Officer:</span>
-                      <span className="text-emerald-400 font-bold">
-                        {alert.assignedOfficerId}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="alert-timestamp">
-                    <Clock size={12} />
-                    <span>
-                      {alert.createdAt
-                        ? new Date(alert.createdAt).toLocaleString()
-                        : 'Realtime Dispatch'}
-                    </span>
+                  <div className="text-[11px] text-slate-500 flex items-center gap-3">
+                    <span>Officer: <strong className="text-slate-800">{alert.assigned_officer || alert.assignedOfficerId || 'Unassigned'}</strong></span>
+                    <span>Intake: {alert.createdAt || 'Recent'}</span>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="alert-card-actions">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <button
-                    onClick={() => handleViewOnMap(alert.atmId, alert.h3Cell)}
-                    className="alert-btn-action"
-                    title="View on Map"
+                    onClick={() => handleViewOnMap(alert)}
+                    className="px-3 py-1.5 bg-white border border-[#E2E8E6] text-xs font-semibold rounded hover:bg-slate-50 flex items-center gap-1.5"
                   >
-                    <MapPin size={14} className="text-cyan-400" />
-                    <span>View on map</span>
+                    <MapPin size={13} className="text-[#087F5B]" /> View on Map
                   </button>
 
-                  {alert.status === 'new' ? (
+                  {alert.status !== 'assigned' && alert.status !== 'actioned' ? (
                     <button
                       onClick={() => handleOpenAssign(alert.id)}
-                      className="alert-btn-assign"
+                      className="px-3 py-1.5 bg-[#087F5B] hover:bg-[#076D4E] text-white text-xs font-semibold rounded flex items-center gap-1.5"
                     >
-                      <UserCheck size={14} />
-                      <span>Assign to officer</span>
+                      <UserCheck size={13} /> Assign Officer
                     </button>
                   ) : (
-                    <button
-                      onClick={async () => {
-                        const incidents = await dataSource.getIncidents();
-                        const linkedInc = incidents.find(
-                          (i) => i.alertId === alert.id
-                        );
-                        if (linkedInc) {
-                          navigate(`/incidents/${linkedInc.id}`);
-                        } else {
-                          navigate('/incidents');
-                        }
-                      }}
-                      className="alert-btn-assigned-status"
-                    >
-                      <ExternalLink size={13} />
-                      <span>Incident Active</span>
-                    </button>
+                    <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                      <Check size={14} /> Assigned
+                    </span>
                   )}
+
+                  <button
+                    onClick={() => navigate(`/prediction/${alert.complaintId || alert.complaint_id}`)}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded flex items-center gap-1"
+                  >
+                    Prediction <ExternalLink size={12} />
+                  </button>
                 </div>
               </div>
             );
@@ -330,46 +225,41 @@ export const AlertsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Officer Assignment Modal Dialog */}
+      {/* Assign Modal */}
       {assignModalAlertId && (
-        <div className="nexus-modal-backdrop">
-          <div className="nexus-modal-card">
-            <div className="nexus-modal-title">
-              <UserCheck size={20} className="text-cyan-400" />
-              <span>ASSIGN ALERT TO TACTICAL FIELD OFFICER</span>
+        <div className="nexus-modal-overlay">
+          <div className="nexus-modal-container max-w-sm w-full">
+            <div className="nexus-modal-header flex justify-between items-center mb-3">
+              <h3 className="font-bold text-sm text-[#102A2A]">Assign Dispatch Officer</h3>
+              <button onClick={() => setAssignModalAlertId(null)}>
+                <X size={16} />
+              </button>
             </div>
-
-            <p className="text-xs text-slate-500 mt-2 mb-4">
-              Assigning alert <strong className="text-slate-900">{assignModalAlertId}</strong> will
-              create an Incident dossier in the registry and dispatch the officer.
-            </p>
-
-            <div className="mb-4">
-              <label className="text-xs font-mono text-slate-700 block mb-1 font-semibold">
-                Field Officer Identifier:
-              </label>
-              <input
-                type="text"
-                value={officerIdInput}
-                onChange={(e) => setOfficerIdInput(e.target.value)}
-                placeholder="e.g. OFF-8841"
-                className="nexus-input w-full font-mono text-sm py-2 px-3"
-              />
+            <div className="space-y-2 mb-4">
+              {['Insp. R. Sharma', 'Insp. V. Rathore', 'SI A. Verma', 'SI P. Deshmukh'].map((off) => (
+                <button
+                  key={off}
+                  onClick={() => setSelectedOfficer(off)}
+                  className={`w-full text-left p-2.5 rounded-md text-xs font-semibold flex items-center justify-between border ${selectedOfficer === off ? 'border-[#087F5B] bg-[#E8F5EE] text-[#087F5B]' : 'border-[#E2E8E6] text-slate-800'}`}
+                >
+                  <span>{off}</span>
+                  {selectedOfficer === off && <Check size={14} />}
+                </button>
+              ))}
             </div>
-
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setAssignModalAlertId(null)}
-                className="nexus-pill-button text-xs"
+                className="px-3 py-1.5 text-xs text-slate-600 bg-slate-100 rounded"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmAssign}
                 disabled={isAssigning}
-                className="nexus-btn-primary text-xs"
+                className="px-3 py-1.5 text-xs text-white bg-[#087F5B] rounded font-semibold flex items-center gap-1"
               >
-                {isAssigning ? 'Dispatching...' : 'Confirm Assignment'}
+                {isAssigning ? <Loader2 size={13} className="animate-spin" /> : 'Confirm Assignment'}
               </button>
             </div>
           </div>

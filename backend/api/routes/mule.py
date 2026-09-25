@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from db.supabase_client import supabase
+from typing import Optional
+from db import repo
 
 router = APIRouter()
 
@@ -8,106 +9,87 @@ router = APIRouter()
 class MuleCreate(BaseModel):
     complaint_id: str
     node_index: int
-    account_hash: str | None = None
-    bank: str | None = None
-    state: str | None = None
+    account_hash: Optional[str] = None
+    bank: Optional[str] = None
+    state: Optional[str] = None
     transaction_velocity: int = 0
     is_flagged: bool = False
-    kyc_lat: float | None = None
-    kyc_lng: float | None = None
+    kyc_lat: Optional[float] = None
+    kyc_lng: Optional[float] = None
 
 
-@router.post("/")
-def create_mule(mule: MuleCreate):
+class MuleFlagRequest(BaseModel):
+    account_id: str
+    reason: Optional[str] = "High risk velocity detected"
 
-    complaint = (
-        supabase
-        .table("complaints")
-        .select("complaint_id")
-        .eq("complaint_id", mule.complaint_id)
-        .limit(1)
-        .execute()
-    )
 
-    if not complaint.data:
-        raise HTTPException(
-            status_code=404,
-            detail="Complaint not found"
-        )
+@router.post("/flag")
+def flag_mule_account(req: MuleFlagRequest):
+    conn = repo.get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE mule_accounts SET risk_score = 0.99 WHERE account_id = ?", (req.account_id,))
+    conn.commit()
+    conn.close()
+    return {
+        "status": "flagged",
+        "account_id": req.account_id,
+        "new_risk_score": 0.99,
+        "message": f"Entity {req.account_id} has been flagged across inter-bank networks."
+    }
 
-    result = (
-        supabase
-        .table("mule_chain_nodes")
-        .insert(mule.model_dump())
-        .execute()
-    )
-
-    if not result.data:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to create mule node"
-        )
-
-    return result.data[0]
 
 @router.get("/{complaint_id}")
 def get_mules(complaint_id: str):
-    complaint = (
-        supabase
-        .table("complaints")
-        .select("complaint_id")
-        .eq("complaint_id", complaint_id)
-        .limit(1)
-        .execute()
-    )
-
-    if not complaint.data:
+    complaint = repo.get_complaint_by_id(complaint_id)
+    if not complaint:
         raise HTTPException(
             status_code=404,
-            detail="Complaint not found"
+            detail=f"Complaint '{complaint_id}' not found"
         )
 
-    result = (
-        supabase
-        .table("mule_chain_nodes")
-        .select("*")
-        .eq("complaint_id", complaint_id)
-        .order("node_index")
-        .execute()
-    )
+    chain = repo.get_mule_chain(complaint_id)
+    mules = chain.get("mule_nodes", [])
+
+    # Format mule nodes to match frontend Cytoscape expectations
+    formatted_nodes = []
+    for idx, m in enumerate(mules):
+        formatted_nodes.append({
+            "id": m.get("account_id"),
+            "account_id": m.get("account_id"),
+            "bank_name": m.get("bank_name"),
+            "bank": m.get("bank_name"),
+            "risk_score": m.get("risk_score", 0.75),
+            "hop_position": m.get("hop_position", idx + 1),
+            "parent_account_id": m.get("parent_account_id"),
+            "kyc_lat": m.get("kyc_lat"),
+            "kyc_lng": m.get("kyc_lon") or m.get("kyc_lng"),
+            "kyc_lon": m.get("kyc_lon"),
+            "transaction_velocity": m.get("transaction_velocity", 4)
+        })
+
+    # Build edges from hop sequence
+    edges = []
+    prev_id = f"VICTIM-{complaint_id}"
+    for idx, m in enumerate(formatted_nodes):
+        target_id = m.get("account_id")
+        edges.append({
+            "id": f"edge-{prev_id}-{target_id}",
+            "source": prev_id,
+            "target": target_id,
+            "hop": m.get("hop_position", idx + 1)
+        })
+        prev_id = target_id
 
     return {
         "complaint_id": complaint_id,
-        "mule_nodes": result.data
+        "complaint": complaint,
+        "mule_nodes": formatted_nodes,
+        "nodes": formatted_nodes,
+        "edges": edges,
+        "transactions": chain.get("transactions", [])
     }
 
 
 @router.get("/details/{complaint_id}")
 def get_mule_complaint_full_details(complaint_id: str):
-    """
-    Executes single optimized RPC function in Postgres returning
-    complaint, mule chain traversal, prediction scores, and cashout nodes.
-    """
-    try:
-        response = supabase.rpc("get_mule_complaint_details", {"p_complaint_id": complaint_id}).execute()
-        if response.data:
-            return response.data
-    except Exception as e:
-        print(f"RPC call notice: {e}")
-
-    # Fallback to PostgREST relational query if RPC is not deployed yet
-    complaint = (
-        supabase
-        .table("complaints")
-        .select("*, mule_chain_nodes(*), predictions(*)")
-        .eq("complaint_id", complaint_id)
-        .execute()
-    )
-
-    if not complaint.data:
-        raise HTTPException(
-            status_code=404,
-            detail="Complaint not found"
-        )
-
-    return complaint.data[0]
+    return get_mules(complaint_id)

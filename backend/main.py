@@ -38,10 +38,18 @@ app.include_router(briefs.router, prefix="/briefs", tags=["Briefs"])
 app.include_router(mule.router, prefix="/mule", tags=["Mule"])
 app.include_router(atms.router, prefix="/atms", tags=["Atm"])
 
+from db import repo
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/dashboard/stats")
+@app.get("/stats")
+def get_dashboard_stats(timeframe: str = "24h"):
+    return repo.get_dashboard_stats()
 
 
 @app.get("/config")

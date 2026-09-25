@@ -1,24 +1,19 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { FeatureCollection, Feature } from 'geojson';
-import { cellToLatLng, cellToBoundary } from 'h3-js';
 import {
-  Layers,
-  Eye,
-  EyeOff,
   Crosshair,
   ExternalLink,
-  ChevronRight,
+  X,
 } from 'lucide-react';
 import { useMapData } from '../hooks/useNexusData';
+import { useNexusStore } from '../store/useNexusStore';
 import { useNavigate } from 'react-router-dom';
 
-// CARTO API Key (optional for authenticated accounts / higher limits)
 const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY || '';
 const cartoKeyParam = CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : '';
 
-// Light architectural 3D perspective basemap style
 const LIGHT_MAP_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
@@ -49,92 +44,48 @@ const LIGHT_MAP_STYLE: maplibregl.StyleSpecification = {
   ],
 };
 
-const INITIAL_CENTER: [number, number] = [77.2185, 28.6242];
-const INITIAL_ZOOM = 12.4;
-const INITIAL_PITCH = 48;
-const INITIAL_BEARING = -15;
+const NATIONAL_DEFAULT_CENTER: [number, number] = [81.5, 23.5]; // Central India default
+const NATIONAL_DEFAULT_ZOOM = 5.2;
 
 export const MapPage: React.FC = () => {
   const navigate = useNavigate();
+  const selectedComplaintId = useNexusStore((state) => state.selectedComplaintId);
+  const setSelectedComplaintId = useNexusStore((state) => state.setSelectedComplaintId);
+
   const {
     predictions,
     atmLocations,
     historicalHotspots,
-    mapFocusTarget,
     selectedMapItem,
     setSelectedMapItem,
-  } = useMapData();
+  } = useMapData(selectedComplaintId);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // Layer Visibility Toggles
-  const [showH3, setShowH3] = useState(true);
-  const [showAtms, setShowAtms] = useState(true);
-  const [showHeatmap, setShowHeatmap] = useState(true);
-
-  // Filters
-  const [riskThreshold, setRiskThreshold] = useState(0.5); // filter by probability >= threshold
-  const [timeFilter, setTimeFilter] = useState<'all' | '6h' | '12h' | '24h'>('all');
-
-  // Aggregate H3 cells across predictions with risk/time filtering
-  const h3Data = useMemo(() => {
-    const list: Array<{
-      cell: string;
-      probability: number;
-      accountId: string;
-      riskLevel: string;
-      predictionId: string;
-    }> = [];
-
-    predictions.forEach((pred) => {
-      if (timeFilter === '6h' && pred.riskLevel === 'low') return;
-      if (timeFilter === '12h' && pred.riskLevel === 'low') return;
-
-      pred.predictedH3Cells.forEach((c) => {
-        if (c.probability >= riskThreshold) {
-          list.push({
-            cell: c.cell,
-            probability: c.probability,
-            accountId: pred.accountId,
-            riskLevel: pred.riskLevel,
-            predictionId: pred.id,
-          });
-        }
-      });
-    });
-
-    return list;
-  }, [predictions, riskThreshold, timeFilter]);
-
-  // Convert H3 data to GeoJSON Polygons using cellToBoundary
-  const h3GeoJson = useMemo<FeatureCollection>(() => {
+  // Convert Prediction Points to GeoJSON Points
+  const predictionPointsGeoJson = useMemo<FeatureCollection>(() => {
     const features: Feature[] = [];
-
-    h3Data.forEach((item) => {
-      try {
-        const boundary = cellToBoundary(item.cell, true);
+    predictions.forEach((pred) => {
+      const lat = pred.predicted_lat || pred.lat;
+      const lon = pred.predicted_lon || pred.predicted_lng || pred.lng;
+      if (lat && lon) {
         features.push({
           type: 'Feature',
           geometry: {
-            type: 'Polygon',
-            coordinates: [boundary],
+            type: 'Point',
+            coordinates: [lon, lat],
           },
           properties: {
-            id: item.cell,
-            cell: item.cell,
-            probability: item.probability,
-            riskLevel: item.riskLevel,
-            accountId: item.accountId,
-            predictionId: item.predictionId,
-            // 3D extrusion height in meters driven by probability
-            height: Math.max(220, item.probability * 1200),
+            id: pred.id,
+            complaint_id: pred.complaint_id,
+            risk_score: pred.risk_score,
+            risk_level: pred.risk_level,
+            cashout_window_hours: pred.cashout_window_hours,
           },
         });
-      } catch (err) {
-        console.warn('Error computing boundary for H3 cell:', item.cell, err);
       }
     });
 
@@ -142,7 +93,7 @@ export const MapPage: React.FC = () => {
       type: 'FeatureCollection',
       features,
     };
-  }, [h3Data]);
+  }, [predictions]);
 
   // Convert ATM locations to GeoJSON Points
   const atmGeoJson = useMemo<FeatureCollection>(() => {
@@ -152,146 +103,51 @@ export const MapPage: React.FC = () => {
         type: 'Feature',
         geometry: {
           type: 'Point',
-          coordinates: [atm.lng, atm.lat],
+          coordinates: [atm.lng || atm.longitude || 0, atm.lat || atm.latitude || 0],
         },
         properties: {
-          id: atm.id,
+          id: atm.id || atm.atm_id,
           name: atm.name,
-          bank: atm.bank,
+          bank: atm.bank || atm.bank_name,
           address: atm.address,
-          operationalStatus: atm.operationalStatus,
+          operationalStatus: atm.operationalStatus || 'surveillance_active',
         },
       })),
     };
   }, [atmLocations]);
 
-  // Convert historical hotspots to GeoJSON Points
+  // Convert Hotspots to GeoJSON
   const hotspotGeoJson = useMemo<FeatureCollection>(() => {
     return {
       type: 'FeatureCollection',
-      features: historicalHotspots.map((h, i) => ({
+      features: historicalHotspots.map((spot) => ({
         type: 'Feature',
         geometry: {
           type: 'Point',
-          coordinates: [h.lng, h.lat],
+          coordinates: [spot.lng || spot.longitude || 0, spot.lat || spot.latitude || 0],
         },
         properties: {
-          id: `hotspot-${i}`,
-          weight: h.weight,
+          name: spot.name || spot.district,
+          weight: spot.weight || spot.risk_score || 0.8,
         },
       })),
     };
   }, [historicalHotspots]);
 
-  // Generate cybernetic intercept routes connecting ATM nodes (matching reference image)
-  const cyberRoutesGeoJson = useMemo<FeatureCollection>(() => {
-    if (atmLocations.length < 2) {
-      return { type: 'FeatureCollection', features: [] };
-    }
-
-    const lines: Feature[] = [];
-    for (let i = 0; i < atmLocations.length - 1; i++) {
-      const p1 = atmLocations[i];
-      const p2 = atmLocations[i + 1];
-      // Intermediate step point to give an architectural grid look
-      const midPoint: [number, number] = [p2.lng, p1.lat];
-      lines.push({
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [p1.lng, p1.lat],
-            midPoint,
-            [p2.lng, p2.lat],
-          ],
-        },
-        properties: {
-          id: `route-${p1.id}-${p2.id}`,
-        },
-      });
-    }
-
-    return {
-      type: 'FeatureCollection',
-      features: lines,
-    };
-  }, [atmLocations]);
-
-  // Programmatic pan/zoom responder
-  const programmaticPanZoom = useCallback(
-    (cellOrAtmId?: string, lat?: number, lng?: number, zoom = 14) => {
-      let targetLat = lat;
-      let targetLng = lng;
-
-      if (!targetLat || !targetLng) {
-        if (cellOrAtmId) {
-          const foundAtm = atmLocations.find((a) => a.id === cellOrAtmId);
-          if (foundAtm) {
-            targetLat = foundAtm.lat;
-            targetLng = foundAtm.lng;
-            setSelectedMapItem({ type: 'atm', data: foundAtm });
-          } else {
-            try {
-              const coords = cellToLatLng(cellOrAtmId);
-              targetLat = coords[0];
-              targetLng = coords[1];
-              setSelectedMapItem({
-                type: 'h3',
-                data: { cell: cellOrAtmId, probability: 0.942 },
-              });
-            } catch {
-              console.warn('Could not parse H3 cell index:', cellOrAtmId);
-            }
-          }
-        }
-      }
-
-      if (targetLat !== undefined && targetLng !== undefined && mapRef.current) {
-        mapRef.current.flyTo({
-          center: [targetLng, targetLat],
-          zoom,
-          pitch: 52,
-          bearing: -10,
-          essential: true,
-          duration: 1200,
-        });
-      }
-    },
-    [atmLocations, setSelectedMapItem]
-  );
-
-  // Expose programmatic pan/zoom to global store target
-  useEffect(() => {
-    if (mapFocusTarget) {
-      programmaticPanZoom(
-        mapFocusTarget.cellOrAtmId,
-        mapFocusTarget.lat,
-        mapFocusTarget.lng,
-        mapFocusTarget.zoom || 14.5
-      );
-    }
-  }, [mapFocusTarget, programmaticPanZoom]);
-
-  // Initialize Mapbox GL instance
+  // Initialize MapLibre GL
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: LIGHT_MAP_STYLE,
-      center: INITIAL_CENTER,
-      zoom: INITIAL_ZOOM,
-      pitch: INITIAL_PITCH,
-      bearing: INITIAL_BEARING,
+      center: NATIONAL_DEFAULT_CENTER,
+      zoom: NATIONAL_DEFAULT_ZOOM,
+      pitch: 35,
+      bearing: -5,
     });
 
-    // Add navigation controls (zoom, rotate, tilt)
-    map.addControl(
-      new maplibregl.NavigationControl({
-        visualizePitch: true,
-      }),
-      'top-right'
-    );
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
     const popup = new maplibregl.Popup({
       closeButton: false,
@@ -301,7 +157,7 @@ export const MapPage: React.FC = () => {
     popupRef.current = popup;
 
     map.on('load', () => {
-      // 1. Hotspots GeoJSON Source & Heatmap Layer
+      // 1. Hotspots Heatmap
       map.addSource('hotspot-source', {
         type: 'geojson',
         data: hotspotGeoJson,
@@ -322,128 +178,54 @@ export const MapPage: React.FC = () => {
             'rgba(255, 255, 255, 0)',
             0.2,
             'rgba(14, 165, 233, 0.4)',
-            0.45,
+            0.5,
             'rgba(245, 158, 11, 0.6)',
-            0.75,
-            'rgba(239, 68, 68, 0.75)',
+            0.8,
+            'rgba(239, 68, 68, 0.8)',
             1,
-            'rgba(185, 28, 28, 0.85)',
+            'rgba(185, 28, 28, 0.95)',
           ],
-          'heatmap-radius': 42,
-          'heatmap-opacity': 0.65,
+          'heatmap-radius': 40,
+          'heatmap-opacity': 0.7,
         },
       });
 
-      // 2. Cyber Intercept Route Lines Source & Layers (matching reference image)
-      map.addSource('cyber-routes-source', {
+      // 2. Active Predictions Layer
+      map.addSource('prediction-source', {
         type: 'geojson',
-        data: cyberRoutesGeoJson,
+        data: predictionPointsGeoJson,
       });
 
       map.addLayer({
-        id: 'cyber-routes-glow',
-        type: 'line',
-        source: 'cyber-routes-source',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
+        id: 'prediction-pulse-glow',
+        type: 'circle',
+        source: 'prediction-source',
         paint: {
-          'line-color': '#0ea5e9',
-          'line-width': 5,
-          'line-opacity': 0.35,
-        },
-      });
-
-      map.addLayer({
-        id: 'cyber-routes-core',
-        type: 'line',
-        source: 'cyber-routes-source',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#0284c7',
-          'line-width': 2.2,
-          'line-dasharray': [3, 1.5],
-          'line-opacity': 0.9,
-        },
-      });
-
-      // 3. H3 Risk Zones Source & 3D Fill-Extrusion Layer
-      map.addSource('h3-source', {
-        type: 'geojson',
-        data: h3GeoJson,
-      });
-
-      map.addLayer({
-        id: 'h3-hexagons-extrusion',
-        type: 'fill-extrusion',
-        source: 'h3-source',
-        paint: {
-          'fill-extrusion-color': [
-            'step',
-            ['get', 'probability'],
-            '#0284c7', // < 0.60 Blue Low
-            0.6,
-            '#eab308', // 0.60 - 0.75 Yellow Medium
-            0.75,
-            '#f97316', // 0.75 - 0.90 Orange High
-            0.9,
-            '#ef4444', // >= 0.90 Red Critical
-          ],
-          'fill-extrusion-height': ['get', 'height'],
-          'fill-extrusion-base': 0,
-          'fill-extrusion-opacity': 0.85,
+          'circle-radius': 22,
+          'circle-color': '#dc2626',
+          'circle-opacity': 0.25,
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#ef4444',
+          'circle-stroke-opacity': 0.6,
         },
       });
 
       map.addLayer({
-        id: 'h3-hexagons-outline',
-        type: 'line',
-        source: 'h3-source',
+        id: 'prediction-points-layer',
+        type: 'circle',
+        source: 'prediction-source',
         paint: {
-          'line-color': '#087f5b',
-          'line-width': 1.5,
-          'line-opacity': 0.5,
+          'circle-radius': 9,
+          'circle-color': '#dc2626',
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#ffffff',
         },
       });
 
-      // 4. ATM Locations Source & Layers (Radar halo + circle marker + symbol labels)
+      // 3. ATM Markers Layer
       map.addSource('atm-source', {
         type: 'geojson',
         data: atmGeoJson,
-      });
-
-      map.addLayer({
-        id: 'atm-halo-layer',
-        type: 'circle',
-        source: 'atm-source',
-        paint: {
-          'circle-radius': 17,
-          'circle-color': [
-            'match',
-            ['get', 'operationalStatus'],
-            'dispenser_locked',
-            '#ef4444',
-            'surveillance_active',
-            '#f59e0b',
-            '#10b981',
-          ],
-          'circle-opacity': 0.22,
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': [
-            'match',
-            ['get', 'operationalStatus'],
-            'dispenser_locked',
-            '#ef4444',
-            'surveillance_active',
-            '#f59e0b',
-            '#10b981',
-          ],
-          'circle-stroke-opacity': 0.6,
-        },
       });
 
       map.addLayer({
@@ -451,82 +233,46 @@ export const MapPage: React.FC = () => {
         type: 'circle',
         source: 'atm-source',
         paint: {
-          'circle-radius': 8,
-          'circle-color': [
-            'match',
-            ['get', 'operationalStatus'],
-            'dispenser_locked',
-            '#ef4444',
-            'surveillance_active',
-            '#f59e0b',
-            '#10b981',
-          ],
-          'circle-stroke-width': 2.5,
+          'circle-radius': 6.5,
+          'circle-color': '#087f5b',
+          'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
         },
       });
 
-      map.addLayer({
-        id: 'atm-labels-layer',
-        type: 'symbol',
-        source: 'atm-source',
-        layout: {
-          'text-field': ['get', 'id'],
-          'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-          'text-size': 11,
-          'text-offset': [1.3, -0.4],
-          'text-anchor': 'left',
-          'text-allow-overlap': true,
-        },
-        paint: {
-          'text-color': '#0f172a',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 2,
-        },
-      });
-
-      // Interactive Events
-      // Click H3 Hexagon
-      map.on('click', 'h3-hexagons-extrusion', (e: maplibregl.MapLayerMouseEvent) => {
+      // Interactivity: Click Prediction
+      map.on('click', 'prediction-points-layer', (e: maplibregl.MapLayerMouseEvent) => {
         if (e.features && e.features[0]) {
           const props = (e.features[0] as any).properties;
-          setSelectedMapItem({
-            type: 'h3',
-            data: {
-              cell: props?.cell,
-              probability: Number(props?.probability),
-              accountId: props?.accountId,
-              riskLevel: props?.riskLevel,
-              predictionId: props?.predictionId,
-            },
-          });
+          setSelectedMapItem({ type: 'h3', data: props });
         }
       });
 
-      // Hover H3 Hexagon Tooltip
-      map.on('mouseenter', 'h3-hexagons-extrusion', (e: maplibregl.MapLayerMouseEvent) => {
+      // Hover Prediction
+      map.on('mouseenter', 'prediction-points-layer', (e: maplibregl.MapLayerMouseEvent) => {
         map.getCanvas().style.cursor = 'pointer';
         if (e.features && e.features[0]) {
           const props = (e.features[0] as any).properties;
           popup
             .setLngLat(e.lngLat)
             .setHTML(
-              `<div class="nexus-map-popup">
-                <strong style="color:#f97316">H3: ${props?.cell}</strong><br/>
-                Probability: ${(Number(props?.probability) * 100).toFixed(1)}%<br/>
-                Account: ${props?.accountId || 'ACC-89214'}
+              `<div class="nexus-map-popup" style="font-size:12px; font-family:monospace;">
+                <strong style="color:#dc2626">PREDICTED CASHOUT POINT</strong><br/>
+                Case: ${props.complaint_id}<br/>
+                Risk: ${Math.round(props.risk_score * 100)}% (${props.risk_level})<br/>
+                Window: ${props.cashout_window_hours}h
               </div>`
             )
             .addTo(map);
         }
       });
 
-      map.on('mouseleave', 'h3-hexagons-extrusion', () => {
+      map.on('mouseleave', 'prediction-points-layer', () => {
         map.getCanvas().style.cursor = '';
         popup.remove();
       });
 
-      // Click ATM Marker
+      // Click ATM
       map.on('click', 'atm-markers-layer', (e: maplibregl.MapLayerMouseEvent) => {
         if (e.features && e.features[0]) {
           const id = (e.features[0] as any).properties?.id;
@@ -537,7 +283,7 @@ export const MapPage: React.FC = () => {
         }
       });
 
-      // Hover ATM Tooltip
+      // Hover ATM
       map.on('mouseenter', 'atm-markers-layer', (e: maplibregl.MapLayerMouseEvent) => {
         map.getCanvas().style.cursor = 'pointer';
         if (e.features && e.features[0]) {
@@ -545,10 +291,10 @@ export const MapPage: React.FC = () => {
           popup
             .setLngLat(e.lngLat)
             .setHTML(
-              `<div class="nexus-map-popup">
-                <strong style="color:#10b981">${props?.id}: ${props?.name}</strong><br/>
-                ${props?.bank}<br/>
-                Status: ${props?.operationalStatus}
+              `<div class="nexus-map-popup" style="font-size:12px; font-family:sans-serif;">
+                <strong style="color:#087f5b">${props.name}</strong><br/>
+                ${props.bank}<br/>
+                Status: Verified Candidate ATM
               </div>`
             )
             .addTo(map);
@@ -571,303 +317,168 @@ export const MapPage: React.FC = () => {
       mapRef.current = null;
       setMapLoaded(false);
     };
-  }, []); // Run once on mount
+  }, []);
 
-  // Update H3 source data when filtered
+  // Update GeoJSON Sources when data changes
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
-    const source = mapRef.current.getSource('h3-source') as maplibregl.GeoJSONSource | undefined;
-    if (source) {
-      source.setData(h3GeoJson);
-    }
-  }, [h3GeoJson, mapLoaded]);
+    const pSrc = mapRef.current.getSource('prediction-source') as maplibregl.GeoJSONSource | undefined;
+    if (pSrc) pSrc.setData(predictionPointsGeoJson);
 
-  // Update ATM source data when atmLocations change
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-    const source = mapRef.current.getSource('atm-source') as maplibregl.GeoJSONSource | undefined;
-    if (source) {
-      source.setData(atmGeoJson);
-    }
-    const routeSource = mapRef.current.getSource('cyber-routes-source') as maplibregl.GeoJSONSource | undefined;
-    if (routeSource) {
-      routeSource.setData(cyberRoutesGeoJson);
-    }
-  }, [atmGeoJson, cyberRoutesGeoJson, mapLoaded]);
+    const aSrc = mapRef.current.getSource('atm-source') as maplibregl.GeoJSONSource | undefined;
+    if (aSrc) aSrc.setData(atmGeoJson);
 
-  // Update Hotspot source data when historicalHotspots change
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-    const source = mapRef.current.getSource('hotspot-source') as maplibregl.GeoJSONSource | undefined;
-    if (source) {
-      source.setData(hotspotGeoJson);
-    }
-  }, [hotspotGeoJson, mapLoaded]);
+    const hSrc = mapRef.current.getSource('hotspot-source') as maplibregl.GeoJSONSource | undefined;
+    if (hSrc) hSrc.setData(hotspotGeoJson);
+  }, [predictionPointsGeoJson, atmGeoJson, hotspotGeoJson, mapLoaded]);
 
-  // Layer Visibility Toggles
+  // Dynamic Camera Fit: Either focus selected complaint OR fit over all active national predictions
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
     const map = mapRef.current;
 
-    // H3 Hexagons
-    if (map.getLayer('h3-hexagons-extrusion')) {
-      map.setLayoutProperty('h3-hexagons-extrusion', 'visibility', showH3 ? 'visible' : 'none');
-    }
-    if (map.getLayer('h3-hexagons-outline')) {
-      map.setLayoutProperty('h3-hexagons-outline', 'visibility', showH3 ? 'visible' : 'none');
-    }
-    if (map.getLayer('cyber-routes-glow')) {
-      map.setLayoutProperty('cyber-routes-glow', 'visibility', showH3 ? 'visible' : 'none');
-      map.setLayoutProperty('cyber-routes-core', 'visibility', showH3 ? 'visible' : 'none');
-    }
+    if (selectedComplaintId && predictions.length > 0) {
+      const targetPred = predictions.find((p) => p.complaint_id === selectedComplaintId) || predictions[0];
+      const lat = targetPred.predicted_lat || targetPred.lat;
+      const lon = targetPred.predicted_lon || targetPred.predicted_lng || targetPred.lng;
+      if (lat && lon) {
+        map.flyTo({
+          center: [lon, lat],
+          zoom: 12.8,
+          pitch: 45,
+          bearing: -10,
+          duration: 1500,
+        });
+      }
+    } else if (predictions.length > 0) {
+      // Natural extent over all predictions across India
+      const bounds = new maplibregl.LngLatBounds();
+      predictions.forEach((p) => {
+        const lat = p.predicted_lat || p.lat;
+        const lon = p.predicted_lon || p.predicted_lng || p.lng;
+        if (lat && lon) bounds.extend([lon, lat]);
+      });
+      historicalHotspots.forEach((h) => {
+        const lat = h.lat || h.latitude;
+        const lon = h.lng || h.longitude;
+        if (lat && lon) bounds.extend([lon, lat]);
+      });
 
-    // ATM Markers
-    if (map.getLayer('atm-markers-layer')) {
-      map.setLayoutProperty('atm-markers-layer', 'visibility', showAtms ? 'visible' : 'none');
-      map.setLayoutProperty('atm-halo-layer', 'visibility', showAtms ? 'visible' : 'none');
-      map.setLayoutProperty('atm-labels-layer', 'visibility', showAtms ? 'visible' : 'none');
+      if (!bounds.isEmpty()) {
+        map.fitBounds(bounds, { padding: 90, maxZoom: 11, duration: 1500 });
+      }
     }
+  }, [selectedComplaintId, predictions, historicalHotspots, mapLoaded]);
 
-    // Hotspot Heatmap
-    if (map.getLayer('historical-hotspots-heatmap')) {
-      map.setLayoutProperty(
-        'historical-hotspots-heatmap',
-        'visibility',
-        showHeatmap ? 'visible' : 'none'
-      );
-    }
-  }, [showH3, showAtms, showHeatmap, mapLoaded]);
+  const handlePanToCoordinate = (lat: number, lon: number) => {
+    if (!mapRef.current) return;
+    mapRef.current.flyTo({
+      center: [lon, lat],
+      zoom: 12.5,
+      pitch: 45,
+      duration: 1200,
+    });
+  };
 
   return (
-    <div className="nexus-map-wrapper">
-      {/* Mapbox GL Map Canvas */}
-      <div className="nexus-deckgl-container">
-        <div ref={mapContainerRef} className="nexus-mapbox-container" />
-        {/* Map Grid / Cybernetic overlay background styling */}
-        <div className="map-grid-overlay" />
-      </div>
+    <div className="nexus-map-wrapper relative w-full h-[calc(100vh-64px)]">
+      {/* Mapbox Container */}
+      <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Floating Control Panel */}
-      <div className="map-floating-panel">
-        <div className="map-panel-header">
-          <div className="flex items-center gap-2">
-            <Layers size={16} className="text-cyan-600" />
-            <span className="font-mono font-bold text-sm text-slate-800">
-              GEOSPATIAL INTELLIGENCE 3D
-            </span>
-          </div>
-          <span className="nexus-badge-tech">{h3Data.length} ACTIVE CELLS</span>
-        </div>
-
-        {/* Layer Visibility Toggles */}
-        <div className="map-control-section">
-          <div className="text-[11px] font-mono text-slate-500 mb-2 uppercase">
-            Layer Controls
-          </div>
-          <div className="space-y-1.5">
-            <button
-              onClick={() => setShowH3(!showH3)}
-              className={`layer-toggle-btn ${showH3 ? 'active' : ''}`}
-            >
-              <div className="flex items-center gap-2">
-                {showH3 ? <Eye size={14} /> : <EyeOff size={14} />}
-                <span>Predicted H3 Extrusions</span>
-              </div>
-              <span className="layer-color-indicator h3-indicator" />
-            </button>
-
-            <button
-              onClick={() => setShowAtms(!showAtms)}
-              className={`layer-toggle-btn ${showAtms ? 'active' : ''}`}
-            >
-              <div className="flex items-center gap-2">
-                {showAtms ? <Eye size={14} /> : <EyeOff size={14} />}
-                <span>ATM Surveillance Intercepts</span>
-              </div>
-              <span className="layer-color-indicator atm-indicator" />
-            </button>
-
-            <button
-              onClick={() => setShowHeatmap(!showHeatmap)}
-              className={`layer-toggle-btn ${showHeatmap ? 'active' : ''}`}
-            >
-              <div className="flex items-center gap-2">
-                {showHeatmap ? <Eye size={14} /> : <EyeOff size={14} />}
-                <span>Historical Hotspot Density</span>
-              </div>
-              <span className="layer-color-indicator heat-indicator" />
-            </button>
-          </div>
-        </div>
-
-        {/* Filter Controls: Risk Threshold & Time Window */}
-        <div className="map-control-section">
-          <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 mb-1.5 uppercase">
-            <span>Risk Threshold:</span>
-            <span className="text-amber-600 font-bold">
-              {(riskThreshold * 100).toFixed(0)}%
-            </span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="0.95"
-            step="0.05"
-            value={riskThreshold}
-            onChange={(e) => setRiskThreshold(parseFloat(e.target.value))}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
-          />
-
-          <div className="mt-3">
-            <div className="text-[11px] font-mono text-slate-500 mb-1.5 uppercase">
-              Time Range Window
-            </div>
-            <div className="grid grid-cols-4 gap-1">
-              {(['all', '6h', '12h', '24h'] as const).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeFilter(range)}
-                  className={`nexus-pill-button text-xs ${timeFilter === range ? 'active' : ''
-                    }`}
-                >
-                  {range.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Pan Presets */}
-        <div className="map-control-section">
-          <div className="text-[11px] font-mono text-slate-500 mb-1.5 uppercase">
-            Quick Pan Nodes
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button
-              onClick={() => programmaticPanZoom('ATM-DEL-042')}
-              className="nexus-pill-button text-xs text-left truncate"
-            >
-              <Crosshair size={12} className="inline mr-1 text-red-500" />
-              CP OTC Nexus
-            </button>
-            <button
-              onClick={() => programmaticPanZoom('ATM-DEL-019')}
-              className="nexus-pill-button text-xs text-left truncate"
-            >
-              <Crosshair size={12} className="inline mr-1 text-amber-500" />
-              Barakhamba
-            </button>
-            <button
-              onClick={() => programmaticPanZoom('ATM-NOI-007')}
-              className="nexus-pill-button text-xs text-left truncate"
-            >
-              <Crosshair size={12} className="inline mr-1 text-cyan-600" />
-              Noida Crypto Ramp
-            </button>
-            <button
-              onClick={() => programmaticPanZoom('ATM-GUR-088')}
-              className="nexus-pill-button text-xs text-left truncate"
-            >
-              <Crosshair size={12} className="inline mr-1 text-emerald-600" />
-              Cyber City Hub
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Selected Item Detail Inspector Drawer */}
-      {selectedMapItem && (
-        <div className="map-inspector-drawer">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-            <div className="flex items-center gap-2">
-              <span className="nexus-status-dot" />
-              <span className="font-mono text-xs font-bold text-slate-800">
-                {selectedMapItem.type === 'h3'
-                  ? 'SELECTED H3 HEXAGON CELL'
-                  : 'ATM TERMINAL SURVEILLANCE'}
+      {/* Top Banner: Selected Case or National View */}
+      <div className="absolute top-4 left-4 z-10 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-lg border border-[#E2E8E6] shadow-sm flex items-center gap-3">
+        {selectedComplaintId ? (
+          <>
+            <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+            <div>
+              <span className="text-xs font-bold text-[#102A2A] font-mono block">
+                FOCUSED CASE: {selectedComplaintId}
               </span>
+              <span className="text-[11px] text-[#64748B]">Showing corridor &amp; candidate ATMs</span>
             </div>
             <button
-              onClick={() => setSelectedMapItem(null)}
-              className="text-xs text-slate-500 hover:text-slate-800 px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200"
+              onClick={() => setSelectedComplaintId(null)}
+              className="ml-2 px-2 py-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded flex items-center gap-1"
             >
-              Close
+              <X size={12} /> Clear Focus (View All)
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+            <div>
+              <span className="text-xs font-bold text-[#102A2A] font-mono block">
+                NATIONAL PREDICTION GRID
+              </span>
+              <span className="text-[11px] text-[#64748B]">{predictions.length} active cashout predictions across India</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Floating Control Panel (Top-Right / Controls) */}
+      <div className="absolute top-4 right-14 z-10 bg-white/95 backdrop-blur-md p-3.5 rounded-xl border border-[#E2E8E6] shadow-sm space-y-3 max-w-[240px]">
+        <div className="text-xs font-bold text-[#102A2A] uppercase font-mono tracking-wider">
+          Active Cyber Corridors
+        </div>
+
+        {/* Real Quick-Pan Nodes from DB */}
+        <div className="space-y-1.5">
+          {historicalHotspots.slice(0, 4).map((spot) => {
+            const lat = spot.latitude || spot.lat;
+            const lon = spot.longitude || spot.lng;
+            return (
+              <button
+                key={spot.id || spot.district}
+                onClick={() => handlePanToCoordinate(lat, lon)}
+                className="w-full text-left px-2.5 py-1.5 rounded-md text-xs font-semibold bg-slate-50 hover:bg-slate-100 text-slate-800 flex items-center justify-between border border-slate-100"
+              >
+                <span className="truncate">{spot.district || spot.name}</span>
+                <Crosshair size={12} className="text-[#087F5B] flex-shrink-0" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Selected Item Drawer */}
+      {selectedMapItem && (
+        <div className="absolute bottom-6 left-6 z-10 bg-white p-4 rounded-xl border border-[#E2E8E6] shadow-lg max-w-sm w-full space-y-2">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+            <span className="font-bold text-xs text-[#102A2A] uppercase font-mono">
+              {selectedMapItem.type === 'atm' ? 'Candidate Cashout ATM' : 'Predicted Extraction Target'}
+            </span>
+            <button onClick={() => setSelectedMapItem(null)} className="text-slate-400 hover:text-slate-700">
+              <X size={15} />
             </button>
           </div>
 
-          <div className="mt-3 space-y-2 font-mono text-xs">
-            {selectedMapItem.type === 'h3' && (
-              <>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">H3 Index:</span>
-                  <span className="text-cyan-700 font-bold">
-                    {(selectedMapItem.data as any).cell}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Probability:</span>
-                  <span className="text-orange-600 font-bold">
-                    {((selectedMapItem.data as any).probability * 100).toFixed(1)}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Associated Account:</span>
-                  <span className="text-slate-700 font-semibold">
-                    {(selectedMapItem.data as any).accountId || 'ACC-89214'}
-                  </span>
-                </div>
-                <div className="pt-2">
-                  <button
-                    onClick={() =>
-                      navigate(
-                        `/prediction/${(selectedMapItem.data as any).accountId || 'ACC-89214'}`
-                      )
-                    }
-                    className="w-full nexus-pill-button justify-center text-xs py-1.5"
-                  >
-                    View Account Prediction Dossier <ExternalLink size={12} />
-                  </button>
-                </div>
-              </>
-            )}
-
-            {selectedMapItem.type === 'atm' && (
-              <>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">ATM ID:</span>
-                  <span className="text-emerald-700 font-bold">
-                    {(selectedMapItem.data as any).id}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Bank Node:</span>
-                  <span className="text-slate-700">
-                    {(selectedMapItem.data as any).bank}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Location:</span>
-                  <span className="text-slate-700 text-[11px] text-right max-w-[180px]">
-                    {(selectedMapItem.data as any).address}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Status:</span>
-                  <span className="text-amber-600 font-bold uppercase">
-                    {(selectedMapItem.data as any).operationalStatus}
-                  </span>
-                </div>
-                <div className="pt-2">
-                  <button
-                    onClick={() => navigate('/alerts')}
-                    className="w-full nexus-pill-button justify-center text-xs py-1.5"
-                  >
-                    Check Linked Alerts Queue <ChevronRight size={12} />
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          {selectedMapItem.type === 'atm' ? (
+            <div className="text-xs space-y-1 text-slate-700">
+              <div className="font-bold text-sm text-[#102A2A]">{(selectedMapItem.data as any).name}</div>
+              <div className="text-slate-500">{(selectedMapItem.data as any).address}</div>
+              <div className="font-mono text-[#087F5B] font-semibold">Bank: {(selectedMapItem.data as any).bank}</div>
+            </div>
+          ) : (
+            <div className="text-xs space-y-2 text-slate-700">
+              <div>
+                <span className="text-slate-500">Case Reference: </span>
+                <span className="font-mono font-bold text-[#102A2A]">{(selectedMapItem.data as any).complaint_id}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Computed Fraud Risk: </span>
+                <span className="font-mono font-bold text-red-600">
+                  {Math.round(((selectedMapItem.data as any).risk_score || 0.85) * 100)}%
+                </span>
+              </div>
+              <button
+                onClick={() => navigate(`/prediction/${(selectedMapItem.data as any).complaint_id}`)}
+                className="w-full py-1.5 bg-[#087F5B] text-white rounded text-xs font-semibold hover:bg-[#076D4E] flex items-center justify-center gap-1 mt-2"
+              >
+                Open Full Case Prediction Dossier <ExternalLink size={12} />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

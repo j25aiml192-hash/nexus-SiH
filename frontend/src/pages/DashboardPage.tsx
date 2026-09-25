@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
-import { Calendar, ChevronDown, TrendingUp } from 'lucide-react';
-import { DASHBOARD_STATS } from '../data/nexus-data';
+import { Calendar, ChevronDown, TrendingUp, AlertTriangle, Loader2 } from 'lucide-react';
 import { PriorityAlertsCard } from '../components/nexus/PriorityAlertsCard';
 import { LiveActivityCard } from '../components/nexus/LiveActivityCard';
 import { RiskBreakdownCard } from '../components/nexus/RiskBreakdownCard';
 import { QuickActionsCard } from '../components/nexus/QuickActionsCard';
 import { NewComplaintModal } from '../components/nexus/NewComplaintModal';
-import { COMPLAINTS_DATA, type ComplaintDetail } from '../data/complaints-data';
+import { useDashboardStats } from '../hooks/useNexusData';
+import type { Complaint } from '../types/nexus';
 
 export const DashboardPage: React.FC = () => {
   const [roleMode, setRoleMode] = useState<'Analyst' | 'Officer'>('Analyst');
   const [timeframe, setTimeframe] = useState('Last 24h');
   const [showNewComplaintModal, setShowNewComplaintModal] = useState(false);
 
-  const handleNewComplaint = (newComp: Partial<ComplaintDetail>) => {
-    COMPLAINTS_DATA.unshift(newComp as ComplaintDetail);
+  // Map display timeframe to API parameter
+  const apiTimeframe = timeframe === 'Last 30d' ? '30d' : timeframe === 'Last 7d' ? '7d' : '24h';
+  const { stats, isLoading, error, refetch } = useDashboardStats(apiTimeframe);
+
+  const handleNewComplaint = (_createdComp: Complaint) => {
+    refetch();
   };
 
   const cycleTimeframe = () => {
@@ -34,7 +38,7 @@ export const DashboardPage: React.FC = () => {
               <span className="nexus-live-dot"></span> System online
             </span>
           </div>
-          <p className="nexus-page-subtitle">Overview of active complaints, alerts and investigations.</p>
+          <p className="nexus-page-subtitle">Live cybercrime defense intelligence & predictive cashout monitoring.</p>
         </div>
 
         <div className="nexus-header-controls flex items-center gap-3">
@@ -66,6 +70,16 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="p-4 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-3 text-sm">
+          <AlertTriangle size={18} />
+          <span>{error}</span>
+          <button onClick={() => refetch()} className="ml-auto underline font-semibold text-xs">
+            Retry Connection
+          </button>
+        </div>
+      )}
+
       {/* 4 KPI Summary Cards */}
       <div className="nexus-kpi-grid">
         {/* KPI 1: Open Complaints */}
@@ -73,13 +87,13 @@ export const DashboardPage: React.FC = () => {
           <div className="nexus-kpi-top">
             <span className="nexus-kpi-label">OPEN COMPLAINTS</span>
             <span className="nexus-kpi-trend font-mono flex items-center gap-1">
-              <TrendingUp size={12} className="text-[#087F5B]" /> +12% from last week
+              <TrendingUp size={12} className="text-[#087F5B]" /> live DB
             </span>
           </div>
           <div className="nexus-kpi-value font-mono">
-            {DASHBOARD_STATS.openComplaints}
+            {isLoading ? <Loader2 size={24} className="animate-spin text-slate-400" /> : (stats?.openComplaints ?? 0)}
           </div>
-          <div className="nexus-kpi-subtext">Currently under investigation</div>
+          <div className="nexus-kpi-subtext">Currently under active investigation</div>
         </div>
 
         {/* KPI 2: Active Alerts */}
@@ -87,15 +101,15 @@ export const DashboardPage: React.FC = () => {
           <div className="nexus-kpi-top flex justify-between items-center">
             <span className="nexus-kpi-label">ACTIVE ALERTS</span>
             <span className="nexus-badge-risk nexus-badge-critical text-[10px] py-0.5 px-1.5">
-              CRITICAL
+              {stats?.highestAlertRisk || 'CRITICAL'}
             </span>
           </div>
           <div className="nexus-kpi-value font-mono">
-            {DASHBOARD_STATS.activeAlerts}
+            {isLoading ? <Loader2 size={24} className="animate-spin text-slate-400" /> : (stats?.activeAlerts ?? 0)}
           </div>
           <div className="nexus-kpi-subtext flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
-            <span>Highest risk: {DASHBOARD_STATS.highestAlertRisk}</span>
+            <span>Highest risk: {stats?.highestAlertRisk || 'Critical'}</span>
           </div>
         </div>
 
@@ -107,15 +121,15 @@ export const DashboardPage: React.FC = () => {
           <div className="nexus-kpi-incidents-metrics">
             <div className="nexus-kpi-incident-item">
               <div className="nexus-kpi-value font-mono">
-                {DASHBOARD_STATS.incidentsInProgress}
+                {isLoading ? '...' : (stats?.incidentsInProgress ?? 0)}
               </div>
               <div className="nexus-kpi-subtext">In progress</div>
             </div>
             <div className="nexus-kpi-incident-item">
               <div className="nexus-kpi-value font-mono">
-                {DASHBOARD_STATS.incidentsClosedToday}
+                {isLoading ? '...' : (stats?.incidentsClosedToday ?? 0)}
               </div>
-              <div className="nexus-kpi-subtext">Closed today</div>
+              <div className="nexus-kpi-subtext">Closed/Authorized</div>
             </div>
           </div>
         </div>
@@ -126,10 +140,10 @@ export const DashboardPage: React.FC = () => {
             <span className="nexus-kpi-label">FUNDS AT RISK</span>
           </div>
           <div className="nexus-kpi-value font-mono text-[#087F5B]">
-            {DASHBOARD_STATS.totalFundsAtRisk}
+            {isLoading ? '...' : (stats?.totalFundsAtRisk ?? '₹0')}
           </div>
           <div className="nexus-kpi-subtext">
-            {DASHBOARD_STATS.totalFundsFrozen} frozen
+            {isLoading ? '...' : (stats?.totalFundsFrozen ?? '₹0')} secured / frozen
           </div>
         </div>
       </div>
@@ -137,12 +151,12 @@ export const DashboardPage: React.FC = () => {
       {/* Main Grid: Left Column (~65%) and Right Column (~35%) */}
       <div className="nexus-dashboard-main-grid">
         <div className="nexus-col-left space-y-6">
-          <PriorityAlertsCard />
-          <LiveActivityCard />
+          <PriorityAlertsCard alerts={stats?.priorityAlerts} />
+          <LiveActivityCard items={stats?.liveActivity} />
         </div>
 
         <div className="nexus-col-right space-y-6">
-          <RiskBreakdownCard />
+          <RiskBreakdownCard data={stats?.riskBreakdown} />
           <QuickActionsCard onNewComplaint={() => setShowNewComplaintModal(true)} />
         </div>
       </div>
@@ -154,9 +168,9 @@ export const DashboardPage: React.FC = () => {
         onComplaintCreated={handleNewComplaint}
       />
 
-      {/* Demonstration Footer */}
+      {/* Operational Footer */}
       <footer className="nexus-demonstration-footer">
-        NEXUS · RESTRICTED OPERATIONAL USE · ALL IDENTIFIERS MASKED · DEMONSTRATION DATA
+        NEXUS · RESTRICTED OPERATIONAL INTEL · CONNECTED TO LIVE BACKEND &amp; SQLITE REPOSITORY
       </footer>
     </div>
   );

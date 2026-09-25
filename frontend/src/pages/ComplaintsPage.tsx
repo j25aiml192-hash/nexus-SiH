@@ -1,19 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Plus, X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import { COMPLAINTS_DATA, type ComplaintDetail } from '../data/complaints-data';
+import { Search, Plus, X, ChevronLeft, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { NewComplaintModal } from '../components/nexus/NewComplaintModal';
+import { useComplaints } from '../hooks/useNexusData';
+import { useNexusStore } from '../store/useNexusStore';
 
 export const ComplaintsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const setSelectedComplaintId = useNexusStore((state) => state.setSelectedComplaintId);
 
-  const [allComplaints, setAllComplaints] = useState<ComplaintDetail[]>(COMPLAINTS_DATA);
+  const { complaints, isLoading, error, refetch } = useComplaints();
+
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [riskFilter, setRiskFilter] = useState('All');
-  const [dateFilter, setDateFilter] = useState('All time');
-  const [officerFilter, setOfficerFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(searchParams.get('action') === 'new');
 
@@ -28,42 +28,28 @@ export const ComplaintsPage: React.FC = () => {
 
   // Filter complaints
   const filteredComplaints = useMemo(() => {
-    return allComplaints.filter((comp) => {
-      // Search matching id, account, type, officer
+    return complaints.filter((comp) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesId = comp.id.toLowerCase().includes(q);
-        const matchesAccount = comp.primaryAccount.toLowerCase().includes(q);
-        const matchesType = comp.complaintType.toLowerCase().includes(q);
-        const matchesOfficer = comp.assignedOfficer.toLowerCase().includes(q);
-        if (!matchesId && !matchesAccount && !matchesType && !matchesOfficer) {
+        const matchesBank = (comp.accused_bank || '').toLowerCase().includes(q);
+        const matchesType = (comp.fraud_type || '').toLowerCase().includes(q);
+        const matchesVictim = (comp.victimInfo?.name || '').toLowerCase().includes(q);
+        if (!matchesId && !matchesBank && !matchesType && !matchesVictim) {
           return false;
         }
       }
 
-      // Status
-      if (statusFilter !== 'All' && comp.status !== statusFilter) {
-        return false;
-      }
-
-      // Risk
-      if (riskFilter !== 'All' && comp.risk !== riskFilter) {
-        return false;
-      }
-
-      // Officer
-      if (officerFilter !== 'All') {
-        if (officerFilter === 'Unassigned' && comp.assignedOfficer !== 'Unassigned') {
-          return false;
-        }
-        if (officerFilter !== 'Unassigned' && comp.assignedOfficer !== officerFilter) {
+      if (statusFilter !== 'All') {
+        const s = (comp.status || '').toLowerCase();
+        if (statusFilter.toLowerCase() !== s) {
           return false;
         }
       }
 
       return true;
     });
-  }, [allComplaints, searchQuery, statusFilter, riskFilter, officerFilter]);
+  }, [complaints, searchQuery, statusFilter]);
 
   const totalPages = Math.ceil(filteredComplaints.length / pageSize) || 1;
   const paginatedComplaints = useMemo(() => {
@@ -74,44 +60,32 @@ export const ComplaintsPage: React.FC = () => {
   const handleClearFilters = () => {
     setSearchQuery('');
     setStatusFilter('All');
-    setRiskFilter('All');
-    setDateFilter('All time');
-    setOfficerFilter('All');
     setCurrentPage(1);
     setSearchParams({});
   };
 
-  const handleComplaintCreated = (newComp: Partial<ComplaintDetail>) => {
-    const updated = [newComp as ComplaintDetail, ...allComplaints];
-    setAllComplaints(updated);
+  const handleSelectComplaint = (complaintId: string) => {
+    setSelectedComplaintId(complaintId);
+    navigate(`/complaints/${complaintId}`);
   };
 
-  const getRiskBadge = (risk: ComplaintDetail['risk']) => {
-    let barColor = '#087F5B';
-    if (risk === 'CRITICAL') barColor = '#DC2626';
-    if (risk === 'HIGH') barColor = '#EA580C';
-    if (risk === 'MEDIUM') barColor = '#D97706';
-
-    return (
-      <div className="flex items-center gap-1.5 font-bold text-xs" style={{ color: barColor }}>
-        <span className="w-1 h-3.5 rounded-sm inline-block" style={{ backgroundColor: barColor }}></span>
-        <span>{risk}</span>
-      </div>
-    );
+  const formatAmount = (amt: number) => {
+    if (amt >= 10000000) return `₹${(amt / 10000000).toFixed(2)} Cr`;
+    if (amt >= 100000) return `₹${(amt / 100000).toFixed(1)} L`;
+    return `₹${amt.toLocaleString('en-IN')}`;
   };
 
-  const getStatusPill = (status: ComplaintDetail['status']) => {
-    switch (status) {
-      case 'Under Investigation':
-        return <span className="nexus-pill-under-investigation">{status}</span>;
-      case 'New':
-        return <span className="nexus-pill-new">{status}</span>;
-      case 'Resolved':
-        return <span className="nexus-pill-resolved">{status}</span>;
-      default:
-        return <span className="nexus-pill-under-investigation">{status}</span>;
+  const formatDate = (isoStr?: string) => {
+    if (!isoStr) return 'Recent';
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return 'Recent';
     }
   };
+
+  const openCount = complaints.filter((c) => c.status !== 'resolved').length;
 
   return (
     <div className="nexus-page-container">
@@ -119,7 +93,7 @@ export const ComplaintsPage: React.FC = () => {
       <div className="nexus-complaints-header flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="nexus-page-title">Complaints</h1>
-          <p className="nexus-page-subtitle">Review and manage reported cases.</p>
+          <p className="nexus-page-subtitle">Review, investigate and track real reported cybercrime cases.</p>
         </div>
 
         <button
@@ -130,30 +104,38 @@ export const ComplaintsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Complaint Summary Container (Single horizontal card on desktop with 60%/40% split & vertical divider) */}
+      {/* Complaint Summary Container */}
       <div className="nexus-complaints-summary-container">
-        {/* Total Complaints (approx 60% width) */}
         <div className="nexus-complaints-summary-left">
           <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider font-mono">
             TOTAL COMPLAINTS
           </span>
           <div className="text-3xl font-extrabold text-[#102A2A] font-mono mt-1">
-            86
+            {isLoading ? '...' : complaints.length}
           </div>
-          <div className="text-xs text-[#64748B] mt-1">All reported cases</div>
+          <div className="text-xs text-[#64748B] mt-1">All live ingested cases in DB</div>
         </div>
 
-        {/* Open Complaints (approx 40% width) */}
         <div className="nexus-complaints-summary-right">
           <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider font-mono">
-            OPEN COMPLAINTS
+            OPEN INVESTIGATIONS
           </span>
           <div className="text-3xl font-extrabold text-[#087F5B] font-mono mt-1">
-            24
+            {isLoading ? '...' : openCount}
           </div>
-          <div className="text-xs text-[#64748B] mt-1">Currently open</div>
+          <div className="text-xs text-[#64748B] mt-1">Active interception dockets</div>
         </div>
       </div>
+
+      {error && (
+        <div className="p-4 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-3 text-sm">
+          <AlertTriangle size={18} />
+          <span>{error}</span>
+          <button onClick={() => refetch()} className="ml-auto underline font-semibold text-xs">
+            Retry Connection
+          </button>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="nexus-filter-bar">
@@ -162,7 +144,7 @@ export const ComplaintsPage: React.FC = () => {
           <Search size={15} className="text-[#94A3B8]" />
           <input
             type="text"
-            placeholder="Search complaint ID, account ID..."
+            placeholder="Search complaint ID, suspect bank, fraud type..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -185,64 +167,10 @@ export const ComplaintsPage: React.FC = () => {
               className="nexus-filter-select"
             >
               <option value="All">All</option>
-              <option value="Under Investigation">Under Investigation</option>
-              <option value="New">New</option>
-              <option value="Resolved">Resolved</option>
-            </select>
-          </div>
-
-          <div className="nexus-filter-select-group">
-            <span className="nexus-filter-label">RISK</span>
-            <select
-              value={riskFilter}
-              onChange={(e) => {
-                setRiskFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="nexus-filter-select"
-            >
-              <option value="All">All</option>
-              <option value="CRITICAL">CRITICAL</option>
-              <option value="HIGH">HIGH</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="LOW">LOW</option>
-            </select>
-          </div>
-
-          <div className="nexus-filter-select-group">
-            <span className="nexus-filter-label">DATE</span>
-            <select
-              value={dateFilter}
-              onChange={(e) => {
-                setDateFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="nexus-filter-select"
-            >
-              <option value="All time">All time</option>
-              <option value="Last 24h">Last 24h</option>
-              <option value="Last 7d">Last 7d</option>
-              <option value="Last 30d">Last 30d</option>
-            </select>
-          </div>
-
-          <div className="nexus-filter-select-group">
-            <span className="nexus-filter-label">OFFICER</span>
-            <select
-              value={officerFilter}
-              onChange={(e) => {
-                setOfficerFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="nexus-filter-select"
-            >
-              <option value="All">All</option>
-              <option value="A. Sharma">A. Sharma</option>
-              <option value="A. Verma">A. Verma</option>
-              <option value="S. Nair">S. Nair</option>
-              <option value="R. Iyer">R. Iyer</option>
-              <option value="P. Deshmukh">P. Deshmukh</option>
-              <option value="Unassigned">Unassigned</option>
+              <option value="flagged">Flagged</option>
+              <option value="alerted">Alerted</option>
+              <option value="analyzing">Analyzing</option>
+              <option value="resolved">Resolved</option>
             </select>
           </div>
 
@@ -267,95 +195,94 @@ export const ComplaintsPage: React.FC = () => {
           <thead>
             <tr>
               <th>COMPLAINT ID</th>
-              <th>
-                <span className="flex items-center gap-1">
-                  REPORTED ON <ChevronDown size={13} className="text-[#64748B]" />
-                </span>
-              </th>
-              <th>COMPLAINT TYPE</th>
-              <th>PRIMARY ACCOUNT</th>
+              <th>REPORTED ON</th>
+              <th>FRAUD TYPE</th>
+              <th>SUSPECT BANK</th>
               <th>AMOUNT</th>
-              <th>RISK</th>
+              <th>VICTIM LOCATION</th>
               <th>STATUS</th>
-              <th>ASSIGNED OFFICER</th>
-              <th>LAST UPDATED</th>
+              <th>CHANNEL</th>
             </tr>
           </thead>
           <tbody>
-            {paginatedComplaints.map((complaint) => (
-              <tr
-                key={complaint.id}
-                onClick={() => navigate(`/complaints/${complaint.id}`)}
-                className="nexus-table-row cursor-pointer"
-              >
-                <td className="font-mono font-bold text-[#087F5B]">
-                  {complaint.id}
-                </td>
-                <td className="font-mono text-xs text-[#102A2A]">
-                  {complaint.reportedOn}
-                </td>
-                <td className="font-semibold text-xs text-[#102A2A]">
-                  {complaint.complaintType}
-                </td>
-                <td className="font-mono text-xs text-[#102A2A]">
-                  {complaint.primaryAccount}
-                </td>
-                <td className="font-mono font-bold text-xs text-[#102A2A]">
-                  {complaint.amountFormatted}
-                </td>
-                <td>{getRiskBadge(complaint.risk)}</td>
-                <td>{getStatusPill(complaint.status)}</td>
-                <td className="text-xs text-[#64748B]">
-                  {complaint.assignedOfficer}
-                </td>
-                <td className="font-mono text-xs text-[#64748B]">
-                  {complaint.lastUpdated}
-                </td>
-              </tr>
-            ))}
-            {paginatedComplaints.length === 0 && (
+            {isLoading ? (
               <tr>
-                <td colSpan={9} className="text-center py-8 text-[#64748B] text-xs">
-                  No complaints found matching the selected filters.
+                <td colSpan={8} className="text-center py-10">
+                  <div className="flex justify-center items-center gap-2 text-slate-500 text-xs">
+                    <Loader2 size={18} className="animate-spin text-emerald-600" />
+                    Querying live records from NEXUS backend...
+                  </div>
                 </td>
               </tr>
+            ) : paginatedComplaints.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center py-10 text-slate-500 text-xs">
+                  No complaints found matching current filters.
+                </td>
+              </tr>
+            ) : (
+              paginatedComplaints.map((complaint) => (
+                <tr
+                  key={complaint.id}
+                  onClick={() => handleSelectComplaint(complaint.id)}
+                  className="nexus-table-row cursor-pointer hover:bg-slate-50 transition-colors"
+                >
+                  <td className="font-mono font-bold text-[#087F5B]">
+                    {complaint.id}
+                  </td>
+                  <td className="font-mono text-xs text-[#102A2A]">
+                    {formatDate(complaint.created_at || complaint.filed_at)}
+                  </td>
+                  <td className="font-semibold text-xs text-[#102A2A] capitalize">
+                    {(complaint.fraud_type || 'UPI Fraud').replace(/_/g, ' ')}
+                  </td>
+                  <td className="font-mono text-xs text-[#102A2A]">
+                    {complaint.accused_bank || 'Beneficiary Node'}
+                  </td>
+                  <td className="font-mono font-bold text-xs text-[#102A2A]">
+                    {formatAmount(complaint.amount)}
+                  </td>
+                  <td className="text-xs text-[#64748B]">
+                    {complaint.victim_district ? `${complaint.victim_district}, ${complaint.victim_state || ''}` : 'National'}
+                  </td>
+                  <td>
+                    <span className="nexus-pill-under-investigation capitalize">
+                      {complaint.status || 'flagged'}
+                    </span>
+                  </td>
+                  <td className="text-xs text-[#64748B]">
+                    {complaint.channel || 'Online Portal'}
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="nexus-pagination-bar">
-        <div className="text-xs text-[#64748B] font-mono">
-          Showing {(currentPage - 1) * pageSize + 1}-
-          {Math.min(currentPage * pageSize, filteredComplaints.length)} of {filteredComplaints.length} complaints
-        </div>
+      {/* Pagination Footer */}
+      <div className="nexus-pagination-footer flex items-center justify-between mt-4">
+        <span className="text-xs text-[#64748B]">
+          Showing {paginatedComplaints.length} of {filteredComplaints.length} cases
+        </span>
 
-        <div className="nexus-pagination-controls">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="nexus-page-btn"
+            className="p-1 rounded border border-[#E2E8E6] disabled:opacity-40"
           >
-            <ChevronLeft size={13} /> Previous
+            <ChevronLeft size={16} />
           </button>
-
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`nexus-page-number ${currentPage === page ? 'active' : ''}`}
-            >
-              {page}
-            </button>
-          ))}
-
+          <span className="text-xs font-mono font-bold text-[#102A2A] px-2">
+            Page {currentPage} of {totalPages}
+          </span>
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="nexus-page-btn"
+            className="p-1 rounded border border-[#E2E8E6] disabled:opacity-40"
           >
-            Next <ChevronRight size={13} />
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>
@@ -364,13 +291,8 @@ export const ComplaintsPage: React.FC = () => {
       <NewComplaintModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onComplaintCreated={handleComplaintCreated}
+        onComplaintCreated={() => refetch()}
       />
-
-      {/* Footer */}
-      <footer className="nexus-demonstration-footer">
-        NEXUS · RESTRICTED OPERATIONAL USE · ALL IDENTIFIERS MASKED · DEMONSTRATION DATA
-      </footer>
     </div>
   );
 };

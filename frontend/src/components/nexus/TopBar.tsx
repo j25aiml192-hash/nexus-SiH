@@ -54,10 +54,10 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
 
         {/* User Profile */}
         <div className="nexus-user-pill">
-          <div className="nexus-user-avatar">TN</div>
+          <div className="nexus-user-avatar">DA</div>
           <div className="nexus-user-info">
-            <span className="nexus-user-name">Tanya Mishra</span>
-            <span className="nexus-user-role">Analyst</span>
+            <span className="nexus-user-name">Demo Analyst</span>
+            <span className="nexus-user-role">Demo Mode</span>
           </div>
           <ChevronDown size={14} className="nexus-user-chevron" />
         </div>

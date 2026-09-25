@@ -11,36 +11,39 @@ import type {
   AtmLocation,
   HotspotPoint,
 } from '../types/nexus';
-import type { IncidentDetailResult } from '../services/dataSource';
+import type { IncidentDetailResult, DashboardStatsResult } from '../services/dataSource';
 
-export function usePrediction(accountId?: string) {
+export function usePrediction(complaintId?: string) {
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPrediction = useCallback(async () => {
-    if (!accountId) {
+    if (!complaintId) {
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
     setError(null);
     try {
-      const pred = await dataSource.getPrediction(accountId);
-      const acc = await dataSource.getAccountById(accountId);
+      const pred = await dataSource.getPrediction(complaintId);
       if (!pred) {
-        setError(`Target account "${accountId}" not found in graph inference cluster.`);
+        setError(`Complaint "${complaintId}" has no predictive telemetry.`);
       } else {
         setPrediction(pred);
-        setAccount(acc);
+        setAccount({
+          id: pred.accountId || complaintId,
+          riskScore: pred.riskScore || 88,
+          txnHistory: [],
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Inference lookup failed.');
     } finally {
       setIsLoading(false);
     }
-  }, [accountId]);
+  }, [complaintId]);
 
   useEffect(() => {
     fetchPrediction();
@@ -54,9 +57,12 @@ export function useEscalateAlert() {
   const [createdAlert, setCreatedAlert] = useState<Alert | null>(null);
 
   const escalate = async (params: {
-    predictionId: string;
-    h3Cell: string;
+    predictionId?: string;
+    complaintId?: string;
+    h3Cell?: string;
     atmId?: string;
+    message?: string;
+    severity?: string;
   }) => {
     setIsEscalating(true);
     try {
@@ -124,15 +130,15 @@ export function useAlerts() {
     low: 1,
   };
 
-  // Derive riskLevel from prediction and sort: highest riskLevel first, then newest
   const sortedAndFilteredAlerts = alertsList
     .map((alert) => {
-      const pred = predictions.find((p) => p.id === alert.predictionId);
-      const riskLevel = pred ? pred.riskLevel : 'medium';
+      const pred = predictions.find((p) => p.id === alert.predictionId || p.complaint_id === alert.complaintId);
+      const sev = (alert.severity || '').toLowerCase();
+      const derivedRisk = sev.includes('crit') ? 'critical' : sev.includes('high') ? 'high' : sev.includes('med') ? 'medium' : 'low';
       return {
         ...alert,
-        derivedRisk: riskLevel,
-        linkedAccountId: pred?.accountId || 'UNKNOWN',
+        derivedRisk,
+        linkedAccountId: alert.complaintId || pred?.complaint_id || 'UNKNOWN',
       };
     })
     .filter((alert) => {
@@ -141,10 +147,10 @@ export function useAlerts() {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesAlert = alert.id.toLowerCase().includes(q);
-        const matchesAccount = alert.linkedAccountId.toLowerCase().includes(q);
-        const matchesCell = alert.h3Cell.toLowerCase().includes(q);
-        const matchesAtm = alert.atmId ? alert.atmId.toLowerCase().includes(q) : false;
-        if (!matchesAlert && !matchesAccount && !matchesCell && !matchesAtm) return false;
+        const matchesComplaint = (alert.complaintId || '').toLowerCase().includes(q);
+        const matchesMsg = (alert.message || '').toLowerCase().includes(q);
+        const matchesOfficer = (alert.assigned_officer || '').toLowerCase().includes(q);
+        if (!matchesAlert && !matchesComplaint && !matchesMsg && !matchesOfficer) return false;
       }
       return true;
     })
@@ -152,7 +158,6 @@ export function useAlerts() {
       const scoreA = riskOrder[a.derivedRisk] || 0;
       const scoreB = riskOrder[b.derivedRisk] || 0;
       if (scoreA !== scoreB) return scoreB - scoreA;
-      // Secondary sort: newest first
       const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return timeB - timeA;
@@ -221,32 +226,15 @@ export function useIncidents() {
     loadIncidents();
   }, [loadIncidents]);
 
-  // Subscribe to realtime incident events
-  useEffect(() => {
-    const unsubscribe = realtimeClient.onIncidentUpdated((updatedInc) => {
-      setIncidents((prev) => {
-        const index = prev.findIndex((i) => i.id === updatedInc.id);
-        if (index >= 0) {
-          const next = [...prev];
-          next[index] = updatedInc;
-          return next;
-        }
-        return [updatedInc, ...prev];
-      });
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
   const filteredIncidents = incidents.filter((inc) => {
     if (statusFilter !== 'all' && inc.status !== statusFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchesInc = inc.id.toLowerCase().includes(q);
-      const matchesAlert = inc.alertId.toLowerCase().includes(q);
-      if (!matchesInc && !matchesAlert) return false;
+      const matchesAlert = (inc.alertId || '').toLowerCase().includes(q);
+      const matchesComp = (inc.complaint_id || '').toLowerCase().includes(q);
+      const matchesAction = (inc.action_taken || '').toLowerCase().includes(q);
+      if (!matchesInc && !matchesAlert && !matchesComp && !matchesAction) return false;
     }
     return true;
   });
@@ -293,17 +281,6 @@ export function useIncidentDetail(incidentId?: string) {
     fetchDetail();
   }, [fetchDetail]);
 
-  // Realtime updates for the current incident
-  useEffect(() => {
-    if (!incidentId) return;
-    const unsubscribe = realtimeClient.onIncidentUpdated((updatedInc) => {
-      if (updatedInc.id === incidentId) {
-        setData((prev) => (prev ? { ...prev, incident: updatedInc } : prev));
-      }
-    });
-    return () => unsubscribe();
-  }, [incidentId]);
-
   const addNote = async (note: string) => {
     if (!incidentId) return;
     const updated = await dataSource.addOfficerNote(incidentId, note);
@@ -323,41 +300,28 @@ export function useComplaints() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'filed' | 'analyzing' | 'alerted' | 'resolved'>('all');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'flagged' | 'filed' | 'analyzing' | 'alerted' | 'resolved' | string>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   const loadComplaints = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const list = await dataSource.getComplaints();
+      const list = await dataSource.getComplaints(searchQuery, statusFilter);
       setComplaints(list);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load complaints.');
+      setError(err instanceof Error ? err.message : 'Failed to load complaints from NEXUS backend.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [searchQuery, statusFilter]);
 
   useEffect(() => {
     loadComplaints();
   }, [loadComplaints]);
 
-  const filteredComplaints = complaints.filter((c) => {
-    if (statusFilter !== 'all' && c.status !== statusFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchesId = c.id.toLowerCase().includes(q);
-      const matchesAccount = c.linkedAccountId.toLowerCase().includes(q);
-      const matchesVictim = c.victimInfo.name.toLowerCase().includes(q);
-      const matchesContact = c.victimInfo.contact.toLowerCase().includes(q);
-      if (!matchesId && !matchesAccount && !matchesVictim && !matchesContact) return false;
-    }
-    return true;
-  });
-
   return {
-    complaints: filteredComplaints,
+    complaints,
     allComplaintsCount: complaints.length,
     isLoading,
     error,
@@ -369,18 +333,8 @@ export function useComplaints() {
   };
 }
 
-export function useDashboardStats() {
-  const [stats, setStats] = useState({
-    totalComplaints: 0,
-    totalLossReported: 0,
-    activeAlertsCount: 0,
-    highRiskAlertsCount: 0,
-    openIncidentsCount: 0,
-    authorizedIncidentsCount: 0,
-    recentAlerts: [] as Alert[],
-    recentIncidents: [] as Incident[],
-    recentComplaints: [] as Complaint[],
-  });
+export function useDashboardStats(timeframe: string = '24h') {
+  const [stats, setStats] = useState<DashboardStatsResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -388,65 +342,29 @@ export function useDashboardStats() {
     setIsLoading(true);
     setError(null);
     try {
-      const [complaints, alerts, incidents] = await Promise.all([
-        dataSource.getComplaints(),
-        dataSource.getAlerts(),
-        dataSource.getIncidents(),
-      ]);
-
-      const totalLossReported = complaints.reduce((sum, c) => sum + (c.amount || 0), 0);
-      const activeAlertsCount = alerts.filter((a) => a.status === 'new').length;
-      const openIncidentsCount = incidents.filter((i) => i.status === 'open').length;
-      const authorizedIncidentsCount = incidents.filter((i) => i.status === 'authorized').length;
-
-      setStats({
-        totalComplaints: complaints.length,
-        totalLossReported,
-        activeAlertsCount,
-        highRiskAlertsCount: alerts.length,
-        openIncidentsCount,
-        authorizedIncidentsCount,
-        recentAlerts: alerts.slice(0, 5),
-        recentIncidents: incidents.slice(0, 5),
-        recentComplaints: complaints.slice(0, 5),
-      });
+      const res = await dataSource.getDashboardStats(timeframe);
+      setStats(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to aggregate intelligence metrics.');
+      setError(err instanceof Error ? err.message : 'Failed to load live dashboard statistics.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [timeframe]);
 
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
 
-  // Re-sync on realtime events
-  useEffect(() => {
-    const unsubAlert = realtimeClient.onAlertCreated(() => {
-      loadDashboard();
-    });
-    const unsubInc = realtimeClient.onIncidentUpdated(() => {
-      loadDashboard();
-    });
-
-    return () => {
-      unsubAlert();
-      unsubInc();
-    };
-  }, [loadDashboard]);
-
   return { stats, isLoading, error, refetch: loadDashboard };
 }
 
-export function useMapData() {
+export function useMapData(selectedComplaintId?: string | null) {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [atmLocations, setAtmLocations] = useState<AtmLocation[]>([]);
   const [historicalHotspots, setHistoricalHotspots] = useState<HotspotPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // UI state stored in local Zustand store
   const mapFocusTarget = useNexusStore((state) => state.mapFocusTarget);
   const setMapFocus = useNexusStore((state) => state.setMapFocus);
   const selectedMapItem = useNexusStore((state) => state.selectedMapItem);
@@ -461,6 +379,27 @@ export function useMapData() {
         dataSource.getAtmLocations(),
         dataSource.getHistoricalHotspots(),
       ]);
+
+      if (selectedComplaintId) {
+        // If a complaint is selected, prioritize its prediction and candidate ATMs
+        try {
+          const singlePred = await dataSource.getPrediction(selectedComplaintId);
+          if (singlePred) {
+            setPredictions([singlePred]);
+            if (singlePred.nearest_atms && singlePred.nearest_atms.length > 0) {
+              setAtmLocations(singlePred.nearest_atms);
+            } else {
+              setAtmLocations(atms);
+            }
+            setHistoricalHotspots(hotspots);
+            setIsLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.warn(`Complaint ${selectedComplaintId} specific prediction not found, showing all.`);
+        }
+      }
+
       setPredictions(preds);
       setAtmLocations(atms);
       setHistoricalHotspots(hotspots);
@@ -469,7 +408,7 @@ export function useMapData() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedComplaintId]);
 
   useEffect(() => {
     loadMapData();

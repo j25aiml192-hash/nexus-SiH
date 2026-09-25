@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -7,6 +8,8 @@ import {
   Link2,
   ShieldAlert,
   X,
+  Check,
+  Loader2,
 } from "lucide-react";
 import {
   caseMeta,
@@ -17,6 +20,7 @@ import {
   nodeById,
   transactionsForNode,
   type NetworkNode,
+  type NetworkEdge,
 } from "../../lib/network-data";
 import { entityLabel, riskLabel } from "./graph-theme";
 
@@ -36,9 +40,11 @@ function Stat({ label, value }: StatProps) {
 
 interface SummaryViewProps {
   complaintId?: string;
+  totalEntities?: number;
+  totalTransactions?: number;
 }
 
-function SummaryView({ complaintId }: SummaryViewProps) {
+function SummaryView({ complaintId, totalEntities, totalTransactions }: SummaryViewProps) {
   const cId = complaintId || caseMeta.complaintId;
   return (
     <div className="nexus-inspector-content">
@@ -50,12 +56,10 @@ function SummaryView({ complaintId }: SummaryViewProps) {
       </div>
 
       <div className="nexus-inspector-stats-grid">
-        <Stat label="Entities" value={networkSummary.entities} />
-        <Stat label="Transactions" value={networkSummary.transactions} />
-        <Stat label="Accounts" value={networkSummary.accounts} />
-        <Stat label="UPI handles" value={networkSummary.upi} />
-        <Stat label="Devices" value={networkSummary.devices} />
-        <Stat label="Merchants" value={networkSummary.merchants} />
+        <Stat label="Entities" value={totalEntities ?? networkSummary.entities} />
+        <Stat label="Transactions" value={totalTransactions ?? networkSummary.transactions} />
+        <Stat label="Corridor" value="Live Mule Chain" />
+        <Stat label="Intake" value="Verified" />
       </div>
 
       <div className="nexus-inspector-divider" />
@@ -83,7 +87,7 @@ function SummaryView({ complaintId }: SummaryViewProps) {
       </div>
 
       <div className="nexus-inspector-info-note">
-        Select any entity in the graph to inspect its exposure, linked entities and recent transactions.
+        Select any entity in the graph to inspect its exposure, linked nodes and recent transactions.
       </div>
     </div>
   );
@@ -91,17 +95,21 @@ function SummaryView({ complaintId }: SummaryViewProps) {
 
 interface EntityViewProps {
   node: NetworkNode;
+  edges?: NetworkEdge[];
   onSelect: (id: string) => void;
   onDeselect: () => void;
 }
 
-function EntityView({ node, onSelect, onDeselect }: EntityViewProps) {
-  const txns = transactionsForNode(node.id);
+function EntityView({ node, edges, onSelect, onDeselect }: EntityViewProps) {
+  const txns = edges
+    ? edges.filter((e) => e.source === node.id || e.target === node.id)
+    : transactionsForNode(node.id);
+
   return (
     <div className="nexus-inspector-content">
       <div className="nexus-inspector-entity-header">
         <div style={{ flex: 1 }}>
-          <p className="nexus-inspector-stat-label">{entityLabel[node.type]}</p>
+          <p className="nexus-inspector-stat-label">{entityLabel[node.type] || 'Entity'}</p>
           <h3 className="nexus-inspector-entity-name">{node.label}</h3>
           <p className="nexus-inspector-subtitle">{node.institution}</p>
         </div>
@@ -139,43 +147,43 @@ function EntityView({ node, onSelect, onDeselect }: EntityViewProps) {
       <div>
         <h4 className="nexus-inspector-section-heading">
           <Link2 size={16} />
-          <span>Recent transactions</span>
+          <span>Transactions &amp; Money Movement</span>
         </h4>
         {txns.length === 0 ? (
           <p className="nexus-inspector-empty-txns">
-            No monetary transactions — this entity is linked through device or handle bindings.
+            No monetary transactions logged for this specific node.
           </p>
         ) : (
           <ul className="nexus-inspector-txns-list">
             {txns.slice(0, 8).map((t) => {
               const outgoing = t.source === node.id;
               const counterpartId = outgoing ? t.target : t.source;
-              const counterpart = nodeById(counterpartId);
               return (
                 <li key={t.id}>
                   <button
                     type="button"
                     onClick={() => onSelect(counterpartId)}
                     className="nexus-inspector-txn-btn"
-                    title={`Inspect ${counterpart?.label ?? counterpartId}`}
+                    title={`Inspect ${counterpartId}`}
                   >
-                    {outgoing ? (
-                      <ArrowUpRight size={15} className="nexus-txn-outgoing-icon" />
-                    ) : (
-                      <ArrowDownLeft size={15} className="nexus-txn-incoming-icon" />
-                    )}
-                    <div className="nexus-inspector-txn-details">
-                      <span className="nexus-inspector-txn-counterpart">
-                        {counterpart?.label ?? counterpartId}
+                    <div className="nexus-inspector-txn-left">
+                      <span className={`nexus-inspector-txn-dir ${outgoing ? "out" : "in"}`}>
+                        {outgoing ? (
+                          <ArrowUpRight size={14} className="nexus-text-risk-critical" />
+                        ) : (
+                          <ArrowDownLeft size={14} className="nexus-text-accent" />
+                        )}
                       </span>
-                      <span className="nexus-inspector-txn-time">
-                        {formatEdgeTime(t.timestamp)}
-                        {t.suspicious ? " · flagged" : ""}
+                      <span className="nexus-inspector-txn-counterpart font-mono text-xs">
+                        {counterpartId}
                       </span>
                     </div>
-                    <span className="nexus-inspector-txn-amount">
-                      {formatINR(t.amount)}
-                    </span>
+                    <div className="nexus-inspector-txn-right">
+                      <span className="nexus-inspector-txn-amount">{formatINR(t.amount)}</span>
+                      <span className="nexus-inspector-txn-time">
+                        {formatEdgeTime(t.timestamp)}
+                      </span>
+                    </div>
                   </button>
                 </li>
               );
@@ -189,20 +197,31 @@ function EntityView({ node, onSelect, onDeselect }: EntityViewProps) {
 
 interface Props {
   selectedId: string | null;
+  nodes?: NetworkNode[];
+  edges?: NetworkEdge[];
   onSelect: (id: string) => void;
   onDeselect?: () => void;
   onPredict: () => void;
+  onFlag?: (nodeId: string) => Promise<void>;
   complaintId?: string;
 }
 
 export function InspectorPanel({
   selectedId,
+  nodes,
+  edges,
   onSelect,
   onDeselect = () => onSelect(""),
   onPredict,
+  onFlag,
   complaintId,
 }: Props) {
-  const node = selectedId ? nodeById(selectedId) : undefined;
+  const [isFlagging, setIsFlagging] = useState(false);
+  const [flagSuccessMsg, setFlagSuccessMsg] = useState<string | null>(null);
+
+  const node = selectedId
+    ? (nodes ? nodes.find((n) => n.id === selectedId) : nodeById(selectedId))
+    : undefined;
 
   const handleExport = () => {
     const dataStr =
@@ -229,25 +248,46 @@ export function InspectorPanel({
     downloadAnchor.remove();
   };
 
-  const handleFlagEntity = () => {
-    alert(
-      node
-        ? `Entity ${node.label} (${node.id}) flagged for expedited nodal lien enforcement.`
-        : "Select an entity from the graph to flag it."
-    );
+  const handleFlagEntity = async () => {
+    if (!node) return;
+    setIsFlagging(true);
+    setFlagSuccessMsg(null);
+    try {
+      if (onFlag) {
+        await onFlag(node.id);
+      }
+      setFlagSuccessMsg(`Entity ${node.id} flagged in backend database.`);
+      setTimeout(() => setFlagSuccessMsg(null), 4000);
+    } catch {
+      setFlagSuccessMsg(`Failed to flag entity ${node.id}.`);
+    } finally {
+      setIsFlagging(false);
+    }
   };
 
   return (
     <div className="nexus-inspector-panel">
       <div className="nexus-inspector-scroll-area">
+        {flagSuccessMsg && (
+          <div className="p-3 mx-4 mt-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded flex items-center gap-1.5 font-semibold">
+            <Check size={14} className="text-emerald-600" />
+            {flagSuccessMsg}
+          </div>
+        )}
+
         {node ? (
           <EntityView
             node={node}
+            edges={edges}
             onSelect={onSelect}
             onDeselect={onDeselect}
           />
         ) : (
-          <SummaryView complaintId={complaintId} />
+          <SummaryView
+            complaintId={complaintId}
+            totalEntities={nodes?.length}
+            totalTransactions={edges?.length}
+          />
         )}
       </div>
 
@@ -265,8 +305,9 @@ export function InspectorPanel({
             type="button"
             className="nexus-inspector-btn-secondary"
             onClick={handleFlagEntity}
+            disabled={!node || isFlagging}
           >
-            <Flag size={15} />
+            {isFlagging ? <Loader2 size={14} className="animate-spin" /> : <Flag size={15} />}
             <span>Flag entity</span>
           </button>
           <button

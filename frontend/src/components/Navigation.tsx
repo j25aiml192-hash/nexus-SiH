@@ -15,6 +15,7 @@ import { useNexusStore } from '../store/useNexusStore';
 export const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const selectedComplaintId = useNexusStore((state) => state.selectedComplaintId);
   const alerts = useNexusStore((state) => state.alerts);
   const incidents = useNexusStore((state) => state.incidents);
   const newAlertsCount = alerts.filter((a) => a.status === 'new').length;
@@ -70,7 +71,7 @@ export const Navigation: React.FC = () => {
         </NavLink>
 
         <NavLink
-          to="/complaints/C1030/network"
+          to={selectedComplaintId ? `/complaints/${selectedComplaintId}/network` : '/complaints/CMP-2026-9081/network'}
           className={({ isActive }) =>
             `nexus-sidebar-tab ${isActive || location.pathname.includes('/network') ? 'active' : ''}`
           }
@@ -83,9 +84,9 @@ export const Navigation: React.FC = () => {
         </NavLink>
 
         <NavLink
-          to="/prediction/ACC-89214"
+          to={selectedComplaintId ? `/prediction/${selectedComplaintId}` : '/prediction/CMP-2026-9081'}
           className={({ isActive }) =>
-            `nexus-sidebar-tab ${isActive ? 'active' : ''}`
+            `nexus-sidebar-tab ${isActive || location.pathname.includes('/prediction') ? 'active' : ''}`
           }
           title="Prediction"
         >

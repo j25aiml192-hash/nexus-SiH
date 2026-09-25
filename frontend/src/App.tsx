@@ -25,9 +25,9 @@ export function App() {
               <Route path="/complaints" element={<ComplaintsPage />} />
               <Route path="/complaints/:complaintId" element={<ComplaintDetailPage />} />
               <Route path="/complaints/:complaintId/network" element={<NetworkGraphPage />} />
-              <Route path="/network" element={<Navigate to="/complaints/C1030/network" replace />} />
-              <Route path="/prediction/:accountId" element={<PredictionResultsPage />} />
-              <Route path="/prediction" element={<Navigate to="/prediction/ACC-89214" replace />} />
+              <Route path="/network" element={<Navigate to="/complaints/CMP-2026-9081/network" replace />} />
+              <Route path="/prediction/:complaintId" element={<PredictionResultsPage />} />
+              <Route path="/prediction" element={<Navigate to="/prediction/CMP-2026-9081" replace />} />
               <Route path="/map" element={<MapPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/incidents" element={<IncidentsPage />} />

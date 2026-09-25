@@ -200,32 +200,29 @@ export const IncidentDetailPage: React.FC = () => {
                     Txn Links: {account?.txnHistory.length || 4} transfers
                   </div>
                   <Link
-                    to={`/prediction/${account?.id || prediction?.accountId || 'ACC-89214'}`}
-                    className="text-[10px] text-cyan-400 hover:underline flex items-center gap-0.5 mt-1"
+                    to={`/prediction/${incident.complaint_id || complaint?.id || ''}`}
+                    className="text-[10px] text-cyan-700 hover:underline flex items-center gap-0.5 mt-1 font-semibold"
                   >
-                    View Model Inference <ExternalLink size={10} />
+                    View Predictive Cashout Dossier <ExternalLink size={10} />
                   </Link>
                 </div>
 
                 <div className="relation-arrow">
-                  <ArrowRight size={14} className="text-slate-600" />
+                  <ArrowRight size={14} className="text-slate-400" />
                 </div>
 
                 {/* 3. Prediction & Alert */}
                 <div className="relation-node">
-                  <div className="relation-tag">3. GNN ALERT</div>
-                  <div className="font-mono text-red-400 text-xs font-bold">
-                    {alert?.id || 'ALT-9041'}
+                  <div className="relation-tag">3. CASHOUT ALERT</div>
+                  <div className="font-mono text-red-600 text-xs font-bold">
+                    {alert?.id || alert?.alert_id || incident.alert_id || 'DISPATCHED'}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono">
-                    H3: {alert?.h3Cell}
-                  </div>
-                  <div className="text-[11px] text-amber-400 font-mono">
-                    ATM: {alert?.atmId || 'ATM-DEL-042'}
+                  <div className="text-[11px] text-slate-600 font-mono">
+                    Target ATM: {data.atms?.[0]?.name || 'Local Extraction Node'}
                   </div>
                   <div className="mt-1">
                     <span className="risk-badge-pill risk-crit text-[10px]">
-                      {prediction?.riskLevel.toUpperCase() || 'CRITICAL'} RISK
+                      {prediction?.risk_level || 'CRITICAL'} RISK
                     </span>
                   </div>
                 </div>

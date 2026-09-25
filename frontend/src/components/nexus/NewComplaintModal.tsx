@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { X, ShieldAlert, Check } from 'lucide-react';
-import type { ComplaintDetail } from '../../data/complaints-data';
+import { X, ShieldAlert, Check, Loader2 } from 'lucide-react';
+import { dataSource } from '../../services/dataSource';
+import type { Complaint } from '../../types/nexus';
 
 interface NewComplaintModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onComplaintCreated: (complaint: Partial<ComplaintDetail>) => void;
+  onComplaintCreated: (complaint: Complaint) => void;
 }
 
 export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
@@ -13,65 +14,59 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
   onClose,
   onComplaintCreated,
 }) => {
-  const [complaintType, setComplaintType] = useState('UPI Fraud');
-  const [primaryAccount, setPrimaryAccount] = useState('');
-  const [amount, setAmount] = useState('');
-  const [risk, setRisk] = useState<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('HIGH');
-  const [assignedOfficer, setAssignedOfficer] = useState('A. Sharma');
-  const [description, setDescription] = useState('');
-  const [reportedChannel, setReportedChannel] = useState('Online Portal');
-  const [lastUpdated, setLastUpdated] = useState('Just now');
+  const [fraudType, setFraudType] = useState('upi_fraud');
+  const [victimState, setVictimState] = useState('Jharkhand');
+  const [victimDistrict, setVictimDistrict] = useState('Deoghar');
+  const [amount, setAmount] = useState('150000');
+  const [accusedBank, setAccusedBank] = useState('State Bank of India');
+  const [accusedPhone, setAccusedPhone] = useState('7091234567');
+  const [channel, setChannel] = useState('Online Portal');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setIsSubmitting(true);
+
     const numAmount = parseFloat(amount) || 50000;
-    const formattedAmount =
-      numAmount >= 100000
-        ? `₹${(numAmount / 100000).toFixed(1)}L`
-        : `₹${numAmount.toLocaleString('en-IN')}`;
+    const cid = `CMP-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const newId = `C${Math.floor(1031 + Math.random() * 50)}`;
+    try {
+      const res = await dataSource.createComplaint({
+        complaint_id: cid,
+        fraud_type: fraudType,
+        amount: numAmount,
+        amount_inr: numAmount,
+        victim_state: victimState,
+        victim_district: victimDistrict,
+        accused_phone_prefix: accusedPhone.slice(0, 4),
+        accused_bank: accusedBank,
+        channel,
+        status: 'flagged',
+      });
 
-    const newComplaint: Partial<ComplaintDetail> = {
-      id: newId,
-      reportedOn: new Date().toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }),
-      complaintType,
-      primaryAccount: primaryAccount.startsWith('XXXX') ? primaryAccount : `XXXX ${primaryAccount.slice(-4)}`,
-      amount: numAmount,
-      amountFormatted: formattedAmount,
-      risk,
-      status: 'New',
-      assignedOfficer: assignedOfficer || 'Unassigned',
-      reportedBy: 'Customer / Citizen',
-      incidentDate: new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-      reportedChannel,
-      transactionReference: `TXN-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-      description: description || 'New intake incident reported through direct channel.',
-      timeline: [
-        {
-          time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          title: 'Complaint received',
-          description: `Complaint ${newId} logged into registry via ${reportedChannel}.`,
-        },
-      ],
-      linkedAccountsCount: 1,
-      relatedTransactionsCount: 1,
-      sla: '24h remaining',
-      lastUpdated: lastUpdated || 'Just now',
-      notes: [],
-    };
-
-    onComplaintCreated(newComplaint);
-    onClose();
+      setSuccessMessage(`Complaint ${cid} successfully ingested into NEXUS database.`);
+      setTimeout(() => {
+        onComplaintCreated(res.complaint || {
+          id: cid,
+          complaint_id: cid,
+          victimInfo: { name: `Citizen (${victimDistrict}, ${victimState})`, contact: accusedPhone },
+          amount: numAmount,
+          status: 'flagged',
+          linkedAccountId: accusedBank,
+        });
+        onClose();
+      }, 1000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to submit complaint to backend.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -80,153 +75,162 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
         <div className="nexus-modal-header">
           <div className="flex items-center gap-2">
             <ShieldAlert size={18} className="text-[#087F5B]" />
-            <h3 className="font-bold text-lg text-[#102A2A]">File New Cybercrime Complaint</h3>
+            <h3 className="font-bold text-lg text-[#102A2A]">Ingest Live Cybercrime Complaint</h3>
           </div>
           <button onClick={onClose} className="text-[#64748B] hover:text-[#102A2A]">
             <X size={18} />
           </button>
         </div>
 
+        {errorMessage && (
+          <div className="p-3 mx-5 mt-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md">
+            {errorMessage}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="p-3 mx-5 mt-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-md flex items-center gap-2">
+            <Check size={16} className="text-emerald-600" />
+            {successMessage}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-              Complaint Type
+              Fraud Incident Type
             </label>
             <select
-              value={complaintType}
-              onChange={(e) => setComplaintType(e.target.value)}
-              className="nexus-form-input"
+              value={fraudType}
+              onChange={(e) => setFraudType(e.target.value)}
+              className="nexus-form-input w-full"
             >
-              <option value="UPI Fraud">UPI Fraud</option>
-              <option value="Account Takeover">Account Takeover</option>
-              <option value="Investment Scam">Investment Scam</option>
-              <option value="Phishing">Phishing</option>
-              <option value="SIM Swap">SIM Swap</option>
-              <option value="Loan App Extortion">Loan App Extortion</option>
-              <option value="Card Skimming">Card Skimming</option>
+              <option value="upi_fraud">UPI Intercept / Fraud</option>
+              <option value="digital_arrest">Digital Arrest Extortion</option>
+              <option value="investment_scam">High-Yield Investment Scam</option>
+              <option value="vishing">Vishing / Voice Phishing</option>
+              <option value="loan">Illegal Lending App Fraud</option>
+              <option value="crypto_scam">Crypto OTC Cashout</option>
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Primary Account No. (Masked)
-              </label>
-              <input
-                type="text"
-                placeholder="XXXX 4821"
-                required
-                value={primaryAccount}
-                onChange={(e) => setPrimaryAccount(e.target.value)}
-                className="nexus-form-input font-mono"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Amount (INR ₹)
+                Disputed Amount (INR)
               </label>
               <input
                 type="number"
-                placeholder="480000"
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="nexus-form-input font-mono"
+                placeholder="150000"
+                className="nexus-form-input w-full font-mono"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Initial Risk Rating
-              </label>
-              <select
-                value={risk}
-                onChange={(e) => setRisk(e.target.value as any)}
-                className="nexus-form-input font-semibold"
-              >
-                <option value="CRITICAL">CRITICAL</option>
-                <option value="HIGH">HIGH</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="LOW">LOW</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Assign Officer
-              </label>
-              <select
-                value={assignedOfficer}
-                onChange={(e) => setAssignedOfficer(e.target.value)}
-                className="nexus-form-input"
-              >
-                <option value="Unassigned">Unassigned</option>
-                <option value="A. Sharma">A. Sharma (Cyber Cell North)</option>
-                <option value="A. Verma">A. Verma (Mule Interception Unit)</option>
-                <option value="S. Nair">S. Nair (Financial Intelligence)</option>
-                <option value="R. Iyer">R. Iyer (Threat Monitoring)</option>
-                <option value="P. Deshmukh">P. Deshmukh (Field Ops)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Reporting Channel
-              </label>
-              <select
-                value={reportedChannel}
-                onChange={(e) => setReportedChannel(e.target.value)}
-                className="nexus-form-input"
-              >
-                <option value="Online Portal">National Cybercrime Reporting Portal (NCRP)</option>
-                <option value="Helpline 1930">Citizen Helpline 1930</option>
-                <option value="Police Station Referral">State Cyber Police Station Desk</option>
-                <option value="Bank Branch Escalation">Bank Fraud Nodal Desk</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Last Updated (Status)
+                Suspect Mobile / Prefix
               </label>
               <input
                 type="text"
-                placeholder="Just now"
-                value={lastUpdated}
-                onChange={(e) => setLastUpdated(e.target.value)}
-                className="nexus-form-input font-mono text-xs"
+                required
+                value={accusedPhone}
+                onChange={(e) => setAccusedPhone(e.target.value)}
+                placeholder="7091234567"
+                className="nexus-form-input w-full font-mono"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-              Incident Narrative / Description
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Describe fraudulent transaction modus operandi, recipient handles, or suspect behavior..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="nexus-form-input"
-            ></textarea>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
+                Victim State
+              </label>
+              <select
+                value={victimState}
+                onChange={(e) => setVictimState(e.target.value)}
+                className="nexus-form-input w-full"
+              >
+                <option value="Jharkhand">Jharkhand</option>
+                <option value="Haryana">Haryana</option>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Karnataka">Karnataka</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
+                Victim District
+              </label>
+              <input
+                type="text"
+                required
+                value={victimDistrict}
+                onChange={(e) => setVictimDistrict(e.target.value)}
+                placeholder="Deoghar"
+                className="nexus-form-input w-full"
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-[#E2E8E6]">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
+                Suspect Beneficiary Bank
+              </label>
+              <select
+                value={accusedBank}
+                onChange={(e) => setAccusedBank(e.target.value)}
+                className="nexus-form-input w-full"
+              >
+                <option value="Paytm Payments Bank">Paytm Payments Bank</option>
+                <option value="State Bank of India">State Bank of India</option>
+                <option value="HDFC Bank">HDFC Bank</option>
+                <option value="ICICI Bank">ICICI Bank</option>
+                <option value="Punjab National Bank">Punjab National Bank</option>
+                <option value="Airtel Payments Bank">Airtel Payments Bank</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
+                Reported Intake Channel
+              </label>
+              <select
+                value={channel}
+                onChange={(e) => setChannel(e.target.value)}
+                className="nexus-form-input w-full"
+              >
+                <option value="Online Portal">National Cybercrime Portal (NCRP)</option>
+                <option value="1930 Helpline">Helpline 1930 Direct Transit</option>
+                <option value="Police Station">LEA Police Station Intake</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="nexus-modal-footer flex items-center justify-end gap-2 pt-4 border-t border-[#EDF2F0]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-[#64748B] hover:text-[#102A2A] rounded border border-[#E2E8E6]"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-xs font-semibold text-[#64748B] hover:text-[#102A2A] bg-white border border-[#E2E8E6] rounded-md"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="nexus-quick-btn-primary flex items-center gap-1.5 px-4 py-2"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-xs font-semibold text-white bg-[#087F5B] hover:bg-[#076D4E] rounded-md flex items-center gap-1.5 shadow-sm"
             >
-              <Check size={14} /> Submit Complaint
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> Ingesting to DB...
+                </>
+              ) : (
+                'Submit Complaint to NEXUS'
+              )}
             </button>
           </div>
         </form>

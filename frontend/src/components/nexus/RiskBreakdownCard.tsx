@@ -1,8 +1,25 @@
 import React from 'react';
-import { RISK_LEVEL_BREAKDOWN } from '../../data/nexus-data';
 
-export const RiskBreakdownCard: React.FC = () => {
-  const { totalActiveCases, breakdown } = RISK_LEVEL_BREAKDOWN;
+interface RiskBreakdownCardProps {
+  data?: {
+    totalActiveCases: number;
+    breakdown: Array<{
+      level: string;
+      count: number;
+      percentage: number;
+      color: string;
+    }>;
+  };
+}
+
+export const RiskBreakdownCard: React.FC<RiskBreakdownCardProps> = ({ data }) => {
+  const totalActiveCases = data?.totalActiveCases ?? 0;
+  const breakdown = data?.breakdown ?? [
+    { level: 'CRITICAL', count: 0, percentage: 0, color: '#DC2626' },
+    { level: 'HIGH', count: 0, percentage: 0, color: '#EA580C' },
+    { level: 'MEDIUM', count: 0, percentage: 0, color: '#D97706' },
+    { level: 'LOW', count: 0, percentage: 0, color: '#087F5B' },
+  ];
 
   return (
     <div className="nexus-box-card">

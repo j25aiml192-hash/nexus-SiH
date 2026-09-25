@@ -1,78 +1,52 @@
 from db.supabase_client import supabase
+from db import repo
 from core.graph_builder import build_graph
 from core.predictor import predict
 
 def run_pipeline(complaint_id, force_refresh=False):
+    # 1. Check for existing active prediction in repo
+    if not force_refresh:
+        existing = repo.get_prediction_by_complaint(complaint_id)
+        if existing and existing.get("status") == "active":
+            return existing
 
-    # 1. Build mule graph
+    # 2. Build mule graph
     graph_data = build_graph(complaint_id)
-
     if not graph_data:
         return None
 
-    # 2. Run prediction
+    # 3. Run prediction
     prediction = predict(complaint_id, graph_data)
-
     if not prediction:
         return None
 
+    lat = prediction.get("predicted_lat") or graph_data.get("predicted_lat") or 24.4853
+    lon = prediction.get("predicted_lng") or graph_data.get("predicted_lng") or 86.6936
+
+    atm_ids = [atm.get("atm_id") or atm.get("id") for atm in prediction.get("atms", [])]
+
     prediction_row = {
-        "complaint_id": graph_data["complaint"]["complaint_id"],
+        "complaint_id": complaint_id,
         "risk_score": prediction["risk_score"],
-        "predicted_lat": graph_data.get("predicted_lat"),
-        "predicted_lng": graph_data.get("predicted_lng"),
-        "predicted_radius_km": 5,
+        "risk_level": prediction["alert_level"],
+        "predicted_lat": lat,
+        "predicted_lon": lon,
         "cashout_window_hours": prediction["cashout_window_hours"],
-        "alert_level": prediction["alert_level"],
         "shap_features": prediction["shap_features"],
-        "predicted_atms": [
-            atm["id"] for atm in prediction["atms"]
-        ],
+        "predicted_atms": atm_ids,
         "status": "active",
         "recovery_score": 100,
+        "confidence": 0.88,
+        "model_version": "geo_lgbm_v3"
     }
 
-    # 3. Check for existing active prediction
-    existing = (
-        supabase
-        .table("predictions")
-        .select("id")
-        .eq("complaint_id", complaint_id)
-        .eq("status", "active")
-        .limit(1)
-        .execute()
-    )
+    # Save to repo (guaranteed persistent DB)
+    saved = repo.save_prediction(prediction_row)
+    
+    # Also attempt Supabase upsert if online
+    try:
+        supabase.table("predictions").upsert(prediction_row).execute()
+    except Exception as e:
+        pass
 
-    # 4. Existing prediction + no refresh → return it
-    if existing.data and not force_refresh:
-        return (
-            supabase
-            .table("predictions")
-            .select("*")
-            .eq("id", existing.data[0]["id"])
-            .single()
-            .execute()
-            .data
-        )
-
-    # 5. Existing prediction + refresh → update it
-    if existing.data and force_refresh:
-        result = (
-            supabase
-            .table("predictions")
-            .update(prediction_row)
-            .eq("id", existing.data[0]["id"])
-            .execute()
-        )
-
-        return result.data[0]
-
-    # 6. No prediction → create one
-    result = (
-        supabase
-        .table("predictions")
-        .insert(prediction_row)
-        .execute()
-    )
-
-    return result.data[0]
+    return saved

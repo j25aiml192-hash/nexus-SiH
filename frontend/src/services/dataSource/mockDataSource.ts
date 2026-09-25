@@ -1,3 +1,7 @@
+/**
+ * OFFLINE DEMO ONLY DATA SOURCE (FALLBACK STUB)
+ * Notice: Production application strictly uses ApiDataSource.
+ */
 import type {
   Prediction,
   Account,
@@ -11,162 +15,178 @@ import type {
   IDataSource,
   IncidentDetailResult,
   CreateAlertParams,
+  MuleChainResult,
+  DashboardStatsResult,
 } from './IDataSource';
 import { useNexusStore } from '../../store/useNexusStore';
-import { realtimeClient } from '../realtime';
 
-const delay = (ms = 160) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class MockDataSource implements IDataSource {
   async getComplaints(): Promise<Complaint[]> {
-    await delay(120);
+    await delay();
     return useNexusStore.getState().complaints;
   }
 
   async getComplaintById(id: string): Promise<Complaint | null> {
-    await delay(100);
+    await delay();
     const complaint = useNexusStore.getState().complaints.find((c) => c.id === id);
     return complaint || null;
   }
 
-  async getAccountById(accountId: string): Promise<Account | null> {
-    await delay(140);
-    const account = useNexusStore.getState().getAccountById(accountId);
-    return account || null;
+  async createComplaint(data: Partial<Complaint>): Promise<{ status: string; complaint_id: string; complaint: Complaint; prediction?: Prediction }> {
+    await delay();
+    const cid = data.complaint_id || `CMP-${Date.now()}`;
+    const comp: Complaint = {
+      id: cid,
+      complaint_id: cid,
+      victimInfo: { name: 'Complainant', contact: '+91-9800000000' },
+      amount: data.amount || 50000,
+      status: 'flagged',
+      linkedAccountId: 'ACC-MULE-1',
+    };
+    return { status: 'created', complaint_id: cid, complaint: comp };
   }
 
-  async getPrediction(accountId: string): Promise<Prediction | null> {
-    await delay(160);
-    const prediction = useNexusStore.getState().getPredictionByAccountId(accountId);
-    return prediction || null;
+  async getAccountById(accountId: string): Promise<Account | null> {
+    await delay();
+    return useNexusStore.getState().getAccountById(accountId) || null;
+  }
+
+  async getMuleChain(complaintId: string): Promise<MuleChainResult> {
+    await delay();
+    return {
+      complaint_id: complaintId,
+      complaint: {
+        id: complaintId,
+        victimInfo: { name: 'Complainant', contact: '+91-9800000000' },
+        amount: 150000,
+        status: 'flagged',
+        linkedAccountId: 'ACC-MULE-1',
+      },
+      mule_nodes: [],
+      transactions: [],
+    };
+  }
+
+  async flagMuleAccount(accountId: string): Promise<{ status: string; account_id: string; message: string }> {
+    await delay();
+    return { status: 'flagged', account_id: accountId, message: 'Entity flagged in demo store.' };
+  }
+
+  async getPrediction(complaintId: string): Promise<Prediction | null> {
+    return this.getPredictionByComplaint(complaintId);
+  }
+
+  async getPredictionByComplaint(complaintId: string): Promise<Prediction | null> {
+    await delay();
+    return useNexusStore.getState().predictions.find((p) => p.complaint_id === complaintId) || null;
   }
 
   async getAllPredictions(): Promise<Prediction[]> {
-    await delay(120);
+    await delay();
     return useNexusStore.getState().predictions;
   }
 
   async createAlert(params: CreateAlertParams): Promise<Alert> {
-    await delay(180);
-    const id = `ALT-${Math.floor(1000 + Math.random() * 9000)}`;
+    await delay();
     const newAlert: Alert = {
-      id,
-      predictionId: params.predictionId,
-      h3Cell: params.h3Cell,
-      atmId: params.atmId || 'ATM-DEL-042',
+      id: `ALT-${Date.now()}`,
+      complaintId: params.complaintId,
       status: 'new',
-      createdAt: new Date().toISOString(),
+      severity: params.severity || 'HIGH',
+      message: params.message || 'Alert generated',
     };
-
     useNexusStore.getState().addAlert(newAlert);
-    realtimeClient.emitAlertCreated(newAlert);
     return newAlert;
   }
 
+  async simulateAlert(): Promise<Alert> {
+    return this.createAlert({ message: 'Simulated alert' });
+  }
+
   async getAlerts(): Promise<Alert[]> {
-    await delay(120);
+    await delay();
     return useNexusStore.getState().alerts;
   }
 
   async getAlertById(alertId: string): Promise<Alert | null> {
-    await delay(100);
-    const alert = useNexusStore.getState().getAlertById(alertId);
-    return alert || null;
+    await delay();
+    return useNexusStore.getState().getAlertById(alertId) || null;
   }
 
-  async assignOfficer(
-    alertId: string,
-    officerId: string
-  ): Promise<{ alert: Alert; incident: Incident }> {
-    await delay(180);
-    const store = useNexusStore.getState();
-    store.updateAlert(alertId, {
-      status: 'assigned',
-      assignedOfficerId: officerId,
-    });
+  async assignOfficer(alertId: string, officerId: string): Promise<{ alert: Alert; incident: Incident }> {
+    await delay();
+    const alert = useNexusStore.getState().getAlertById(alertId);
+    const updatedAlert: Alert = alert
+      ? { ...alert, status: 'assigned', assignedOfficerId: officerId }
+      : { id: alertId, status: 'assigned', assignedOfficerId: officerId, h3Cell: '882681a4bffffff' };
+    
+    useNexusStore.getState().updateAlert(alertId, { status: 'assigned', assignedOfficerId: officerId });
 
-    const updatedAlert = store.getAlertById(alertId)!;
-
-    let incident = store.incidents.find((i) => i.alertId === alertId);
-    if (!incident) {
-      incident = {
-        id: `INC-${Math.floor(4000 + Math.random() * 5000)}`,
-        alertId: alertId,
-        status: 'open',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        officerActions: [
-          {
-            note: `Incident opened via manual triage. Assigned to Officer ${officerId}.`,
-            timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC',
-          },
-        ],
-      };
-      store.addIncident(incident);
-    }
-
-    realtimeClient.emitIncidentUpdated(incident);
-    return { alert: updatedAlert, incident };
+    const newInc: Incident = {
+      id: `INC-${alertId.replace('ALT-', '')}`,
+      alertId,
+      status: 'open',
+      officerActions: [{ note: `Assigned to ${officerId}`, timestamp: new Date().toISOString() }],
+    };
+    useNexusStore.getState().addIncident(newInc);
+    return { alert: updatedAlert, incident: newInc };
   }
 
   async getIncidents(): Promise<Incident[]> {
-    await delay(120);
+    await delay();
     return useNexusStore.getState().incidents;
   }
 
   async getIncidentById(incidentId: string): Promise<Incident | null> {
-    await delay(100);
-    const incident = useNexusStore.getState().getIncidentById(incidentId);
-    return incident || null;
+    await delay();
+    return useNexusStore.getState().getIncidentById(incidentId) || null;
   }
 
   async getIncidentDetail(incidentId: string): Promise<IncidentDetailResult | null> {
-    await delay(180);
-    const store = useNexusStore.getState();
-    const incident = store.getIncidentById(incidentId);
+    await delay();
+    const incident = useNexusStore.getState().getIncidentById(incidentId);
     if (!incident) return null;
-
-    const alert = store.getAlertById(incident.alertId);
-    let prediction: Prediction | undefined;
-    let account: Account | undefined;
-    let complaint: Complaint | undefined;
-
-    if (alert) {
-      prediction = store.predictions.find((p) => p.id === alert.predictionId);
-      if (prediction) {
-        account = store.getAccountById(prediction.accountId);
-        complaint = store.getComplaintByAccountId(prediction.accountId);
-      }
-    }
-
-    return { incident, alert, prediction, account, complaint };
+    return { incident };
   }
 
   async addOfficerNote(incidentId: string, note: string): Promise<Incident> {
-    await delay(150);
-    const store = useNexusStore.getState();
-    store.addOfficerAction(incidentId, note);
-    const updated = store.getIncidentById(incidentId)!;
-    realtimeClient.emitIncidentUpdated(updated);
-    return updated;
+    await delay();
+    useNexusStore.getState().addOfficerAction(incidentId, note);
+    return useNexusStore.getState().getIncidentById(incidentId)!;
   }
 
   async authorizeIncident(incidentId: string): Promise<Incident> {
-    await delay(200);
-    const store = useNexusStore.getState();
-    store.authorizeIncident(incidentId);
-    const updated = store.getIncidentById(incidentId)!;
-    realtimeClient.emitIncidentUpdated(updated);
-    return updated;
+    await delay();
+    useNexusStore.getState().authorizeIncident(incidentId);
+    return useNexusStore.getState().getIncidentById(incidentId)!;
   }
 
   async getAtmLocations(): Promise<AtmLocation[]> {
-    await delay(90);
+    await delay();
     return useNexusStore.getState().atmLocations;
   }
 
   async getHistoricalHotspots(): Promise<HotspotPoint[]> {
-    await delay(90);
+    await delay();
     return useNexusStore.getState().historicalHotspots;
+  }
+
+  async getDashboardStats(): Promise<DashboardStatsResult> {
+    await delay();
+    return {
+      openComplaints: 0,
+      totalComplaints: 0,
+      activeAlerts: 0,
+      highestAlertRisk: 'LOW',
+      incidentsInProgress: 0,
+      incidentsClosedToday: 0,
+      totalFundsAtRisk: '₹0',
+      totalFundsFrozen: '₹0',
+      priorityAlerts: [],
+      liveActivity: [],
+      riskBreakdown: { totalActiveCases: 0, breakdown: [] },
+    };
   }
 }
