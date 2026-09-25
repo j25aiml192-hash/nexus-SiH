@@ -26,11 +26,10 @@ export const TelemetryChartCard: React.FC = () => {
         >
           <defs>
             <linearGradient id="figmaChartGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4F46E5" stopOpacity="0.25" />
-              <stop offset="60%" stopColor="#818CF8" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#818CF8" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#2563EB" stopOpacity="0.25" />
+              <stop offset="60%" stopColor="#3B82F6" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
             </linearGradient>
-
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="3" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -67,8 +66,8 @@ export const TelemetryChartCard: React.FC = () => {
             <circle cx="265" cy="50" r="6" fill="#DC2626" stroke="#FFFFFF" strokeWidth="2.5" />
           </g>
 
-          {/* Data Node 2: 20:00 Sub Node (Indigo Dot) */}
-          <circle cx="395" cy="65" r="4.5" fill="#4F46E5" stroke="#FFFFFF" strokeWidth="2" />
+          {/* Data Node 2: 20:00 Sub Node (Blue Dot) */}
+          <circle cx="395" cy="65" r="4.5" fill="#2563EB" stroke="#FFFFFF" strokeWidth="2" />
 
           {/* Data Node 3: NOW Live Node (Emerald Green Dot) */}
           <g>

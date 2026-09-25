@@ -105,8 +105,8 @@ export const DashboardPage: React.FC = () => {
             gap: '8px',
             padding: '10px 20px',
             borderRadius: '10px',
-            backgroundColor: '#4F46E5',
-            backgroundImage: 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)',
+            backgroundColor: '#0B2238',
+            backgroundImage: 'linear-gradient(135deg, #0B2238 0%, #102F4A 100%)',
             color: '#FFFFFF',
             fontSize: '13px',
             fontWeight: 700,
@@ -517,13 +517,13 @@ export const DashboardPage: React.FC = () => {
             </div>
             <button
               onClick={() => navigate('/alerts')}
-              style={{ fontSize: '12.5px', fontWeight: 700, color: '#4F46E5', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ fontSize: '12.5px', fontWeight: 700, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               <span>View all</span>
               <ArrowRight size={14} />
             </button>
           </div>
-          <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#4F46E5', fontWeight: 500 }}>
+          <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: '#64748B', fontWeight: 500 }}>
             Highest-risk accounts inside an open cash-out window
           </p>
 
@@ -874,7 +874,8 @@ export const DashboardPage: React.FC = () => {
                   justifyContent: 'space-between',
                   padding: '12px 16px',
                   borderRadius: '10px',
-                  backgroundColor: '#4F46E5',
+                  backgroundColor: '#0B2238',
+                  backgroundImage: 'linear-gradient(135deg, #0B2238 0%, #102F4A 100%)',
                   color: '#FFFFFF',
                   fontSize: '13px',
                   fontWeight: 700,
@@ -1046,9 +1047,9 @@ export const DashboardPage: React.FC = () => {
               style={{
                 padding: '6px 14px',
                 borderRadius: '8px',
-                border: telemetryTab === 'flow' ? '1px solid #818CF8' : '1px solid #E2E8F0',
-                backgroundColor: telemetryTab === 'flow' ? '#EEF2FF' : '#F8FAFC',
-                color: telemetryTab === 'flow' ? '#4F46E5' : '#64748B',
+                border: telemetryTab === 'flow' ? '1px solid #3B82F6' : '1px solid #E2E8F0',
+                backgroundColor: telemetryTab === 'flow' ? '#EFF6FF' : '#F8FAFC',
+                color: telemetryTab === 'flow' ? '#2563EB' : '#64748B',
                 fontSize: '12px',
                 fontWeight: 700,
                 cursor: 'pointer'
@@ -1061,9 +1062,9 @@ export const DashboardPage: React.FC = () => {
               style={{
                 padding: '6px 14px',
                 borderRadius: '8px',
-                border: telemetryTab === 'volume' ? '1px solid #818CF8' : '1px solid #E2E8F0',
-                backgroundColor: telemetryTab === 'volume' ? '#EEF2FF' : '#F8FAFC',
-                color: telemetryTab === 'volume' ? '#4F46E5' : '#64748B',
+                border: telemetryTab === 'volume' ? '1px solid #3B82F6' : '1px solid #E2E8F0',
+                backgroundColor: telemetryTab === 'volume' ? '#EFF6FF' : '#F8FAFC',
+                color: telemetryTab === 'volume' ? '#2563EB' : '#64748B',
                 fontSize: '12px',
                 fontWeight: 600,
                 cursor: 'pointer'
@@ -1076,9 +1077,9 @@ export const DashboardPage: React.FC = () => {
               style={{
                 padding: '6px 14px',
                 borderRadius: '8px',
-                border: telemetryTab === 'risk' ? '1px solid #818CF8' : '1px solid #E2E8F0',
-                backgroundColor: telemetryTab === 'risk' ? '#EEF2FF' : '#F8FAFC',
-                color: telemetryTab === 'risk' ? '#4F46E5' : '#64748B',
+                border: telemetryTab === 'risk' ? '1px solid #3B82F6' : '1px solid #E2E8F0',
+                backgroundColor: telemetryTab === 'risk' ? '#EFF6FF' : '#F8FAFC',
+                color: telemetryTab === 'risk' ? '#2563EB' : '#64748B',
                 fontSize: '12px',
                 fontWeight: 600,
                 cursor: 'pointer'

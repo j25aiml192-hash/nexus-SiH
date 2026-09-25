@@ -1,6 +1,20 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { PanelRightOpen, ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
+import {
+  PanelRightOpen,
+  ArrowLeft,
+  Loader2,
+  AlertTriangle,
+  Network,
+  Zap,
+  ShieldAlert,
+  ArrowRight,
+  RefreshCw,
+  Sparkles,
+  Layers,
+  Activity,
+  CheckCircle2
+} from "lucide-react";
 import { GraphToolbar, type GraphFilters } from "../components/network/GraphToolbar";
 import { GraphLegend } from "../components/network/GraphLegend";
 import { NetworkGraph, type GraphApi } from "../components/network/NetworkGraph";
@@ -42,7 +56,7 @@ export function NetworkGraphPage() {
   }, []);
 
   // Fetch real mule chain for this complaint from backend
-  useEffect(() => {
+  const fetchMuleChain = useCallback(() => {
     if (!complaintId) return;
 
     setSelectedComplaintId(complaintId);
@@ -152,6 +166,10 @@ export function NetworkGraphPage() {
       });
   }, [complaintId, setSelectedComplaintId]);
 
+  useEffect(() => {
+    fetchMuleChain();
+  }, [fetchMuleChain]);
+
   const { nodes, edges } = useMemo(() => {
     const q = query.trim().toLowerCase();
     const visibleNodes = rawNodes.filter(
@@ -179,19 +197,32 @@ export function NetworkGraphPage() {
     await dataSource.flagMuleAccount(nodeId);
   };
 
-  const caseItems = [
-    { label: "COMPLAINT", value: complaintId },
-    { label: "PRIMARY SUSPECT BANK", value: complaintData?.accused_bank || "Beneficiary Bank" },
-    { label: "FRAUD TYPE", value: complaintData?.fraud_type || "UPI Fraud" },
-    { label: "DISPUTED AMOUNT", value: complaintData?.amount_inr ? `₹${Number(complaintData.amount_inr).toLocaleString('en-IN')}` : "₹1,50,000" },
-  ];
-
   if (isLoading) {
     return (
-      <div className="nexus-center-container">
-        <Loader2 className="nexus-spinner animate-spin" size={40} />
-        <div className="nexus-loading-text mt-3 text-slate-600 font-mono">
-          CONSTRUCTING LIVE MULE NETWORK GRAPH FOR {complaintId}...
+      <div style={{
+        minHeight: '80vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px',
+        backgroundColor: '#F8FAFC'
+      }}>
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          padding: '36px 48px',
+          borderRadius: '24px',
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 12px 32px -6px rgba(15, 23, 42, 0.08)',
+          textAlign: 'center'
+        }}>
+          <Loader2 size={42} style={{ color: '#2563EB', margin: '0 auto 16px auto' }} className="animate-spin" />
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em', margin: 0 }}>
+            CONSTRUCTING MULE NETWORK GRAPH
+          </h3>
+          <p style={{ fontSize: '12px', fontFamily: 'monospace', color: '#64748B', marginTop: '6px' }}>
+            Fetching inter-bank transaction hops for complaint {complaintId}...
+          </p>
         </div>
       </div>
     );
@@ -199,16 +230,45 @@ export function NetworkGraphPage() {
 
   if (error) {
     return (
-      <div className="nexus-center-container">
-        <div className="nexus-card nexus-error-card p-8 text-center max-w-md bg-white border border-red-200 rounded-xl shadow-sm">
-          <AlertTriangle size={48} className="text-red-500 mx-auto mb-3" />
-          <h2 className="text-xl font-bold text-slate-900">FAILED TO LOAD NETWORK GRAPH</h2>
-          <p className="text-slate-600 text-sm mt-2 mb-6">{error}</p>
+      <div style={{
+        minHeight: '80vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px',
+        backgroundColor: '#F8FAFC'
+      }}>
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          padding: '40px',
+          borderRadius: '24px',
+          border: '1px solid #FECACA',
+          boxShadow: '0 12px 32px -6px rgba(220, 38, 38, 0.12)',
+          textAlign: 'center',
+          maxWidth: '440px'
+        }}>
+          <AlertTriangle size={48} style={{ color: '#DC2626', margin: '0 auto 14px auto' }} />
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#DC2626', margin: 0 }}>
+            FAILED TO CONSTRUCT GRAPH
+          </h2>
+          <p style={{ fontSize: '12.5px', color: '#64748B', marginTop: '8px', marginBottom: '20px', fontFamily: 'monospace' }}>
+            {error}
+          </p>
           <button
             onClick={() => navigate('/complaints')}
-            className="px-4 py-2 bg-[#087F5B] text-white rounded-md text-xs font-semibold hover:bg-[#076D4E] transition-colors"
+            style={{
+              padding: '10px 20px',
+              borderRadius: '10px',
+              backgroundColor: '#DC2626',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(220, 38, 38, 0.25)'
+            }}
           >
-            ← Return to Complaints
+            ← Return to Complaints List
           </button>
         </div>
       </div>
@@ -216,66 +276,269 @@ export function NetworkGraphPage() {
   }
 
   return (
-    <div className="nexus-network-page-container">
-      {/* Top Breadcrumb Bar */}
-      <div className="nexus-network-top-bar">
-        <div className="nexus-network-breadcrumb">
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#F1F5F9',
+      backgroundImage: 'radial-gradient(ellipse at 50% 0%, #FFFFFF 0%, #E2E8F0 100%)',
+      color: '#0F172A',
+      padding: '24px 32px',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+    }}>
+
+      {/* 1. FLOATING BREADCRUMB & STATUS BAR */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '20px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Link
             to={`/complaints/${complaintId}`}
-            className="nexus-network-breadcrumb-link flex items-center"
-            title="Return to Complaint Details"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '10px',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              color: '#2563EB',
+              fontSize: '12px',
+              fontWeight: 700,
+              textDecoration: 'none',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
+              transition: 'all 0.15s ease'
+            }}
           >
-            <ArrowLeft size={14} style={{ marginRight: "4px" }} />
-            Investigation
+            <ArrowLeft size={14} />
+            <span>Complaint Docket</span>
           </Link>
-          <span className="nexus-network-breadcrumb-separator">/</span>
-          <span className="nexus-network-breadcrumb-current">Network Graph ({complaintId})</span>
+          <span style={{ color: '#94A3B8', fontWeight: 600 }}>/</span>
+          <span style={{
+            fontSize: '12px',
+            fontFamily: 'monospace',
+            fontWeight: 800,
+            color: '#0F172A',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            padding: '6px 12px',
+            borderRadius: '10px',
+            border: '1px solid #CBD5E1'
+          }}>
+            Network Graph ({complaintId})
+          </span>
         </div>
 
-        <div className="nexus-network-top-meta">
-          <span className="nexus-network-live-pill">LIVE GRAPH FROM DB</span>
-          <div className="nexus-network-user-avatar">DA</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{
+            fontSize: '10px',
+            fontFamily: 'monospace',
+            fontWeight: 800,
+            padding: '4px 10px',
+            borderRadius: '9999px',
+            backgroundColor: '#ECFDF5',
+            color: '#059669',
+            border: '1px solid #A7F3D0',
+            letterSpacing: '0.05em',
+            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.12)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+            LIVE GRAPH FROM DB
+          </span>
+
+          <button
+            onClick={fetchMuleChain}
+            style={{
+              padding: '7px 12px',
+              borderRadius: '10px',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #CBD5E1',
+              color: '#475569',
+              fontSize: '11.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
+            }}
+          >
+            <RefreshCw size={13} className={isLoading ? 'animate-spin text-blue-600' : ''} />
+            <span>Reload</span>
+          </button>
         </div>
       </div>
 
-      {/* Case Header Row */}
-      <div className="nexus-network-case-header">
-        <div className="nexus-network-case-title-area">
-          <h1 className="nexus-network-title">Network Graph</h1>
-          <p className="nexus-network-subtitle">
-            Entity and money-flow network dynamically constructed from backend transactions and mule nodes.
+      {/* 2. FLOATING CASE HEADER CONTAINER BOX */}
+      <div style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: '22px',
+        padding: '22px 28px',
+        marginBottom: '22px',
+        border: '1px solid rgba(226, 232, 240, 0.8)',
+        boxShadow: '0 12px 32px -6px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.03)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '20px'
+      }}>
+        <div style={{ maxWidth: '480px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+            <div style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              backgroundColor: '#EFF6FF',
+              border: '1px solid #BFDBFE',
+              color: '#2563EB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+            }}>
+              <Network size={18} />
+            </div>
+            <h1 style={{
+              fontSize: '22px',
+              fontWeight: 900,
+              color: '#0F172A',
+              margin: 0,
+              letterSpacing: '-0.02em'
+            }}>
+              Mule Network Graph
+            </h1>
+          </div>
+          <p style={{ fontSize: '13px', color: '#64748B', margin: 0, paddingLeft: '44px' }}>
+            Entity relationship and money-flow graph constructed in real-time from bank transaction hops.
           </p>
         </div>
 
-        <div className="nexus-network-case-meta-grid">
-          {caseItems.map((item) => (
-            <div key={item.label} className="nexus-network-case-meta-item">
-              <span className="nexus-network-case-meta-label">{item.label}</span>
-              <span className="nexus-network-case-meta-value font-mono">{item.value}</span>
+        {/* Case Metadata Grid */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <div style={{
+            backgroundColor: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '12px',
+            padding: '8px 14px',
+            boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)'
+          }}>
+            <div style={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+              TARGET COMPLAINT
             </div>
-          ))}
+            <div style={{ fontSize: '13px', fontFamily: 'monospace', fontWeight: 800, color: '#2563EB', marginTop: '2px' }}>
+              {complaintId}
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '12px',
+            padding: '8px 14px',
+            boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)'
+          }}>
+            <div style={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+              BENEFICIARY BANK
+            </div>
+            <div style={{ fontSize: '13px', fontFamily: 'monospace', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>
+              {complaintData?.accused_bank || "HDFC / Axis Bank"}
+            </div>
+          </div>
+
+          <div style={{
+            backgroundColor: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '12px',
+            padding: '8px 14px',
+            boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)'
+          }}>
+            <div style={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+              FRAUD AMOUNT
+            </div>
+            <div style={{ fontSize: '13px', fontFamily: 'monospace', fontWeight: 900, color: '#DC2626', marginTop: '2px' }}>
+              {complaintData?.amount_inr ? `₹${Number(complaintData.amount_inr).toLocaleString('en-IN')}` : "₹8,45,000"}
+            </div>
+          </div>
+
+          {/* Action to Predict Cash-Out */}
+          <button
+            onClick={handlePredict}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+              border: '1px solid #3B82F6',
+              color: '#FFFFFF',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 6px 18px rgba(37, 99, 235, 0.35)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 10px 24px rgba(37, 99, 235, 0.45)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(37, 99, 235, 0.35)';
+            }}
+          >
+            <Zap size={15} className="text-yellow-300" />
+            <span>Predict Cash-Out Location</span>
+            <ArrowRight size={14} />
+          </button>
         </div>
       </div>
 
-      {/* Toolbar */}
-      <GraphToolbar
-        query={query}
-        onQueryChange={setQuery}
-        filters={filters}
-        onFiltersChange={setFilters}
-        showAmounts={showAmounts}
-        onShowAmounts={setShowAmounts}
-        showTimestamps={showTimestamps}
-        onShowTimestamps={setShowTimestamps}
-        onFit={() => apiRef.current?.fit()}
-        onZoomIn={() => apiRef.current?.zoomIn()}
-        onZoomOut={() => apiRef.current?.zoomOut()}
-        onReset={() => apiRef.current?.reset()}
-      />
+      {/* 3. FLOATING GRAPH TOOLBAR */}
+      <div style={{ marginBottom: '18px' }}>
+        <GraphToolbar
+          query={query}
+          onQueryChange={setQuery}
+          filters={filters}
+          onFiltersChange={setFilters}
+          showAmounts={showAmounts}
+          onShowAmounts={setShowAmounts}
+          showTimestamps={showTimestamps}
+          onShowTimestamps={setShowTimestamps}
+          onFit={() => apiRef.current?.fit()}
+          onZoomIn={() => apiRef.current?.zoomIn()}
+          onZoomOut={() => apiRef.current?.zoomOut()}
+          onReset={() => apiRef.current?.reset()}
+        />
+      </div>
 
-      {/* Main Canvas & Inspector Area */}
-      <div className="nexus-network-canvas-wrapper">
-        <div className="nexus-network-graph-col">
+      {/* 4. MAIN FLOATING CANVAS & INSPECTOR WORKSPACE AREA */}
+      <div className="nexus-network-canvas-wrapper" style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 340px',
+        gap: '20px',
+        minHeight: '620px'
+      }}>
+        {/* Left Column: Cytoscape Graph Canvas Box */}
+        <div style={{
+          position: 'relative',
+          backgroundColor: '#FFFFFF',
+          borderRadius: '20px',
+          border: '1px solid rgba(226, 232, 240, 0.8)',
+          boxShadow: '0 12px 32px -6px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.03)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
           <NetworkGraph
             nodes={nodes}
             edges={edges}
@@ -289,19 +552,43 @@ export function NetworkGraphPage() {
           />
           <GraphLegend />
 
-
           <button
             type="button"
             className="nexus-network-mobile-inspector-btn"
             onClick={() => setMobileDrawerOpen(true)}
+            style={{
+              position: 'absolute',
+              bottom: '16px',
+              right: '16px',
+              display: 'none',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              backgroundColor: '#0F172A',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              zIndex: 100
+            }}
           >
             <PanelRightOpen size={16} />
-            <span>Inspect selected</span>
+            <span>Inspect Selected Node</span>
           </button>
         </div>
 
-        {/* Desktop Inspector Panel */}
-        <aside className={`nexus-network-inspector-desktop ${mobileDrawerOpen ? 'open' : ''}`}>
+        {/* Right Column: Floating Inspector Side Panel Box */}
+        <aside style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '20px',
+          border: '1px solid rgba(226, 232, 240, 0.8)',
+          boxShadow: '0 12px 32px -6px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.03)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
           <InspectorPanel
             selectedId={selectedId}
             nodes={rawNodes}
@@ -317,3 +604,5 @@ export function NetworkGraphPage() {
     </div>
   );
 }
+
+export default NetworkGraphPage;

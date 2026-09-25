@@ -799,7 +799,7 @@ export const MapPage: React.FC = () => {
                 {showCorridors ? <Eye size={13} style={{ color: '#2563EB', flexShrink: 0 }} /> : <EyeOff size={13} style={{ color: '#64748B', flexShrink: 0 }} />}
                 <span>Transaction Corridors</span>
               </div>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4F46E5', flexShrink: 0 }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#2563EB', flexShrink: 0 }} />
             </button>
           </div>
         </div>

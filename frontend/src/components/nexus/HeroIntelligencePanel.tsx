@@ -78,7 +78,7 @@ export const HeroIntelligencePanel: React.FC = () => {
                 {/* Connecting Money Trail Vectors */}
                 <path d="M120,90 Q240,30 340,90" stroke="#38BDF8" strokeWidth="2.5" strokeDasharray="6,6" className="animate-pulse" />
                 <path d="M340,90 Q440,130 500,70" stroke="#EF4444" strokeWidth="2.5" strokeDasharray="4,4" className="animate-pulse" />
-                <path d="M120,90 L500,70" stroke="#6366F1" strokeWidth="1.5" strokeOpacity="0.4" />
+                <path d="M120,90 L500,70" stroke="#2563EB" strokeWidth="1.5" strokeOpacity="0.4" />
 
                 {/* Pulsing Nodes */}
                 {/* Ranchi Node */}
@@ -103,8 +103,8 @@ export const HeroIntelligencePanel: React.FC = () => {
 
                 {/* Jamshedpur Node */}
                 <g transform="translate(500, 70)">
-                  <circle r="14" fill="#6366F1" fillOpacity="0.2" />
-                  <circle r="6" fill="#6366F1" />
+                  <circle r="14" fill="#2563EB" fillOpacity="0.2" />
+                  <circle r="6" fill="#2563EB" />
                   <circle r="3" fill="#FFFFFF" />
                   <text x="0" y="24" textAnchor="middle" fill="#CBD5E1" fontSize="11" fontFamily="sans-serif" fontWeight="bold">Jamshedpur</text>
                   <text x="0" y="36" textAnchor="middle" fill="#64748B" fontSize="9" fontFamily="monospace">Intercept Active</text>

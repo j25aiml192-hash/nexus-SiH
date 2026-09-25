@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { X, ShieldAlert, Check, Loader2 } from 'lucide-react';
+import {
+  X,
+  ShieldAlert,
+  Check,
+  Loader2,
+  AlertTriangle,
+  CreditCard,
+  Smartphone,
+  MapPin,
+  Building2,
+  Radio,
+  PlusCircle
+} from 'lucide-react';
 import { dataSource } from '../../services/dataSource';
 import type { Complaint } from '../../types/nexus';
 
@@ -70,40 +82,122 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
   };
 
   return (
-    <div className="nexus-modal-overlay">
-      <div className="nexus-modal-container max-w-lg w-full">
-        <div className="nexus-modal-header">
-          <div className="flex items-center gap-2">
-            <ShieldAlert size={18} className="text-[#087F5B]" />
-            <h3 className="font-bold text-lg text-[#102A2A]">Ingest Live Cybercrime Complaint</h3>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(15, 23, 42, 0.65)',
+      backdropFilter: 'blur(10px)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '560px',
+        backgroundColor: '#FFFFFF',
+        border: '1px solid rgba(226, 232, 240, 0.9)',
+        borderRadius: '24px',
+        padding: '28px',
+        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.3), 0 8px 24px rgba(15, 23, 42, 0.1)',
+        color: '#0F172A',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+      }}>
+        {/* Floating Modal Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              backgroundColor: '#EFF6FF',
+              border: '1px solid #BFDBFE',
+              color: '#2563EB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+            }}>
+              <PlusCircle size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                Ingest Cybercrime Complaint
+              </h3>
+              <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>
+                Register new fraud intake to trigger real-time mule graph tracing & cash-out prediction.
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-[#64748B] hover:text-[#102A2A]">
-            <X size={18} />
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '6px', borderRadius: '8px' }}
+          >
+            <X size={20} />
           </button>
         </div>
 
+        {/* Alerts / Success Banners */}
         {errorMessage && (
-          <div className="p-3 mx-5 mt-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md">
+          <div style={{
+            padding: '12px 16px',
+            marginBottom: '16px',
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FCA5A5',
+            color: '#DC2626',
+            fontSize: '12.5px',
+            borderRadius: '12px',
+            fontFamily: 'monospace'
+          }}>
             {errorMessage}
           </div>
         )}
 
         {successMessage && (
-          <div className="p-3 mx-5 mt-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-md flex items-center gap-2">
-            <Check size={16} className="text-emerald-600" />
+          <div style={{
+            padding: '12px 16px',
+            marginBottom: '16px',
+            backgroundColor: '#ECFDF5',
+            border: '1px solid #A7F3D0',
+            color: '#059669',
+            fontSize: '12.5px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontFamily: 'monospace',
+            fontWeight: 700
+          }}>
+            <Check size={18} style={{ color: '#059669' }} />
             {successMessage}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Fraud Type Selection */}
           <div>
-            <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
+            <label style={{ display: 'block', fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
               Fraud Incident Type
             </label>
             <select
               value={fraudType}
               onChange={(e) => setFraudType(e.target.value)}
-              className="nexus-form-input w-full"
+              style={{
+                width: '100%',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #CBD5E1',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#0F172A',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
             >
               <option value="upi_fraud">UPI Intercept / Fraud</option>
               <option value="digital_arrest">Digital Arrest Extortion</option>
@@ -114,10 +208,12 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Amount & Phone Prefix */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Disputed Amount (INR)
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                <CreditCard size={12} style={{ color: '#2563EB' }} />
+                <span>Disputed Amount (INR)</span>
               </label>
               <input
                 type="number"
@@ -125,12 +221,25 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="150000"
-                className="nexus-form-input w-full font-mono"
+                style={{
+                  width: '100%',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  color: '#0F172A',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Suspect Mobile / Prefix
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                <Smartphone size={12} style={{ color: '#2563EB' }} />
+                <span>Suspect Mobile / Prefix</span>
               </label>
               <input
                 type="text"
@@ -138,20 +247,45 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                 value={accusedPhone}
                 onChange={(e) => setAccusedPhone(e.target.value)}
                 placeholder="7091234567"
-                className="nexus-form-input w-full font-mono"
+                style={{
+                  width: '100%',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  color: '#0F172A',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Victim State & District */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Victim State
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                <MapPin size={12} style={{ color: '#2563EB' }} />
+                <span>Victim State</span>
               </label>
               <select
                 value={victimState}
                 onChange={(e) => setVictimState(e.target.value)}
-                className="nexus-form-input w-full"
+                style={{
+                  width: '100%',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#0F172A',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
               >
                 <option value="Jharkhand">Jharkhand</option>
                 <option value="Haryana">Haryana</option>
@@ -162,8 +296,9 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Victim District
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                <MapPin size={12} style={{ color: '#2563EB' }} />
+                <span>Victim District</span>
               </label>
               <input
                 type="text"
@@ -171,20 +306,44 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                 value={victimDistrict}
                 onChange={(e) => setVictimDistrict(e.target.value)}
                 placeholder="Deoghar"
-                className="nexus-form-input w-full"
+                style={{
+                  width: '100%',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#0F172A',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Suspect Bank & Channel */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Suspect Beneficiary Bank
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                <Building2 size={12} style={{ color: '#2563EB' }} />
+                <span>Suspect Beneficiary Bank</span>
               </label>
               <select
                 value={accusedBank}
                 onChange={(e) => setAccusedBank(e.target.value)}
-                className="nexus-form-input w-full"
+                style={{
+                  width: '100%',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#0F172A',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
               >
                 <option value="Paytm Payments Bank">Paytm Payments Bank</option>
                 <option value="State Bank of India">State Bank of India</option>
@@ -195,13 +354,25 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-[#102A2A] uppercase mb-1">
-                Reported Intake Channel
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                <Radio size={12} style={{ color: '#2563EB' }} />
+                <span>Reported Intake Channel</span>
               </label>
               <select
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
-                className="nexus-form-input w-full"
+                style={{
+                  width: '100%',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#0F172A',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
               >
                 <option value="Online Portal">National Cybercrime Portal (NCRP)</option>
                 <option value="1930 Helpline">Helpline 1930 Direct Transit</option>
@@ -210,26 +381,61 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
             </div>
           </div>
 
-          <div className="nexus-modal-footer flex items-center justify-end gap-2 pt-4 border-t border-[#EDF2F0]">
+          {/* Modal Footer Actions */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '12px',
+            marginTop: '10px',
+            paddingTop: '18px',
+            borderTop: '1px solid #E2E8F0'
+          }}>
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-xs font-semibold text-[#64748B] hover:text-[#102A2A] bg-white border border-[#E2E8E6] rounded-md"
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                backgroundColor: '#F1F5F9',
+                border: '1px solid #CBD5E1',
+                color: '#475569',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 text-xs font-semibold text-white bg-[#087F5B] hover:bg-[#076D4E] rounded-md flex items-center gap-1.5 shadow-sm"
+              style={{
+                padding: '10px 22px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                border: '1px solid #3B82F6',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 6px 18px rgba(37, 99, 235, 0.35)',
+                opacity: isSubmitting ? 0.7 : 1
+              }}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" /> Ingesting to DB...
+                  <Loader2 size={16} className="animate-spin" /> Ingesting to DB...
                 </>
               ) : (
-                'Submit Complaint to NEXUS'
+                <>
+                  <ShieldAlert size={16} />
+                  <span>Submit Complaint to NEXUS</span>
+                </>
               )}
             </button>
           </div>

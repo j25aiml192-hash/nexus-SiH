@@ -329,40 +329,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
           </span>
         </button>
 
-        {/* User Profile Avatar Pill (DA) */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          paddingLeft: '6px',
-          borderLeft: '1px solid rgba(255, 255, 255, 0.14)',
-          cursor: 'pointer'
-        }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            backgroundColor: '#4F46E5',
-            color: '#FFFFFF',
-            fontSize: '12px',
-            fontFamily: 'monospace',
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(79, 70, 229, 0.4)'
-          }}>
-            DA
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-            <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#FFFFFF', lineHeight: 1.2 }}>
-              Demo Analyst
-            </span>
-            <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 500, lineHeight: 1.2 }}>
-              Analyst Mode
-            </span>
-          </div>
-        </div>
+
 
       </div>
     </header>
