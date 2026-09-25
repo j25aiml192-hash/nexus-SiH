@@ -1,19 +1,13 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
-  PanelRightOpen,
   ArrowLeft,
   Loader2,
   AlertTriangle,
   Network,
   Zap,
-  ShieldAlert,
   ArrowRight,
-  RefreshCw,
-  Sparkles,
-  Layers,
-  Activity,
-  CheckCircle2
+  RefreshCw
 } from "lucide-react";
 import { GraphToolbar, type GraphFilters } from "../components/network/GraphToolbar";
 import { GraphLegend } from "../components/network/GraphLegend";
@@ -48,7 +42,6 @@ export function NetworkGraphPage() {
   const [showAmounts, setShowAmounts] = useState(true);
   const [showTimestamps, setShowTimestamps] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const apiRef = useRef<GraphApi | null>(null);
 
   const onApiReady = useCallback((api: GraphApi) => {
@@ -551,32 +544,6 @@ export function NetworkGraphPage() {
             onApiReady={onApiReady}
           />
           <GraphLegend />
-
-          <button
-            type="button"
-            className="nexus-network-mobile-inspector-btn"
-            onClick={() => setMobileDrawerOpen(true)}
-            style={{
-              position: 'absolute',
-              bottom: '16px',
-              right: '16px',
-              display: 'none',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              borderRadius: '10px',
-              backgroundColor: '#0F172A',
-              color: '#FFFFFF',
-              fontSize: '12px',
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-              zIndex: 100
-            }}
-          >
-            <PanelRightOpen size={16} />
-            <span>Inspect Selected Node</span>
-          </button>
         </div>
 
         {/* Right Column: Floating Inspector Side Panel Box */}

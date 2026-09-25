@@ -13,8 +13,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Zap,
-  Shield,
-  ChevronDown,
 } from 'lucide-react';
 import { useNexusStore } from '../store/useNexusStore';
 
@@ -33,7 +31,7 @@ export const Navigation: React.FC = () => {
     <aside className={`nexus-floating-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
       {/* Sidebar Header */}
       <div className="nexus-floating-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1, cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1, cursor: 'pointer' }} onClick={() => navigate('/')}>
           <div className="nexus-floating-logo shrink-0">
             <Zap size={18} className="text-white fill-white" />
           </div>

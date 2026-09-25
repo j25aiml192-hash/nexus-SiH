@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { TopBar } from './components/nexus/TopBar';
+import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ComplaintsPage } from './pages/ComplaintsPage';
 import { ComplaintDetailPage } from './pages/ComplaintDetailPage';
@@ -25,7 +26,12 @@ export function App() {
 
 function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
   const location = useLocation();
+  const isLandingPage = location.pathname === '/';
   const isMapPage = location.pathname === '/map';
+
+  if (isLandingPage) {
+    return <LandingPage />;
+  }
 
   return (
     <div className="nexus-app-container">
@@ -35,7 +41,7 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
         <TopBar />
         <main className={`nexus-main-content ${isMapPage ? 'is-map-page' : ''}`}>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/complaints" element={<ComplaintsPage />} />
             <Route path="/complaints/:complaintId" element={<ComplaintDetailPage />} />
@@ -47,7 +53,7 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
             <Route path="/alerts" element={<AlertsPage />} />
             <Route path="/incidents" element={<IncidentsPage />} />
             <Route path="/incidents/:id" element={<IncidentDetailPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>

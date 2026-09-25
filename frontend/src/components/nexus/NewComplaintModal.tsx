@@ -4,7 +4,6 @@ import {
   ShieldAlert,
   Check,
   Loader2,
-  AlertTriangle,
   CreditCard,
   Smartphone,
   MapPin,
