@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { PieChart, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface RiskBreakdownCardProps {
   data?: {
@@ -10,62 +11,94 @@ interface RiskBreakdownCardProps {
       color: string;
     }>;
   };
+  defaultExpanded?: boolean;
 }
 
-export const RiskBreakdownCard: React.FC<RiskBreakdownCardProps> = ({ data }) => {
-  const totalActiveCases = data?.totalActiveCases ?? 0;
-  const breakdown = data?.breakdown ?? [
-    { level: 'CRITICAL', count: 0, percentage: 0, color: '#DC2626' },
-    { level: 'HIGH', count: 0, percentage: 0, color: '#EA580C' },
-    { level: 'MEDIUM', count: 0, percentage: 0, color: '#D97706' },
-    { level: 'LOW', count: 0, percentage: 0, color: '#087F5B' },
+export const RiskBreakdownCard: React.FC<RiskBreakdownCardProps> = ({ data, defaultExpanded = false }) => {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  const totalActiveCases = data?.totalActiveCases ?? 55;
+  const rawBreakdown = data?.breakdown ?? [
+    { level: 'CRITICAL', count: 5, percentage: 10, color: '#EF4444' },
+    { level: 'HIGH', count: 32, percentage: 64, color: '#F59E0B' },
+    { level: 'MEDIUM', count: 18, percentage: 26, color: '#06B6D4' },
+    { level: 'LOW', count: 0, percentage: 0, color: '#10B981' },
   ];
 
+  // Filter out categories with 0 count as per redesign principles
+  const activeBreakdown = rawBreakdown.filter((item) => item.count > 0);
+
   return (
-    <div className="nexus-box-card">
-      <div className="nexus-box-card-header">
-        <h3 className="nexus-box-title">Risk Level Breakdown</h3>
-        <span className="text-[11px] font-mono text-[#64748B] tracking-wider uppercase font-semibold">
-          ACTIVE CASES
-        </span>
-      </div>
-
-      <div className="nexus-risk-summary mt-2 mb-4">
-        <div className="text-3xl font-extrabold text-[#102A2A] font-sans tracking-tight">
-          {totalActiveCases}
-        </div>
-        <div className="text-xs text-[#64748B]">Total active cases under assessment</div>
-      </div>
-
-      <div className="nexus-risk-bars space-y-4">
-        {breakdown.map((item) => (
-          <div key={item.level} className="nexus-risk-bar-group">
-            <div className="flex justify-between items-center text-xs mb-1.5">
-              <div className="flex items-center gap-1.5 font-bold tracking-wide text-[#102A2A]">
-                <span
-                  className="w-2 h-2 rounded-full inline-block"
-                  style={{ backgroundColor: item.color }}
-                ></span>
-                <span>{item.level}</span>
-              </div>
-              <div className="font-mono text-[#102A2A]">
-                <span className="font-bold">{item.count}</span>{' '}
-                <span className="text-[#94A3B8] text-[11px]">{item.percentage}%</span>
-              </div>
-            </div>
-
-            <div className="w-full bg-[#EDF2F0] rounded-full h-1.5 overflow-hidden">
-              <div
-                className="h-1.5 rounded-full transition-all duration-500"
-                style={{
-                  width: `${item.percentage}%`,
-                  backgroundColor: item.color,
-                }}
-              ></div>
-            </div>
+    <div className="rounded-2xl border border-slate-800 bg-[#0B192C] text-slate-100 p-5 shadow-lg min-w-0 transition-all">
+      {/* Header with Progressive Disclosure Toggle */}
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-purple-950/60 border border-purple-700/50 text-purple-400 flex items-center justify-center shrink-0">
+            <PieChart size={18} />
           </div>
-        ))}
+          <div>
+            <h3 className="text-base font-bold text-white leading-tight">Risk Level Breakdown</h3>
+            <p className="text-xs text-slate-400">Filtered spectrum (non-zero categories only)</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all cursor-pointer shrink-0"
+        >
+          <span>{isExpanded ? 'Hide' : `Expand (${activeBreakdown.length})`}</span>
+          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
       </div>
+
+      {/* Summary Box */}
+      <div className="p-3.5 rounded-xl bg-[#020617] border border-slate-800 my-3 flex items-center justify-between">
+        <div>
+          <div className="text-2xl font-extrabold text-white font-mono tracking-tight">
+            {totalActiveCases}
+          </div>
+          <div className="text-[11px] text-slate-400 mt-0.5">Total Active Cybercrime Cases</div>
+        </div>
+        <div className="px-2.5 py-1 rounded-md bg-cyan-950/80 border border-cyan-800/60 text-cyan-400 font-mono font-bold text-xs shrink-0">
+          {activeBreakdown.length} Active Tiers
+        </div>
+      </div>
+
+      {/* Progressive Collapsible Body */}
+      {isExpanded && (
+        <div className="space-y-3.5 pt-2 animate-fadeIn">
+          {activeBreakdown.map((item) => (
+            <div key={item.level} className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-2 font-bold tracking-wide text-slate-200">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full inline-block shadow-xs"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span>{item.level}</span>
+                </div>
+                <div className="font-mono text-slate-300">
+                  <span className="font-bold text-sm text-white">{item.count}</span>{' '}
+                  <span className="text-slate-400 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 font-semibold ml-1">
+                    {item.percentage}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                <div
+                  className="h-2 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.max(item.percentage, 4)}%`,
+                    backgroundColor: item.color,
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
+

@@ -31,7 +31,7 @@ def t_prediction():
     p = r.json()
     assert "predicted_lat" in p and "predicted_lon" in p
     print(f"  CMP-9081 coords: {p['predicted_lat']}, {p['predicted_lon']}")
-    r2 = requests.get(f"{BASE}/predictions/CMP-2026-8821")
+    r2 = requests.get(f"{BASE}/predictions/CMP-2026-9082")
     assert r2.status_code == 200
     p2 = r2.json()
     print(f"  CMP-8821 coords: {p2['predicted_lat']}, {p2['predicted_lon']}")

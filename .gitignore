@@ -32,3 +32,4 @@ frontend/nexus-graph-explorer-main/
 *.db
 /package.json
 /package-lock.json
+backend/db/seed_demo.py

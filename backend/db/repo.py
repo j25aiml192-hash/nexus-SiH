@@ -400,6 +400,192 @@ def seed_full_operational_data():
                 "action_taken": "Advisory sent to nodal bank.",
                 "notes": "Monitoring account activity."
             }
+        },
+        {
+            "complaint_id": "CMP-2026-4015",
+            "fraud_type": "digital_arrest",
+            "amount_inr": 1850000.0,
+            "status": "flagged",
+            "filed_at": ts(2, 15),
+            "created_at": ts(2, 15),
+            "victim_state": "Delhi",
+            "victim_district": "New Delhi",
+            "accused_phone_prefix": "70",
+            "accused_bank": "Airtel Payments Bank",
+            "channel": "National Cybercrime Portal",
+            "mules": [
+                {"account_id": "ACC-MULE-4015-1", "bank": "Paytm Payments Bank", "lat": 28.6289, "lon": 77.2065, "risk": 0.95, "amount": 1850000.0},
+                {"account_id": "ACC-MULE-4015-2", "bank": "HDFC Bank", "lat": 28.5355, "lon": 77.3910, "risk": 0.91, "amount": 925000.0}
+            ],
+            "prediction": {
+                "risk_score": 0.955,
+                "risk_level": "RED",
+                "predicted_lat": 28.5355,
+                "predicted_lon": 77.3910,
+                "window": 3,
+                "recovery_score": 96.0,
+                "atms": ["ATM-DL-CP-01", "ATM-DL-BAR-01"],
+                "shap": {"fraud_type_risk": 0.42, "mule_chain_depth": 0.26, "log_amount": 0.18, "transaction_velocity": 0.14}
+            },
+            "alert": {
+                "severity": "CRITICAL",
+                "message": "NEXUS CRITICAL: Rs 18,50,000 digital arrest fraud targeting Noida Sector 62 corridor. Urgent 3h intercept window.",
+                "assigned_officer": "Insp. Vikram Singh (Delhi Cyber Cell)"
+            },
+            "incident": {
+                "status": "authorized",
+                "suspect_apprehended": 1,
+                "action_taken": "Emergency Section 102 CrPC lien issued. Rapid response team dispatched.",
+                "notes": "Mule suspect intercepted near HDFC ATM kiosk."
+            }
+        },
+        {
+            "complaint_id": "CMP-2026-3890",
+            "fraud_type": "investment_scam",
+            "amount_inr": 620000.0,
+            "status": "flagged",
+            "filed_at": ts(4, 45),
+            "created_at": ts(4, 45),
+            "victim_state": "Uttar Pradesh",
+            "victim_district": "Ghaziabad",
+            "accused_phone_prefix": "76",
+            "accused_bank": "ICICI Bank",
+            "channel": "Online Portal",
+            "mules": [
+                {"account_id": "ACC-MULE-3890-1", "bank": "ICICI Bank", "lat": 28.6692, "lon": 77.4538, "risk": 0.84, "amount": 620000.0}
+            ],
+            "prediction": {
+                "risk_score": 0.835,
+                "risk_level": "RED",
+                "predicted_lat": 28.6692,
+                "predicted_lon": 77.4538,
+                "window": 5,
+                "recovery_score": 81.0,
+                "atms": ["ATM-UP-MAT-01"],
+                "shap": {"fraud_type_risk": 0.35, "bank_risk": 0.25, "transaction_velocity": 0.22}
+            },
+            "alert": {
+                "severity": "HIGH",
+                "message": "NEXUS RED: Rs 6,20,000 crypto investment fraud. Cashout expected in Indirapuram Ghaziabad.",
+                "assigned_officer": "Sub-Insp. Neha Gupta"
+            },
+            "incident": {
+                "status": "open",
+                "suspect_apprehended": 0,
+                "action_taken": "Nodal debit freeze notice served to ICICI Bank.",
+                "notes": "Account under active monitoring."
+            }
+        },
+        {
+            "complaint_id": "CMP-2026-2914",
+            "fraud_type": "upi_fraud",
+            "amount_inr": 310000.0,
+            "status": "flagged",
+            "filed_at": ts(7, 20),
+            "created_at": ts(7, 20),
+            "victim_state": "Uttar Pradesh",
+            "victim_district": "Lucknow",
+            "accused_phone_prefix": "91",
+            "accused_bank": "State Bank of India",
+            "channel": "Helpline 1930",
+            "mules": [
+                {"account_id": "ACC-MULE-2914-1", "bank": "SBI", "lat": 26.8467, "lon": 80.9462, "risk": 0.76, "amount": 310000.0}
+            ],
+            "prediction": {
+                "risk_score": 0.748,
+                "risk_level": "AMBER",
+                "predicted_lat": 26.8467,
+                "predicted_lon": 80.9462,
+                "window": 8,
+                "recovery_score": 68.0,
+                "atms": ["ATM-UP-MAT-02"],
+                "shap": {"phone_prefix_risk": 0.30, "fraud_type_risk": 0.28, "hour": 0.20}
+            },
+            "alert": {
+                "severity": "HIGH",
+                "message": "NEXUS AMBER: UPI QR scam Rs 3,10,000. Hazratganj Lucknow cashout probability.",
+                "assigned_officer": "Insp. Alok Sharma"
+            },
+            "incident": {
+                "status": "open",
+                "suspect_apprehended": 0,
+                "action_taken": "Bank nodal officer contacted for freeze.",
+                "notes": "Transaction trail mapped."
+            }
+        },
+        {
+            "complaint_id": "CMP-2026-1802",
+            "fraud_type": "vishing",
+            "amount_inr": 540000.0,
+            "status": "flagged",
+            "filed_at": ts(12, 10),
+            "created_at": ts(12, 10),
+            "victim_state": "Telangana",
+            "victim_district": "Hyderabad",
+            "accused_phone_prefix": "78",
+            "accused_bank": "Axis Bank",
+            "channel": "Online Portal",
+            "mules": [
+                {"account_id": "ACC-MULE-1802-1", "bank": "Axis Bank", "lat": 17.3850, "lon": 78.4867, "risk": 0.68, "amount": 540000.0}
+            ],
+            "prediction": {
+                "risk_score": 0.672,
+                "risk_level": "AMBER",
+                "predicted_lat": 17.3850,
+                "predicted_lon": 78.4867,
+                "window": 10,
+                "recovery_score": 52.0,
+                "atms": ["ATM-KA-BLR-01"],
+                "shap": {"fraud_type_risk": 0.32, "mule_chain_depth": 0.24, "log_amount": 0.18}
+            },
+            "alert": {
+                "severity": "MEDIUM",
+                "message": "NEXUS AMBER: APK Malware bank bypass Rs 5,40,000. Secunderabad ATM alert.",
+                "assigned_officer": "Sub-Insp. K. Rao"
+            },
+            "incident": {
+                "status": "closed",
+                "suspect_apprehended": 1,
+                "action_taken": "Mule account lien executed. Rs 5.4L frozen.",
+                "notes": "Full recovery completed."
+            }
+        },
+        {
+            "complaint_id": "CMP-2026-1055",
+            "fraud_type": "investment_scam",
+            "amount_inr": 980000.0,
+            "status": "flagged",
+            "filed_at": ts(15, 40),
+            "created_at": ts(15, 40),
+            "victim_state": "West Bengal",
+            "victim_district": "Kolkata",
+            "accused_phone_prefix": "98",
+            "accused_bank": "HDFC Bank",
+            "channel": "Helpline 1930",
+            "mules": [
+                {"account_id": "ACC-MULE-1055-1", "bank": "HDFC Bank", "lat": 22.5726, "lon": 88.3639, "risk": 0.89, "amount": 980000.0}
+            ],
+            "prediction": {
+                "risk_score": 0.885,
+                "risk_level": "RED",
+                "predicted_lat": 22.5726,
+                "predicted_lon": 88.3639,
+                "window": 6,
+                "recovery_score": 85.0,
+                "atms": ["ATM-DL-CP-01"],
+                "shap": {"log_amount": 0.38, "fraud_type_risk": 0.26, "bank_risk": 0.18}
+            },
+            "alert": {
+                "severity": "HIGH",
+                "message": "NEXUS RED: Task scam fraud Rs 9,80,000. Salt Lake Kolkata extraction corridor.",
+                "assigned_officer": "Insp. S. Chatterjee"
+            },
+            "incident": {
+                "status": "open",
+                "suspect_apprehended": 0,
+                "action_taken": "Nodal alert sent to HDFC Salt Lake branch.",
+                "notes": "Investigation active."
+            }
         }
     ]
 

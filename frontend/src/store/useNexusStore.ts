@@ -30,6 +30,10 @@ interface NexusState {
   mapFocusTarget: MapFocusTarget | null;
   selectedMapItem: { type: 'h3' | 'atm' | 'hotspot'; data: unknown } | null;
 
+  // Sidebar Collapse state
+  isSidebarCollapsed: boolean;
+  toggleSidebarCollapsed: () => void;
+
   // Actions
   addAlert: (alert: Alert) => void;
   updateAlert: (id: string, updates: Partial<Alert>) => void;
@@ -66,6 +70,9 @@ export const useNexusStore = create<NexusState>((set, get) => ({
 
   mapFocusTarget: null,
   selectedMapItem: null,
+
+  isSidebarCollapsed: false,
+  toggleSidebarCollapsed: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
 
   addAlert: (alert) =>
     set((state) => ({

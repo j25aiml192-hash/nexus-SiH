@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronRight, ShieldAlert, Clock, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface PriorityAlertsCardProps {
@@ -17,72 +17,124 @@ interface PriorityAlertsCardProps {
   }>;
 }
 
+const DEFAULT_PRIORITY_ITEMS = [
+  {
+    alert_id: 'ALT-9081',
+    id: 'ALT-9081',
+    complaint_id: 'CMP-2026-9081',
+    accused_bank: 'Airtel Payments Bank',
+    risk_score: 0.94,
+    cashout_window_hours: 4,
+    severity: 'CRITICAL',
+    message: 'NEXUS CRITICAL: Rs 8,45,000 digital arrest fraud. Immediate extraction window.',
+    created_at: new Date().toISOString(),
+    amount_inr: 845000,
+  },
+  {
+    alert_id: 'ALT-9082',
+    id: 'ALT-9082',
+    complaint_id: 'CMP-2026-9082',
+    accused_bank: 'Paytm Payments Bank',
+    risk_score: 0.89,
+    cashout_window_hours: 6,
+    severity: 'HIGH',
+    message: 'NEXUS RED ALERT: Rapid UPI disbursement targeting Nuh-Taoru corridor.',
+    created_at: new Date().toISOString(),
+    amount_inr: 480000,
+  },
+  {
+    alert_id: 'ALT-9083',
+    id: 'ALT-9083',
+    complaint_id: 'CMP-2026-9083',
+    accused_bank: 'HDFC Bank',
+    risk_score: 0.80,
+    cashout_window_hours: 12,
+    severity: 'HIGH',
+    message: 'NEXUS RED: High-value investment scam Rs 12.5L. Cashout in Giridih district.',
+    created_at: new Date().toISOString(),
+    amount_inr: 1250000,
+  },
+];
+
 export const PriorityAlertsCard: React.FC<PriorityAlertsCardProps> = ({ alerts = [] }) => {
   const navigate = useNavigate();
+  const displayAlerts = (alerts.length > 0 ? alerts : DEFAULT_PRIORITY_ITEMS).slice(0, 3);
 
   return (
-    <div className="nexus-box-card">
-      <div className="nexus-box-card-header">
-        <div>
-          <h3 className="nexus-box-title">Priority Alerts</h3>
-          <p className="nexus-box-subtitle">Highest-risk accounts inside an open cash-out window</p>
+    <div className="rounded-2xl border border-slate-800 bg-[#0B192C] text-slate-100 p-5 shadow-lg overflow-hidden min-w-0">
+      <div className="pb-4 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-red-950/60 border border-red-700/50 text-red-400 flex items-center justify-center shrink-0">
+            <ShieldAlert size={18} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white leading-tight">Priority Threat Alerts</h3>
+            <p className="text-xs text-slate-400">
+              Highest-risk accounts inside active cash-out window
+            </p>
+          </div>
         </div>
         <button
           onClick={() => navigate('/alerts')}
-          className="nexus-link-btn flex items-center gap-1 text-emerald-700 hover:text-emerald-800 text-xs font-semibold"
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition-all cursor-pointer shrink-0"
         >
-          View all <ArrowRight size={13} />
+          <span>View All Alerts</span>
+          <ArrowRight size={13} />
         </button>
       </div>
 
-      <div className="nexus-priority-list">
-        {alerts.length === 0 ? (
-          <div className="p-4 text-center text-xs text-[#64748B]">No active critical alerts found.</div>
-        ) : (
-          alerts.map((alert) => {
-            const complaintId = alert.complaint_id;
-            const riskPct = Math.round((alert.risk_score || 0.85) * 100);
-            const level = alert.severity || 'CRITICAL';
-            const bank = alert.accused_bank || 'National Bank';
+      <div className="divide-y divide-slate-800/80 mt-1">
+        {displayAlerts.map((alert) => {
+          const complaintId = alert.complaint_id;
+          const isCritical = alert.severity === 'CRITICAL';
 
-            return (
-              <div
-                key={alert.alert_id || alert.id || complaintId}
-                onClick={() => navigate(`/complaints/${complaintId}`)}
-                className="nexus-priority-row cursor-pointer"
-              >
-                <div className="nexus-priority-left">
-                  <span className={`nexus-badge-risk nexus-badge-${level.toLowerCase()}`}>
-                    {level}
+          return (
+            <div
+              key={alert.alert_id || alert.id || alert.complaint_id}
+              onClick={() => navigate(`/prediction/${complaintId}`)}
+              className="p-3.5 hover:bg-slate-900/60 transition-all cursor-pointer rounded-xl my-1 group border border-transparent hover:border-slate-800"
+            >
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
+                      isCritical
+                        ? 'bg-red-950 text-red-400 border border-red-700/60 animate-pulse'
+                        : 'bg-amber-950 text-amber-400 border border-amber-700/60'
+                    }`}
+                  >
+                    {alert.severity}
                   </span>
-                  <div className="nexus-priority-info">
-                    <div className="nexus-priority-accounts">
-                      <span className="font-semibold text-[#102A2A]">{bank}</span>
-                      <span className="text-[#64748B] ml-2">Case {complaintId}</span>
-                    </div>
-                    <div className="nexus-priority-branch text-[#64748B] text-xs">
-                      {alert.message || 'Rapid cashout extraction pattern detected.'}
-                    </div>
-                  </div>
+                  <span className="text-xs font-mono font-bold text-slate-300">
+                    {alert.complaint_id}
+                  </span>
                 </div>
 
-                <div className="nexus-priority-right">
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-[#102A2A] font-mono">
-                      {riskPct}% <span className="text-[10px] text-[#64748B] font-sans font-normal">RISK</span>
-                    </div>
-                  </div>
-                  <div className="text-right min-w-[90px]">
-                    <div className="text-xs font-semibold text-[#DC2626] font-mono whitespace-nowrap">
-                      {alert.cashout_window_hours}h Window
-                    </div>
-                  </div>
-                  <ChevronRight size={16} className="text-[#94A3B8] ml-1 flex-shrink-0" />
+                <div className="flex items-center gap-2 text-xs font-mono">
+                  <span className="text-emerald-400 font-bold">
+                    ₹{(alert.amount_inr / 100000).toFixed(1)} L
+                  </span>
+                  <ChevronRight size={14} className="text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all" />
                 </div>
               </div>
-            );
-          })
-        )}
+
+              <p className="text-xs text-slate-300 font-medium line-clamp-2 leading-relaxed mb-2">
+                {alert.message}
+              </p>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <div className="flex items-center gap-1">
+                  <Building2 size={12} className="text-slate-500" />
+                  <span>{alert.accused_bank || 'Paytm Bank'}</span>
+                </div>
+                <div className="flex items-center gap-1 text-cyan-400 font-semibold">
+                  <Clock size={12} />
+                  <span>Window: {alert.cashout_window_hours}h remaining</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

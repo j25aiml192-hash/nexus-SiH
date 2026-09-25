@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronRight,
   ArrowRight,
+  Radio,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -29,17 +30,17 @@ export const LiveActivityCard: React.FC<LiveActivityCardProps> = ({ items = [] }
   const getIcon = (type: string) => {
     switch (type) {
       case 'complaint':
-        return <FileText size={16} className="text-[#64748B]" />;
+        return <FileText size={16} className="text-indigo-600" />;
       case 'prediction':
-        return <Activity size={16} className="text-[#64748B]" />;
+        return <Activity size={16} className="text-blue-600" />;
       case 'alert':
-        return <ArrowUpRight size={16} className="text-[#64748B]" />;
+        return <ArrowUpRight size={16} className="text-amber-600" />;
       case 'officer':
-        return <UserCheck size={16} className="text-[#64748B]" />;
+        return <UserCheck size={16} className="text-emerald-600" />;
       case 'incident':
-        return <CheckCircle2 size={16} className="text-[#087F5B]" />;
+        return <CheckCircle2 size={16} className="text-emerald-700" />;
       default:
-        return <FileText size={16} className="text-[#64748B]" />;
+        return <FileText size={16} className="text-indigo-600" />;
     }
   };
 
@@ -79,21 +80,31 @@ export const LiveActivityCard: React.FC<LiveActivityCardProps> = ({ items = [] }
   return (
     <div className="nexus-box-card">
       <div className="nexus-box-card-header">
-        <div>
-          <h3 className="nexus-box-title">Live Activity</h3>
-          <p className="nexus-box-subtitle">Real-time telemetry stream from LEA operational networks</p>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shrink-0">
+            <Radio size={18} className="animate-pulse" />
+          </div>
+          <div>
+            <h3 className="nexus-box-title text-base font-bold">Live Operational Telemetry</h3>
+            <p className="nexus-box-subtitle text-xs text-[var(--colors-ink-subtle)]">
+              Real-time telemetry stream from LEA operational networks
+            </p>
+          </div>
         </div>
         <button
           onClick={() => navigate('/complaints')}
-          className="nexus-link-btn flex items-center gap-1 text-emerald-700 hover:text-emerald-800 text-xs font-semibold"
+          className="nexus-link-btn flex items-center gap-1 text-[var(--colors-primary)] hover:text-[var(--colors-primary-hover)] text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50/60 border border-indigo-100 transition-all"
         >
-          View all <ArrowRight size={13} />
+          <span>View all</span>
+          <ArrowRight size={13} />
         </button>
       </div>
 
       <div className="nexus-activity-list">
         {items.length === 0 ? (
-          <div className="p-4 text-center text-xs text-[#64748B]">No operational events recorded yet.</div>
+          <div className="p-6 text-center text-xs text-[var(--colors-ink-subtle)] bg-slate-50 rounded-xl border border-slate-100">
+            No operational events recorded yet.
+          </div>
         ) : (
           items.map((item, idx) => (
             <div
@@ -105,20 +116,20 @@ export const LiveActivityCard: React.FC<LiveActivityCardProps> = ({ items = [] }
                 <div className="nexus-activity-icon-box">{getIcon(item.type)}</div>
                 <div className="nexus-activity-info">
                   <div className="nexus-activity-topline">
-                    <span className="font-semibold text-[#102A2A] text-xs">{item.title}</span>
+                    <span className="font-semibold text-[var(--colors-ink)] text-xs truncate">{item.title}</span>
                     <span className={`nexus-activity-badge ${getBadgeClass(item.badge)}`}>
                       {item.badge}
                     </span>
                   </div>
-                  <div className="nexus-activity-desc text-[#64748B] text-xs">
+                  <div className="nexus-activity-desc text-[var(--colors-ink-subtle)] text-xs truncate">
                     {item.subtitle}
                   </div>
                 </div>
               </div>
 
-              <div className="nexus-activity-right flex items-center gap-2">
-                <span className="text-[11px] font-mono text-[#94A3B8]">{formatTime(item.created_at)}</span>
-                <ChevronRight size={15} className="text-[#CBD5E1]" />
+              <div className="nexus-activity-right flex items-center gap-2 shrink-0">
+                <span className="text-[11px] font-mono text-[var(--colors-ink-tertiary)]">{formatTime(item.created_at)}</span>
+                <ChevronRight size={15} className="text-[var(--colors-hairline-strong)]" />
               </div>
             </div>
           ))

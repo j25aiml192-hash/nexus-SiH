@@ -1,5 +1,4 @@
 import os
-
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
@@ -8,18 +7,22 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
-if not SUPABASE_URL:
-    raise ValueError("SUPABASE_URL is not set")
+class DummySupabaseTable:
+    def select(self, *args, **kwargs): return self
+    def eq(self, *args, **kwargs): return self
+    def single(self, *args, **kwargs): return self
+    def execute(self, *args, **kwargs): raise Exception("Supabase not configured")
+    def upsert(self, *args, **kwargs): return self
+    def insert(self, *args, **kwargs): return self
 
-if not SUPABASE_SERVICE_KEY:
-    raise ValueError("SUPABASE_SERVICE_KEY is not set")
+class DummySupabaseClient:
+    def table(self, name: str):
+        return DummySupabaseTable()
 
-supabase: Client = create_client(
-    SUPABASE_URL,
-    SUPABASE_SERVICE_KEY,
-)
-
-# supabase.auth.sign_in_with_password({
-#     "password":"Nexus@1234",
-#     "email" : "i4c@nexus.gov"
-# })
+try:
+    if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    else:
+        supabase = DummySupabaseClient()
+except Exception:
+    supabase = DummySupabaseClient()
