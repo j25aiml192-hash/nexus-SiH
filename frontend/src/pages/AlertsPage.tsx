@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Bell,
   Search,
   MapPin,
   UserCheck,
   ExternalLink,
+  Clock,
+  CheckCircle,
   Plus,
   Loader2,
-  CheckCircle,
-  AlertTriangle,
   X,
   Check,
 } from 'lucide-react';
-import { useAlerts, useAssignOfficer } from '../hooks/useNexusData';
+import { useAlerts } from '../hooks/useNexusData';
 import { useNexusStore } from '../store/useNexusStore';
 import { dataSource } from '../services/dataSource';
 
@@ -22,202 +23,292 @@ export const AlertsPage: React.FC = () => {
     alerts,
     isLoading,
     error,
-    refetch,
     statusFilter,
     setStatusFilter,
+    riskFilter,
+    setRiskFilter,
     searchQuery,
     setSearchQuery,
+    refetch,
   } = useAlerts();
 
-  const { assign, isAssigning } = useAssignOfficer();
+  const setMapFocus = useNexusStore((state) => state.setMapFocus);
   const setSelectedComplaintId = useNexusStore((state) => state.setSelectedComplaintId);
 
   const [assignModalAlertId, setAssignModalAlertId] = useState<string | null>(null);
-  const [selectedOfficer, setSelectedOfficer] = useState('Insp. R. Sharma');
+  const [officerNameInput, setOfficerNameInput] = useState('Inspector Rajesh Sharma');
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [assignSuccessNotice, setAssignSuccessNotice] = useState<{
+    alertId: string;
+    officer: string;
+  } | null>(null);
+
   const [isSimulating, setIsSimulating] = useState(false);
-  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const handleViewOnMap = (alert: any) => {
-    if (alert.complaintId || alert.complaint_id) {
-      setSelectedComplaintId(alert.complaintId || alert.complaint_id);
+    if (alert.complaint_id) {
+      setSelectedComplaintId(alert.complaint_id);
     }
+    setMapFocus({
+      cellOrAtmId: alert.id,
+      zoom: 14,
+      timestamp: Date.now(),
+    });
     navigate('/map');
   };
 
   const handleOpenAssign = (alertId: string) => {
     setAssignModalAlertId(alertId);
-    setSelectedOfficer('Insp. R. Sharma');
   };
 
   const handleConfirmAssign = async () => {
-    if (!assignModalAlertId || !selectedOfficer.trim()) return;
+    if (!assignModalAlertId || !officerNameInput.trim()) return;
+    setIsAssigning(true);
     try {
-      await assign(assignModalAlertId, selectedOfficer.trim());
-      setSuccessToast(`Alert ${assignModalAlertId} successfully assigned to ${selectedOfficer}. Persisted in database.`);
+      await dataSource.assignOfficer(assignModalAlertId, officerNameInput.trim());
+      setAssignSuccessNotice({
+        alertId: assignModalAlertId,
+        officer: officerNameInput.trim(),
+      });
       setAssignModalAlertId(null);
       refetch();
-      setTimeout(() => setSuccessToast(null), 4000);
+      setTimeout(() => setAssignSuccessNotice(null), 5000);
     } catch (err: any) {
-      alert(err.message || 'Failed to assign officer.');
+      alert(err.message || 'Failed to assign officer');
+    } finally {
+      setIsAssigning(false);
     }
   };
 
   const handleSimulateInboundAlert = async () => {
     setIsSimulating(true);
     try {
-      const res = await dataSource.simulateAlert();
-      setSuccessToast(`Authentic simulation alert ${res.id} inserted into database.`);
+      await dataSource.simulateAlert();
       refetch();
-      setTimeout(() => setSuccessToast(null), 4000);
     } catch (err: any) {
-      alert(err.message || 'Simulation failed.');
+      alert(err.message || 'Simulation failed');
     } finally {
       setIsSimulating(false);
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="alerts-container">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="alerts-header">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-slate-900 tracking-wide">
-              Active Alerts Feed
+              Active Intercept Alerts
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-100 text-emerald-800">
-              {alerts.length} OPERATIONAL ALERTS
-            </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Realtime high-priority alerts prioritized by XGBoost risk level and chronological intake.
+          <p className="text-xs text-slate-400 mt-1">
+            Realtime cybercrime intercept notifications prioritized by Dual LightGBM & XGBoost risk vectors.
           </p>
         </div>
 
-        <button
-          onClick={handleSimulateInboundAlert}
-          disabled={isSimulating}
-          className="px-3.5 py-2 bg-[#087F5B] hover:bg-[#076D4E] text-white text-xs font-semibold rounded-md flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-        >
-          {isSimulating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={15} />}
-          <span>Simulate Live Inbound Alert</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSimulateInboundAlert}
+            disabled={isSimulating}
+            className="nexus-pill-button text-xs"
+            title="Create live test alert in database"
+          >
+            <Plus size={14} className="text-cyan-400" />
+            {isSimulating ? 'Simulating Intercept...' : 'Simulate Inbound Alert'}
+          </button>
+        </div>
       </div>
 
-      {successToast && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center gap-2 font-medium">
-          <CheckCircle size={16} className="text-emerald-600" />
-          <span>{successToast}</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-3 text-sm">
-          <AlertTriangle size={18} />
-          <span>{error}</span>
-          <button onClick={() => refetch()} className="ml-auto underline font-semibold text-xs">
-            Retry
+      {/* Assignment Success Banner */}
+      {assignSuccessNotice && (
+        <div className="nexus-alert-banner">
+          <div className="flex items-center gap-3">
+            <CheckCircle size={22} className="text-emerald-400" />
+            <div>
+              <div className="font-bold text-slate-900 text-sm">
+                ALERT {assignSuccessNotice.alertId} ASSIGNED TO {assignSuccessNotice.officer.toUpperCase()}
+              </div>
+              <div className="text-xs text-emerald-700 font-semibold">
+                Officer notified and field docket updated in database.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/incidents')}
+            className="nexus-pill-button text-xs"
+          >
+            Open Incidents Registry <ExternalLink size={12} />
           </button>
         </div>
       )}
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-center gap-3 bg-white p-3 border border-[#E2E8E6] rounded-xl shadow-xs">
-        <div className="relative flex-1 w-full">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="alerts-filter-bar">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[260px]">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+          />
           <input
             type="text"
-            placeholder="Search by Alert ID, case reference, or assigned officer..."
+            placeholder="Search by Alert ID, Complaint ID, Officer, or Message..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-md font-mono"
+            className="nexus-input pl-9 pr-3 py-2 text-xs w-full font-mono"
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="text-xs border border-slate-200 rounded-md p-1.5 bg-white font-medium"
-          >
-            <option value="all">All Statuses</option>
-            <option value="new">New</option>
-            <option value="assigned">Assigned</option>
-            <option value="actioned">Actioned</option>
-          </select>
+        {/* Status Filter */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-slate-400 font-mono mr-1">Status:</span>
+          {(['all', 'new', 'assigned', 'actioned'] as const).map((st) => (
+            <button
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`nexus-pill-button text-xs uppercase ${statusFilter === st ? 'active' : ''}`}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
+
+        {/* Risk Filter */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-slate-400 font-mono mr-1">Risk:</span>
+          {(['all', 'critical', 'high', 'medium', 'low'] as const).map((rf) => (
+            <button
+              key={rf}
+              onClick={() => setRiskFilter(rf)}
+              className={`nexus-pill-button text-xs uppercase ${riskFilter === rf ? 'active' : ''}`}
+            >
+              {rf}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Alerts Grid */}
-      <div className="space-y-3">
-        {isLoading ? (
-          <div className="text-center py-12 text-slate-500 text-xs flex justify-center items-center gap-2">
-            <Loader2 size={18} className="animate-spin text-emerald-600" />
-            Loading real alerts from NEXUS feed...
+      <div className="alerts-grid">
+        {isLoading && alerts.length === 0 ? (
+          <div className="nexus-empty-state py-12" style={{ gridColumn: '1 / -1' }}>
+            <Loader2 size={36} className="nexus-spinner mx-auto mb-2 text-primary-brand animate-spin" />
+            <div className="text-slate-700 font-bold">STREAMING TACTICAL ALERTS...</div>
+            <div className="text-xs text-slate-500">Querying live event feed from NEXUS database...</div>
+          </div>
+        ) : error ? (
+          <div className="nexus-empty-state py-12" style={{ gridColumn: '1 / -1' }}>
+            <div className="text-red-600 font-bold">Failed to load alerts feed</div>
+            <div className="text-xs text-slate-500">{error}</div>
+            <button onClick={() => refetch()} className="nexus-pill-button text-xs mt-3">
+              Retry Connection
+            </button>
           </div>
         ) : alerts.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-slate-200 text-slate-500 text-xs">
-            No active alerts matching your search criteria.
+          <div className="nexus-empty-state" style={{ gridColumn: '1 / -1' }}>
+            <Bell size={42} className="text-slate-600 mb-2" />
+            <div className="text-slate-700 font-bold">No matching alerts detected</div>
+            <div className="text-xs text-slate-500">
+              Adjust filters or click "Simulate Inbound Alert" to create a live alert.
+            </div>
           </div>
         ) : (
           alerts.map((alert) => {
-            const isCrit = (alert.severity || '').toUpperCase().includes('CRIT') || alert.derivedRisk === 'critical';
+            const riskLevel = (alert.severity || 'HIGH').toUpperCase();
+            const isCritical = riskLevel === 'CRITICAL' || riskLevel === 'RED';
+            const isHigh = riskLevel === 'HIGH' || riskLevel === 'AMBER';
+            const isAssigned = alert.status === 'assigned';
+            const isNew = alert.status === 'new';
+
+            const officerName = alert.assigned_officer || 'Unassigned';
+
             return (
               <div
                 key={alert.id}
-                className="bg-white p-4 rounded-xl border border-[#E2E8E6] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-300 transition-colors"
+                className="alert-card"
+                style={{ borderLeft: isCritical ? '4px solid #DC2626' : isHigh ? '4px solid #EA580C' : '4px solid #087F5B' }}
               >
-                <div className="space-y-1.5">
+                {/* Header */}
+                <div className="alert-card-header">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-xs text-[#087F5B]">{alert.id}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${isCrit ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
-                      {alert.severity || 'HIGH'}
-                    </span>
-                    <span className="text-[11px] font-mono text-slate-500">
-                      Case: <span className="font-bold text-slate-800">{alert.complaintId || alert.complaint_id}</span>
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-100 rounded text-slate-600 capitalize">
-                      {alert.status}
+                    <span className="alert-card-id">{alert.id}</span>
+                    <span
+                      className={`risk-badge-pill ${
+                        isCritical ? 'risk-crit' : isHigh ? 'risk-hi' : 'risk-med'
+                      }`}
+                    >
+                      {riskLevel} RISK
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-700 font-medium">
-                    {alert.message}
-                  </p>
+                  <span
+                    className={`status-chip ${
+                      isNew ? 'chip-new' : isAssigned ? 'chip-assigned' : 'chip-actioned'
+                    }`}
+                  >
+                    {(alert.status || 'new').toUpperCase()}
+                  </span>
+                </div>
 
-                  <div className="text-[11px] text-slate-500 flex items-center gap-3">
-                    <span>Officer: <strong className="text-slate-800">{alert.assigned_officer || alert.assignedOfficerId || 'Unassigned'}</strong></span>
-                    <span>Intake: {alert.createdAt || 'Recent'}</span>
+                {/* Body Details */}
+                <div className="alert-card-body">
+                  <div className="alert-detail-line">
+                    <span className="text-slate-500">Target Case:</span>
+                    <span
+                      className="text-cyan-700 font-bold font-mono cursor-pointer hover:underline"
+                      onClick={() => navigate(`/complaints/${alert.complaint_id}`)}
+                    >
+                      {alert.complaint_id || 'CMP-2026-9081'}
+                    </span>
+                  </div>
+
+                  <div className="alert-detail-line" style={{ marginTop: '2px', lineHeight: '1.4' }}>
+                    <span className="text-slate-700 text-xs">{alert.message}</span>
+                  </div>
+
+                  <div className="alert-detail-line" style={{ marginTop: '4px' }}>
+                    <span className="text-slate-500">Assigned Officer:</span>
+                    <span className="font-semibold" style={{ color: officerName !== 'Unassigned' ? '#087F5B' : '#94A3B8' }}>
+                      {officerName}
+                    </span>
+                  </div>
+
+                  <div className="alert-timestamp">
+                    <Clock size={12} />
+                    <span>
+                      {alert.created_at
+                        ? new Date(alert.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                        : 'Realtime Intercept'}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Action Buttons */}
+                <div className="alert-card-actions">
                   <button
                     onClick={() => handleViewOnMap(alert)}
-                    className="px-3 py-1.5 bg-white border border-[#E2E8E6] text-xs font-semibold rounded hover:bg-slate-50 flex items-center gap-1.5"
+                    className="alert-btn-action"
+                    title="View on Map"
                   >
-                    <MapPin size={13} className="text-[#087F5B]" /> View on Map
+                    <MapPin size={14} className="text-cyan-600" />
+                    <span>View on map</span>
                   </button>
 
-                  {alert.status !== 'assigned' && alert.status !== 'actioned' ? (
+                  {alert.status === 'new' ? (
                     <button
                       onClick={() => handleOpenAssign(alert.id)}
-                      className="px-3 py-1.5 bg-[#087F5B] hover:bg-[#076D4E] text-white text-xs font-semibold rounded flex items-center gap-1.5"
+                      className="alert-btn-assign"
                     >
-                      <UserCheck size={13} /> Assign Officer
+                      <UserCheck size={14} />
+                      <span>Assign Officer</span>
                     </button>
                   ) : (
-                    <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
-                      <Check size={14} /> Assigned
-                    </span>
+                    <div className="alert-btn-assigned-status">
+                      <UserCheck size={14} className="text-emerald-600 inline mr-1" />
+                      <span>{officerName}</span>
+                    </div>
                   )}
-
-                  <button
-                    onClick={() => navigate(`/prediction/${alert.complaintId || alert.complaint_id}`)}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded flex items-center gap-1"
-                  >
-                    Prediction <ExternalLink size={12} />
-                  </button>
                 </div>
               </div>
             );
@@ -225,41 +316,61 @@ export const AlertsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Assign Modal */}
+      {/* Modal: Assign Officer */}
       {assignModalAlertId && (
         <div className="nexus-modal-overlay">
-          <div className="nexus-modal-container max-w-sm w-full">
-            <div className="nexus-modal-header flex justify-between items-center mb-3">
-              <h3 className="font-bold text-sm text-[#102A2A]">Assign Dispatch Officer</h3>
-              <button onClick={() => setAssignModalAlertId(null)}>
+          <div className="nexus-modal-dialog">
+            <div className="nexus-modal-header">
+              <h3 className="nexus-modal-title">Assign Tactical Officer</h3>
+              <button
+                onClick={() => setAssignModalAlertId(null)}
+                className="nexus-modal-close"
+              >
                 <X size={16} />
               </button>
             </div>
-            <div className="space-y-2 mb-4">
-              {['Insp. R. Sharma', 'Insp. V. Rathore', 'SI A. Verma', 'SI P. Deshmukh'].map((off) => (
-                <button
-                  key={off}
-                  onClick={() => setSelectedOfficer(off)}
-                  className={`w-full text-left p-2.5 rounded-md text-xs font-semibold flex items-center justify-between border ${selectedOfficer === off ? 'border-[#087F5B] bg-[#E8F5EE] text-[#087F5B]' : 'border-[#E2E8E6] text-slate-800'}`}
-                >
-                  <span>{off}</span>
-                  {selectedOfficer === off && <Check size={14} />}
-                </button>
-              ))}
+            <div className="nexus-modal-body">
+              <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '14px' }}>
+                Assign an investigating officer to dispatch tactical response for Alert <strong>{assignModalAlertId}</strong>:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {['Inspector Vikram Rao', 'Inspector Rajesh Sharma', 'Sub-Inspector Anjali Verma', 'Inspector Priya Deshmukh'].map((off) => (
+                  <button
+                    key={off}
+                    onClick={() => setOfficerNameInput(off)}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px 14px',
+                      background: officerNameInput === off ? '#E8F5F0' : '#FFFFFF',
+                      border: officerNameInput === off ? '1px solid #087F5B' : '1px solid #E2E8E6',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: officerNameInput === off ? '#087F5B' : '#102A2A',
+                    }}
+                  >
+                    <span>{off}</span>
+                    {officerNameInput === off && <Check size={16} color="#087F5B" />}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="nexus-modal-footer">
               <button
                 onClick={() => setAssignModalAlertId(null)}
-                className="px-3 py-1.5 text-xs text-slate-600 bg-slate-100 rounded"
+                className="nexus-btn-outline-action"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmAssign}
                 disabled={isAssigning}
-                className="px-3 py-1.5 text-xs text-white bg-[#087F5B] rounded font-semibold flex items-center gap-1"
+                className="nexus-btn-assign-officer"
               >
-                {isAssigning ? <Loader2 size={13} className="animate-spin" /> : 'Confirm Assignment'}
+                {isAssigning ? 'Updating Database...' : 'Confirm Assignment'}
               </button>
             </div>
           </div>
@@ -268,3 +379,4 @@ export const AlertsPage: React.FC = () => {
     </div>
   );
 };
+export default AlertsPage;
