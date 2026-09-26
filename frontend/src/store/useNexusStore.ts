@@ -32,7 +32,9 @@ interface NexusState {
 
   // Sidebar Collapse state
   isSidebarCollapsed: boolean;
+  isSidebarHovered: boolean;
   toggleSidebarCollapsed: () => void;
+  setIsSidebarHovered: (hovered: boolean) => void;
 
   // Actions
   addAlert: (alert: Alert) => void;
@@ -71,8 +73,10 @@ export const useNexusStore = create<NexusState>((set, get) => ({
   mapFocusTarget: null,
   selectedMapItem: null,
 
-  isSidebarCollapsed: false,
+  isSidebarCollapsed: true,
+  isSidebarHovered: false,
   toggleSidebarCollapsed: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+  setIsSidebarHovered: (hovered: boolean) => set({ isSidebarHovered: hovered }),
 
   addAlert: (alert) =>
     set((state) => ({

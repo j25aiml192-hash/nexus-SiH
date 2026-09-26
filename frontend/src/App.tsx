@@ -16,10 +16,12 @@ import { NexusAnimatedBackground } from './components/nexus/NexusAnimatedBackgro
 
 export function App() {
   const isSidebarCollapsed = useNexusStore((state) => state.isSidebarCollapsed);
+  const isSidebarHovered = useNexusStore((state) => state.isSidebarHovered);
+  const isVisuallyCollapsed = isSidebarCollapsed && !isSidebarHovered;
 
   return (
     <BrowserRouter>
-      <AppContent isSidebarCollapsed={isSidebarCollapsed} />
+      <AppContent isSidebarCollapsed={isVisuallyCollapsed} />
     </BrowserRouter>
   );
 }
