@@ -7,7 +7,6 @@ import {
   BarChart3,
   MapPin,
   Settings,
-  Zap,
   Shield,
   ChevronDown,
   Check,

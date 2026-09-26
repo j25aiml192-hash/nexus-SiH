@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronRight } from 'lucide-react';
-import Dither from './Dither';
 import GlitchText from './GlitchText';
 
 export const LandingPage: React.FC = () => {

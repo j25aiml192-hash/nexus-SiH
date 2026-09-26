@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, X, Send, Bot, MapPin, ShieldAlert, ArrowRight } from 'lucide-react';
+import { X, Send, MapPin, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const SaiFloatingButton: React.FC = () => {
