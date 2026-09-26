@@ -54,12 +54,38 @@ class TestProductionWiring(unittest.TestCase):
         self.assertIn("kpis", data)
         self.assertIn("riskBreakdown", data)
 
+    def test_atms_list_production(self):
+        r = self.client.get("/atms/", headers={"Origin": self.origin})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.headers.get("access-control-allow-origin"), self.origin)
+        data = r.json()
+        self.assertIsInstance(data, list)
+
+    def test_atms_hotspots_production(self):
+        r = self.client.get("/atms/hotspots", headers={"Origin": self.origin})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.headers.get("access-control-allow-origin"), self.origin)
+        data = r.json()
+        self.assertIsInstance(data, list)
+
     def test_complaints_fails_safely_without_silent_fallback(self):
         with patch("db.supabase_client.supabase.table", side_effect=RuntimeError("Supabase connection timeout")):
             r = self.client.get("/complaints/list", headers={"Origin": self.origin})
             self.assertEqual(r.status_code, 500)
             self.assertEqual(r.headers.get("access-control-allow-origin"), self.origin)
             self.assertIn("Database query error", r.json().get("detail", ""))
+
+    def test_atms_fails_safely_without_silent_fallback(self):
+        with patch("db.supabase_client.supabase.table", side_effect=RuntimeError("Supabase error")):
+            r = self.client.get("/atms/", headers={"Origin": self.origin})
+            self.assertEqual(r.status_code, 500)
+            self.assertEqual(r.headers.get("access-control-allow-origin"), self.origin)
+
+    def test_hotspots_fails_safely_without_silent_fallback(self):
+        with patch("db.supabase_client.supabase.table", side_effect=RuntimeError("Supabase error")):
+            r = self.client.get("/atms/hotspots", headers={"Origin": self.origin})
+            self.assertEqual(r.status_code, 500)
+            self.assertEqual(r.headers.get("access-control-allow-origin"), self.origin)
 
 
 if __name__ == "__main__":

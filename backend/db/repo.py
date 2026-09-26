@@ -958,7 +958,20 @@ def get_mule_chain(complaint_id: str) -> Dict[str, Any]:
         "transactions": txns
     }
 
-def get_atms(ids: Optional[List[str]] = None, limit: int = 50) -> List[Dict[str, Any]]:
+def get_supabase_atms(ids: Optional[List[str]] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    try:
+        q = supabase.table("atm_locations").select("*")
+        if ids and len(ids) > 0:
+            q = q.in_("atm_id", ids)
+        res = q.limit(limit).execute()
+        return res.data or []
+    except Exception as e:
+        logger.error(f"[SUPABASE ATMS ERROR] Failed to fetch ATMs: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_atms(ids: Optional[List[str]] = None, limit: int = 50) -> List[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     if ids and len(ids) > 0:
@@ -970,7 +983,24 @@ def get_atms(ids: Optional[List[str]] = None, limit: int = 50) -> List[Dict[str,
     conn.close()
     return rows
 
-def get_atm_by_id(atm_id: str) -> Optional[Dict[str, Any]]:
+
+def get_atms(ids: Optional[List[str]] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_atms(ids=ids, limit=limit)
+    return get_sqlite_atms(ids=ids, limit=limit)
+
+
+def get_supabase_atm_by_id(atm_id: str) -> Optional[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    try:
+        res = supabase.table("atm_locations").select("*").eq("atm_id", atm_id).limit(1).execute()
+        return res.data[0] if res.data else None
+    except Exception as e:
+        logger.error(f"[SUPABASE ATM GET ERROR] Failed to fetch ATM {atm_id}: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_atm_by_id(atm_id: str) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM atm_locations WHERE atm_id = ?", (atm_id,))
@@ -978,13 +1008,36 @@ def get_atm_by_id(atm_id: str) -> Optional[Dict[str, Any]]:
     conn.close()
     return dict(row) if row else None
 
-def get_hotspots() -> List[Dict[str, Any]]:
+
+def get_atm_by_id(atm_id: str) -> Optional[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_atm_by_id(atm_id)
+    return get_sqlite_atm_by_id(atm_id)
+
+
+def get_supabase_hotspots(limit: int = 50) -> List[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    try:
+        res = supabase.table("hotspots").select("*").limit(limit).execute()
+        return res.data or []
+    except Exception as e:
+        logger.error(f"[SUPABASE HOTSPOTS ERROR] Failed to fetch hotspots: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_hotspots() -> List[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM hotspots WHERE status = 'active'")
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
+
+
+def get_hotspots(limit: int = 50) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_hotspots(limit=limit)
+    return get_sqlite_hotspots()
 
 def get_supabase_alerts(limit: int = 50) -> List[Dict[str, Any]]:
     from db.supabase_client import supabase

@@ -227,8 +227,8 @@ export class ApiDataSource implements IDataSource {
         p.risk_level === 'AMBER' ? 'high' :
         p.risk_level === 'GREEN' ? 'medium' :
         (riskScore >= 0.75 ? 'critical' : riskScore >= 0.45 ? 'high' : 'medium');
-      const lat = Number(p.predicted_lat || 24.4853);
-      const lon = Number(p.predicted_lon || p.predicted_lng || 86.6936);
+      const lat = p.predicted_lat !== undefined && p.predicted_lat !== null ? Number(p.predicted_lat) : Number(p.lat);
+      const lon = p.predicted_lon !== undefined && p.predicted_lon !== null ? Number(p.predicted_lon) : Number(p.predicted_lng || p.lng);
 
       return {
         id: p.prediction_id || p.id,
@@ -248,8 +248,8 @@ export class ApiDataSource implements IDataSource {
         lng: lon,
         cashout_window_hours: Number(p.cashout_window_hours || 8),
         shap_features: p.shap_features || {},
-        nearest_atms: [],
-        predicted_atms: p.predicted_atms || [],
+        nearest_atms: p.nearest_atms || [],
+        predicted_atms: p.predicted_atms || p.nearest_atms || [],
         recovery_score: Number(p.recovery_score || 100),
         status: p.status || 'active',
         created_at: p.created_at,
@@ -466,43 +466,53 @@ export class ApiDataSource implements IDataSource {
 
   async getAtmLocations(): Promise<AtmLocation[]> {
     const raw = await this.request<any[]>('/atms/');
-    return (raw || []).map((a: any) => {
-      const lat = Number(a.latitude !== undefined ? a.latitude : (a.lat || 0));
-      const lon = Number(a.longitude !== undefined ? a.longitude : (a.lng || a.lon || 0));
-      return {
-        id: a.atm_id || a.id,
-        atm_id: a.atm_id || a.id,
-        name: a.name || `${a.bank_name || a.bank || 'National Bank'} ATM`,
-        lat,
-        lng: lon,
-        latitude: lat,
-        longitude: lon,
-        bank: a.bank_name || a.bank || 'National Bank',
-        bank_name: a.bank_name || a.bank || 'National Bank',
-        address: a.address || `${a.district || 'Metro'} Cluster`,
-        district: a.district,
-        operationalStatus: 'surveillance_active' as const,
-      };
-    });
+    return (raw || [])
+      .map((a: any) => {
+        const lat = a.latitude !== undefined && a.latitude !== null ? Number(a.latitude) : Number(a.lat);
+        const lon = a.longitude !== undefined && a.longitude !== null ? Number(a.longitude) : Number(a.lng || a.lon);
+        return {
+          id: String(a.atm_id || a.id || ''),
+          atm_id: String(a.atm_id || a.id || ''),
+          name: a.name || `${a.bank_name || a.bank || 'National Bank'} ATM`,
+          lat,
+          lng: lon,
+          latitude: lat,
+          longitude: lon,
+          bank: a.bank_name || a.bank || 'National Bank',
+          bank_name: a.bank_name || a.bank || 'National Bank',
+          address: a.address || `${a.district_name || a.district || 'Transit'} Cluster`,
+          district: a.district_name || a.district,
+          state: a.state_name || a.state,
+          area_type: a.area_type || 'urban',
+          operationalStatus: 'surveillance_active' as const,
+        };
+      })
+      .filter((a: any) => !isNaN(a.lat) && !isNaN(a.lng) && a.lat !== 0 && a.lng !== 0);
   }
 
   async getHistoricalHotspots(): Promise<HotspotPoint[]> {
     const raw = await this.request<any[]>('/atms/hotspots');
-    return (raw || []).map((h: any) => {
-      const lat = Number(h.latitude !== undefined ? h.latitude : (h.lat || 0));
-      const lon = Number(h.longitude !== undefined ? h.longitude : (h.lng || h.lon || 0));
-      return {
-        id: h.id,
-        lat,
-        lng: lon,
-        latitude: lat,
-        longitude: lon,
-        weight: Number(h.risk_score || 0.8),
-        risk_score: Number(h.risk_score || 0.8),
-        district: h.district,
-        name: `${h.district || 'Cyber'} Hotspot`,
-      };
-    });
+    return (raw || [])
+      .map((h: any) => {
+        const lat = h.latitude !== undefined && h.latitude !== null ? Number(h.latitude) : Number(h.center_lat || h.lat);
+        const lon = h.longitude !== undefined && h.longitude !== null ? Number(h.longitude) : Number(h.center_lon || h.lng || h.lon);
+        return {
+          id: String(h.hotspot_id || h.id || ''),
+          hotspot_id: String(h.hotspot_id || h.id || ''),
+          lat,
+          lng: lon,
+          latitude: lat,
+          longitude: lon,
+          weight: Number(h.risk_score || h.hotspot_score || 0.8),
+          risk_score: Number(h.risk_score || h.hotspot_score || 0.8),
+          radius_km: Number(h.radius_km || 5),
+          district: h.district_name || h.district,
+          state: h.state_name || h.state,
+          status: h.status || 'active',
+          name: `${h.district_name || h.district || 'Active'} Hotspot`,
+        };
+      })
+      .filter((h: any) => !isNaN(h.lat) && !isNaN(h.lng) && h.lat !== 0 && h.lng !== 0);
   }
 
   async getDashboardStats(timeframe?: string): Promise<DashboardStatsResult> {

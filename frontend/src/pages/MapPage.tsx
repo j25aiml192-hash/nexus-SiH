@@ -14,63 +14,40 @@ import {
   Crosshair,
   ChevronDown,
 } from 'lucide-react';
-import { useMapData } from '../hooks/useNexusData';
+import { useMapData, useComplaints } from '../hooks/useNexusData';
 import { useNexusStore } from '../store/useNexusStore';
 import { useNavigate } from 'react-router-dom';
 
 // MapTiler High-Resolution Vector Basemap (User API Key)
 const MAPTILER_STYLE_URL = 'https://api.maptiler.com/maps/streets-v4/style.json?key=PzegCb1XWc7AEBZYRmB3';
 
-const NATIONAL_DEFAULT_CENTER: [number, number] = [77.2090, 28.6139]; // Delhi NCR Focus
-const NATIONAL_DEFAULT_ZOOM = 11;
+const NATIONAL_DEFAULT_CENTER: [number, number] = [78.9629, 20.5937]; // Neutral National Geographic Center of India
+const NATIONAL_DEFAULT_ZOOM = 4.8;
 
-// Transaction Flow Corridors GeoJSON
+const STATE_CENTROIDS: Record<string, { center: [number, number]; zoom: number }> = {
+  'Delhi NCR': { center: [77.1025, 28.7041], zoom: 10 },
+  'Jharkhand': { center: [85.3096, 23.6102], zoom: 7.5 },
+  'Haryana': { center: [76.0856, 29.0588], zoom: 7.5 },
+  'Uttar Pradesh': { center: [80.9462, 26.8467], zoom: 6.8 },
+};
+
+// Transaction Flow Corridors GeoJSON (dynamically populated when real corridor models exist)
 const TRANSACTION_CORRIDORS_GEOJSON: FeatureCollection = {
   type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [77.2090, 28.6139], // Delhi
-          [77.3910, 28.5355], // Noida
-          [77.6737, 27.4924], // Mathura
-        ],
-      },
-      properties: {
-        id: 'R-4112',
-        title: 'Delhi-Noida-Mathura Intercept Line',
-        risk: 'HIGH',
-      },
-    },
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [86.6936, 24.4853], // Deoghar
-          [86.3096, 24.1939], // Giridih
-          [86.4304, 23.7957], // Dhanbad
-        ],
-      },
-      properties: {
-        id: 'R-7620',
-        title: 'Deoghar-Giridih Corridor',
-        risk: 'CRITICAL',
-      },
-    },
-  ],
+  features: [],
 };
 
 export const MapPage: React.FC = () => {
   const navigate = useNavigate();
   const selectedComplaintId = useNexusStore((state) => state.selectedComplaintId);
+  const { complaints } = useComplaints();
 
   const {
     predictions,
     atmLocations,
     historicalHotspots,
+    isLoading,
+    error,
     selectedMapItem,
     setSelectedMapItem,
   } = useMapData(selectedComplaintId);
@@ -86,8 +63,32 @@ export const MapPage: React.FC = () => {
   const [showHotspots, setShowHotspots] = useState(true);
   const [showCorridors, setShowCorridors] = useState(true);
   const [riskFilter, setRiskFilter] = useState<number>(0.4);
-  const [focusedCase, setFocusedCase] = useState<string | null>('CMP-2026-9081');
+  const [focusedCase, setFocusedCase] = useState<string | null>(selectedComplaintId || null);
   const [targetState, setTargetState] = useState<string>('National (All States)');
+
+  useEffect(() => {
+    if (selectedComplaintId) {
+      setFocusedCase(selectedComplaintId);
+    }
+  }, [selectedComplaintId]);
+
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    if (selectedComplaintId) {
+      const targetPred = predictions.find((p) => p.complaint_id === selectedComplaintId);
+      if (targetPred) {
+        const lat = Number(targetPred.predicted_lat || targetPred.lat);
+        const lon = Number(targetPred.predicted_lon || targetPred.predicted_lng || targetPred.lng);
+        if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
+          mapRef.current.flyTo({
+            center: [lon, lat],
+            zoom: 12.5,
+            duration: 1200,
+          });
+        }
+      }
+    }
+  }, [selectedComplaintId, predictions, mapLoaded]);
 
   // Filtered Predictions
   const filteredPredictions = useMemo(() => {
@@ -377,6 +378,35 @@ export const MapPage: React.FC = () => {
     });
   };
 
+  const handleLocateMe = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          flyToCluster([pos.coords.longitude, pos.coords.latitude]);
+        },
+        () => {
+          handleResetNationalView();
+        }
+      );
+    } else {
+      handleResetNationalView();
+    }
+  };
+
+  const handleStateChange = (stateName: string) => {
+    setTargetState(stateName);
+    if (!mapRef.current) return;
+    if (stateName === 'National (All States)') {
+      handleResetNationalView();
+    } else if (STATE_CENTROIDS[stateName]) {
+      mapRef.current.flyTo({
+        center: STATE_CENTROIDS[stateName].center,
+        zoom: STATE_CENTROIDS[stateName].zoom,
+        duration: 1200,
+      });
+    }
+  };
+
   const toggle3D = () => {
     if (!mapRef.current) return;
     const next = !is3DMode;
@@ -549,7 +579,7 @@ export const MapPage: React.FC = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px' }}>
             <button
-              onClick={() => flyToCluster([77.2090, 28.6139])}
+              onClick={handleLocateMe}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -616,6 +646,24 @@ export const MapPage: React.FC = () => {
           </div>
         </div>
 
+        {/* STATUS / EMPTY STATE BANNER */}
+        {isLoading && (
+          <div style={{ backgroundColor: 'rgba(239, 246, 255, 0.4)', border: '1px solid rgba(191, 219, 254, 0.8)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', color: '#1D4ED8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#2563EB' }} />
+            Fetching geospatial intelligence...
+          </div>
+        )}
+        {error && (
+          <div style={{ backgroundColor: 'rgba(254, 242, 242, 0.5)', border: '1px solid rgba(254, 202, 202, 0.9)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', color: '#B91C1C' }}>
+            {error}
+          </div>
+        )}
+        {!isLoading && !error && predictions.length === 0 && (
+          <div style={{ backgroundColor: 'rgba(248, 250, 252, 0.4)', border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', color: '#64748B' }}>
+            No active cashout predictions in database. Live telemetry operational.
+          </div>
+        )}
+
         {/* FOCUSED CASE CARD */}
         {focusedCase && (
           <div style={{ backgroundColor: 'rgba(254, 242, 242, 0.25)', border: '1px solid rgba(254, 202, 202, 0.6)', backdropFilter: 'blur(8px)', borderRadius: '10px', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -653,7 +701,7 @@ export const MapPage: React.FC = () => {
             <div style={{ position: 'relative' }}>
               <select
                 value={targetState}
-                onChange={(e) => setTargetState(e.target.value)}
+                onChange={(e) => handleStateChange(e.target.value)}
                 style={{
                   width: '100%',
                   height: '32px',
@@ -683,15 +731,19 @@ export const MapPage: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', textAlign: 'center' }}>
             <div style={{ padding: '5px 4px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.40)' }}>
               <div style={{ fontSize: '9px', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>Complaints</div>
-              <div style={{ fontSize: '12.5px', fontWeight: 800, fontFamily: 'monospace', color: '#0F172A', marginTop: '1px' }}>0</div>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, fontFamily: 'monospace', color: '#0F172A', marginTop: '1px' }}>{complaints.length}</div>
             </div>
             <div style={{ padding: '5px 4px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.40)' }}>
               <div style={{ fontSize: '9px', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>Pending</div>
-              <div style={{ fontSize: '12.5px', fontWeight: 800, fontFamily: 'monospace', color: '#0F172A', marginTop: '1px' }}>0</div>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, fontFamily: 'monospace', color: '#0F172A', marginTop: '1px' }}>
+                {complaints.filter((c: any) => (c.status || '').toUpperCase() === 'PENDING').length}
+              </div>
             </div>
             <div style={{ padding: '5px 4px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.40)' }}>
               <div style={{ fontSize: '9px', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', color: '#475569' }}>Districts</div>
-              <div style={{ fontSize: '12.5px', fontWeight: 800, fontFamily: 'monospace', color: '#0F172A', marginTop: '1px' }}>0</div>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, fontFamily: 'monospace', color: '#0F172A', marginTop: '1px' }}>
+                {new Set([...historicalHotspots.map((h: any) => h.district || h.district_name), ...atmLocations.map((a: any) => a.district || a.district_name)].filter(Boolean)).size}
+              </div>
             </div>
           </div>
         </div>
@@ -828,36 +880,34 @@ export const MapPage: React.FC = () => {
           <div style={{ fontSize: '9.5px', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
             ACTIVE SPATIAL CLUSTERS
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-            <button
-              style={{ padding: '6px 8px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.40)', textAlign: 'left', cursor: 'pointer' }}
-              onClick={() => flyToCluster([77.2090, 28.6139])}
-            >
-              <div style={{ fontWeight: 700, fontSize: '11px', color: '#0F172A' }}>Delhi NCR</div>
-              <div style={{ fontSize: '10px', color: '#475569', marginTop: '1px' }}>8 linked accounts</div>
-            </button>
-            <button
-              style={{ padding: '6px 8px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.40)', textAlign: 'left', cursor: 'pointer' }}
-              onClick={() => flyToCluster([77.3910, 28.5355])}
-            >
-              <div style={{ fontWeight: 700, fontSize: '11px', color: '#0F172A' }}>Noida</div>
-              <div style={{ fontSize: '10px', color: '#475569', marginTop: '1px' }}>5 linked accounts</div>
-            </button>
-            <button
-              style={{ padding: '6px 8px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.40)', textAlign: 'left', cursor: 'pointer' }}
-              onClick={() => flyToCluster([77.4538, 28.6692])}
-            >
-              <div style={{ fontWeight: 700, fontSize: '11px', color: '#0F172A' }}>Ghaziabad</div>
-              <div style={{ fontSize: '10px', color: '#475569', marginTop: '1px' }}>4 linked accounts</div>
-            </button>
-            <button
-              style={{ padding: '6px 8px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.40)', textAlign: 'left', cursor: 'pointer' }}
-              onClick={() => flyToCluster([80.9462, 26.8467])}
-            >
-              <div style={{ fontWeight: 700, fontSize: '11px', color: '#0F172A' }}>Lucknow</div>
-              <div style={{ fontSize: '10px', color: '#475569', marginTop: '1px' }}>3 linked accounts</div>
-            </button>
-          </div>
+          {historicalHotspots.length === 0 ? (
+            <div style={{ fontSize: '11px', color: '#64748B', fontStyle: 'italic', padding: '6px 2px' }}>
+              No active spatial clusters recorded in database.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              {historicalHotspots.slice(0, 4).map((hotspot: any, idx: number) => {
+                const lat = hotspot.latitude ?? hotspot.center_lat;
+                const lon = hotspot.longitude ?? hotspot.center_lon;
+                const name = hotspot.district || hotspot.district_name || hotspot.state_name || `Cluster #${idx + 1}`;
+                const count = hotspot.prediction_count ?? hotspot.cashout_count ?? 0;
+                return (
+                  <button
+                    key={hotspot.hotspot_id || idx}
+                    style={{ padding: '6px 8px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.40)', textAlign: 'left', cursor: 'pointer' }}
+                    onClick={() => {
+                      if (lat != null && lon != null) {
+                        flyToCluster([lon, lat]);
+                      }
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '11px', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                    <div style={{ fontSize: '10px', color: '#475569', marginTop: '1px' }}>{count} linked events</div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>
