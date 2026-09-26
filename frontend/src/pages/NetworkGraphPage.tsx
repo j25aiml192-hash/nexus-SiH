@@ -271,8 +271,6 @@ export function NetworkGraphPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#F1F5F9',
-      backgroundImage: 'radial-gradient(ellipse at 50% 0%, #FFFFFF 0%, #E2E8F0 100%)',
       color: '#0F172A',
       padding: '24px 32px',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'

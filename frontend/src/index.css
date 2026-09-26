@@ -1,4 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+html, body {
+  scroll-behavior: smooth !important;
+  scroll-padding-top: 90px !important;
+}
+
+section {
+  scroll-margin-top: 90px !important;
+}
 
 :root {
   /* ==========================================================================
@@ -12,7 +19,7 @@
   --colors-brand-secure: #5b64b0;
 
   /* Surfaces (4-step Surface Ladder on Light Canvas Floor) */
-  --colors-canvas: #f8fafc;
+  --colors-canvas: #ffffff;
   --colors-surface-1: #ffffff;
   --colors-surface-2: #f1f5f9;
   --colors-surface-3: #e2e8f0;
@@ -6759,6 +6766,64 @@ body {
     transform: translateY(0px);
     box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.8);
   }
+}
+
+/* Golden Ratio & Motion Keyframes for Landing Page */
+@keyframes travelLong {
+  0% { offset-distance: 0%; }
+  100% { offset-distance: 100%; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.65; filter: drop-shadow(0 0 4px rgba(0, 182, 196, 0.6)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 10px rgba(0, 182, 196, 0.9)); }
+}
+
+@keyframes nexusMarquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.nexus-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: nexusMarquee 28s linear infinite;
+}
+
+.nexus-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.pulse-dot-anim-long {
+  offset-path: path('M40,45 C200,10 360,80 520,45 S 800,10 960,45');
+  animation: travelLong 4s linear infinite, pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes flowBeamAnim {
+  0% { stroke-dashoffset: 400; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes nodeFloat1 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes nodeFloat2 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(8px); }
+}
+
+.flow-dash-beam {
+  animation: flowBeamAnim 3.5s linear infinite;
+}
+
+.node-float-1 {
+  animation: nodeFloat1 4s ease-in-out infinite;
+}
+
+.node-float-2 {
+  animation: nodeFloat2 4.5s ease-in-out infinite;
 }
 
 

@@ -113,15 +113,14 @@ export const AlertsPage: React.FC = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#F1F5F9',
-      backgroundImage: 'radial-gradient(ellipse at 50% 0%, #FFFFFF 0%, #E2E8F0 100%)',
+
       color: '#0F172A',
       padding: '28px 36px',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       {/* 1. FLOATING TOP HEADER & COMMAND CENTER BANNER BOX */}
       <div style={{
-        backgroundColor: '#FFFFFF',
+
         borderRadius: '22px',
         padding: '20px 24px',
         marginBottom: '24px',
@@ -506,8 +505,8 @@ export const AlertsPage: React.FC = () => {
             STATUS:
           </span>
           {(['all', 'new', 'assigned', 'actioned'] as const).map((st) => {
-            const count = st === 'all' 
-              ? alerts.length 
+            const count = st === 'all'
+              ? alerts.length
               : alerts.filter((a) => (a.status || 'new') === st).length;
 
             const isActive = statusFilter === st;
