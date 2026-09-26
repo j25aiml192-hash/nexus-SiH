@@ -23,9 +23,11 @@ import { useMapData, useComplaints } from '../hooks/useNexusData';
 import { useNexusStore } from '../store/useNexusStore';
 import { useNavigate } from 'react-router-dom';
 
-// MapTiler High-Resolution Vector Basemap
-const MAPTILER_API_KEY = import.meta.env.VITE_MAPTILER_API_KEY || 'PzegCb1XWc7AEBZYRmB3';
-const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_API_KEY}`;
+// MapTiler High-Resolution Vector Basemap (Strict Environment Validation)
+const mapTilerKey = import.meta.env.VITE_MAPTILER_API_KEY;
+const MAPTILER_STYLE_URL = mapTilerKey
+  ? `https://api.maptiler.com/maps/streets-v4/style.json?key=${mapTilerKey}`
+  : '';
 
 const NATIONAL_DEFAULT_CENTER: [number, number] = [78.9629, 20.5937]; // Neutral National Geographic Center of India
 const NATIONAL_DEFAULT_ZOOM = 4.8;
@@ -163,7 +165,7 @@ export const MapPage: React.FC = () => {
 
   // Initialize MapLibre with MapTiler Streets style
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!mapContainerRef.current || mapRef.current || !mapTilerKey) return;
 
     const map = new Map({
       container: mapContainerRef.current,
@@ -435,6 +437,40 @@ export const MapPage: React.FC = () => {
       {/* 1. FULL-SCREEN MAP CANVAS */}
       <div ref={mapContainerRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }} />
 
+      {/* MISSING MAPTILER API KEY OVERLAY */}
+      {!mapTilerKey && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 400,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(241, 245, 249, 0.88)',
+          backdropFilter: 'blur(8px)',
+          padding: '24px',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            maxWidth: '440px',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '16px',
+            padding: '28px 24px',
+            boxShadow: '0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04)'
+          }}>
+            <Shield size={38} style={{ color: '#EF4444', margin: '0 auto 12px' }} />
+            <div style={{ fontWeight: 800, fontSize: '16px', color: '#0F172A', marginBottom: '8px' }}>
+              Map configuration unavailable
+            </div>
+            <div style={{ fontSize: '13px', color: '#64748B', lineHeight: 1.5 }}>
+              The MapTiler API key is not configured. Please define <code style={{ backgroundColor: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace', color: '#0F172A', fontWeight: 600 }}>VITE_MAPTILER_API_KEY</code> in Vercel environment variables.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* FLOATING CAMERA CONTROLS (BOTTOM-LEFT WITH ULTRA-TRANSPARENT FROSTED GLASS EFFECT) */}
       <div style={{
         position: 'absolute',
@@ -653,6 +689,11 @@ export const MapPage: React.FC = () => {
         </div>
 
         {/* STATUS / EMPTY STATE BANNER */}
+        {!mapTilerKey && (
+          <div style={{ backgroundColor: 'rgba(254, 242, 242, 0.6)', border: '1px solid rgba(254, 202, 202, 0.9)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', color: '#B91C1C' }}>
+            Map configuration unavailable: Missing VITE_MAPTILER_API_KEY
+          </div>
+        )}
         {isLoading && (
           <div style={{ backgroundColor: 'rgba(239, 246, 255, 0.4)', border: '1px solid rgba(191, 219, 254, 0.8)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', color: '#1D4ED8', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#2563EB' }} />
