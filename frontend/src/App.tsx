@@ -11,6 +11,7 @@ import { AlertsPage } from './pages/AlertsPage';
 import { IncidentsPage } from './pages/IncidentsPage';
 import { IncidentDetailPage } from './pages/IncidentDetailPage';
 import { NetworkGraphPage } from './pages/NetworkGraphPage';
+import { SaiFloatingButton } from './components/nexus/SaiFloatingButton';
 import { useNexusStore } from './store/useNexusStore';
 
 export function App() {
@@ -57,6 +58,7 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
           </Routes>
         </main>
       </div>
+      {!isLandingPage && <SaiFloatingButton />}
     </div>
   );
 }

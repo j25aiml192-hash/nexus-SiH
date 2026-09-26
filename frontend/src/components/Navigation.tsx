@@ -42,8 +42,8 @@ export const Navigation: React.FC = () => {
       {/* Sidebar Header */}
       <div className="nexus-floating-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1, cursor: 'pointer' }} onClick={() => navigate('/')}>
-          <div className="nexus-floating-logo shrink-0">
-            <Zap size={18} className="text-white fill-white" />
+          <div className="nexus-floating-logo shrink-0" style={{ backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }}>
+            <img src="/nexus_logo.png" alt="NEXUS" style={{ height: '24px', width: 'auto', objectFit: 'contain', mixBlendMode: 'multiply' }} />
           </div>
           {!isVisuallyCollapsed && (
             <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1, overflow: 'hidden', marginLeft: '2px' }}>

@@ -68,14 +68,7 @@ export const LandingPage: React.FC = () => {
                 color: '#0B1226'
               }}
             >
-              <span style={{
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                backgroundColor: '#FF5D5D',
-                boxShadow: '0 0 0 4px rgba(255, 93, 93, 0.2)',
-                display: 'inline-block'
-              }} />
+              <img src="/nexus_logo.png" alt="NEXUS Logo" style={{ height: '22px', width: 'auto', objectFit: 'contain', mixBlendMode: 'multiply' }} />
               <span>NEXUS</span>
             </div>
 
@@ -116,188 +109,146 @@ export const LandingPage: React.FC = () => {
         </nav>
       </div>
 
-      {/* 2. HERO HEADER - WITH DITHER WEBGL BACKGROUND */}
+      {/* 2. HERO HEADER - WITH UNSPLASH OLD MAP BACKGROUND */}
       <header style={{
-        padding: '120px 28px 60px 28px',
+        width: '100%',
+        minHeight: '100vh',
+        padding: '120px 28px 80px 28px',
         position: 'relative',
         overflow: 'hidden',
-        borderBottom: '1px solid #DDE4EE',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
         boxSizing: 'border-box'
       }}>
-        {/* DITHER WEBGL CANVAS BACKGROUND LAYER */}
+        {/* EXACT INDIAN CURRENCY MAP USER BACKGROUND LAYER */}
         <div style={{
           position: 'absolute',
           inset: 0,
           zIndex: 0,
-          opacity: 0.9,
+          backgroundImage: 'url("/indian_currency_map_exact.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          opacity: 0.35,
           pointerEvents: 'none',
-          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%)',
-          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 75%, rgba(0,0,0,0) 100%)'
-        }}>
-          <Dither
-            bgColor={[0.54, 0.60, 0.96]}
-            waveColor={[0.85, 0.88, 1.0]}
-            disableAnimation={false}
-            enableMouseInteraction={true}
-            mouseRadius={0.3}
-            colorNum={4}
-            waveAmplitude={0.3}
-            waveFrequency={3}
-            waveSpeed={0.05}
-          />
-        </div>
+          filter: 'contrast(1.08) saturate(1.1)'
+        }} />
 
-        <div style={{ width: '100%', maxWidth: '1140px', margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 10 }}>
-          {/* GIANT CENTERED NEXUS BRAND TITLE WITH GLITCH TEXT */}
-          <h1 style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 'clamp(64px, 10vw, 110px)',
-            fontWeight: 900,
-            letterSpacing: '-0.04em',
-            lineHeight: 0.95,
-            marginBottom: '20px',
-            textTransform: 'uppercase'
-          }}>
-            <GlitchText
-              speed={1}
-              enableShadows={true}
-              enableOnHover={true}
-              className="nexus-glitch-hero"
-            >
-              NEXUS
-            </GlitchText>
-          </h1>
-
-          {/* HEADLINE SUBTITLE */}
-          <h2 style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 'clamp(28px, 4vw, 44px)',
-            fontWeight: 800,
-            lineHeight: 1.15,
-            letterSpacing: '-0.02em',
-            color: '#0B1226',
-            marginBottom: '20px',
-            maxWidth: '820px',
-            marginInline: 'auto'
-          }}>
-            Stolen Money Moves in Minutes.<br />
-            <span style={{ color: '#2E3FE8' }}>Now Investigators Can Too.</span>
-          </h2>
-
-          {/* CENTERED ACTION BUTTONS */}
-          <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '56px' }}>
-            <button
-              onClick={() => navigate('/dashboard')}
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: 600,
-                fontSize: '14px',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                backgroundColor: '#2E3FE8',
-                color: '#FFFFFF',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 6px 18px rgba(46, 63, 232, 0.35)',
-                transition: 'transform 0.15s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-            >
-              <span>See the Intelligence Pipeline</span>
-              <ChevronRight size={16} />
-            </button>
-
-            <button
-              onClick={() => scrollToSection('architecture')}
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                backgroundColor: '#FFFFFF',
-                color: '#0B1226',
-                border: '1px solid #DDE4EE'
-              }}
-            >
-              Read the methodology
-            </button>
-          </div>
-
-          {/* EXTENDED WIDE FLOW TELEMETRY DIAGRAM - COMPACT HEIGHT */}
-          <div style={{
-            width: '100%',
-            overflow: 'visible',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #DDE4EE',
-            borderRadius: '16px',
-            padding: '18px 24px',
-            boxShadow: '0 6px 24px rgba(11, 18, 38, 0.04)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '10px',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '11.5px',
-              color: '#4A5568'
+        <div style={{ width: '100%', maxWidth: '1240px', margin: '0 auto', textAlign: 'left', position: 'relative', zIndex: 10, paddingLeft: '0' }}>
+          <div style={{ maxWidth: '540px' }}>
+            {/* GIANT LEFT-ALIGNED NEXUS BRAND TITLE WITH GLITCH TEXT */}
+            <h1 style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 'clamp(64px, 10vw, 110px)',
+              fontWeight: 900,
+              letterSpacing: '-0.04em',
+              lineHeight: 0.95,
+              marginBottom: '20px',
+              textTransform: 'uppercase',
+              textAlign: 'left',
+              color: '#000000'
             }}>
-              <span style={{ color: '#00B6C4', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#00B6C4', boxShadow: '0 0 6px rgba(0, 182, 196, 0.6)' }} />
-                REAL-TIME TELEMETRY HOP TRAJECTORY
-              </span>
-              <span>ESTIMATED CASH-OUT WINDOW: 4–12 HOURS</span>
-            </div>
+              <GlitchText
+                speed={1}
+                enableShadows={true}
+                enableOnHover={true}
+                className="nexus-glitch-hero"
+              >
+                NEXUS
+              </GlitchText>
+            </h1>
 
-            <svg viewBox="0 0 1000 90" width="100%" height="90" role="img" aria-label="Extended diagram of money moving from victim through multiple mule accounts to a predicted cash-out zone">
-              {/* Extended Curved Path */}
-              <path d="M40,45 C200,10 360,80 520,45 S 800,10 960,45" fill="none" stroke="#DDE4EE" strokeWidth="2" strokeDasharray="4 6" strokeLinecap="round" />
-
-              {/* Victim Node */}
-              <circle cx="40" cy="45" r="7" fill="#2E3FE8" />
-              <circle cx="40" cy="45" r="12" fill="none" stroke="#2E3FE8" strokeWidth="1.5" opacity="0.6" />
-
-              {/* Mule 1 Node */}
-              <circle cx="270" cy="62" r="6" fill="#4A5568" />
-
-              {/* Mule 2 Node */}
-              <circle cx="500" cy="28" r="6" fill="#4A5568" />
-
-              {/* Mule 3 Node */}
-              <circle cx="730" cy="62" r="6" fill="#4A5568" />
-
-              {/* Predicted Target Node */}
-              <circle cx="960" cy="45" r="15" fill="none" stroke="#FF5D5D" strokeWidth="2" />
-              <circle cx="960" cy="45" r="7" fill="#FF5D5D" />
-
-              {/* Travelling Glowing Telemetry Pulse Dot */}
-              <circle className="pulse-dot-anim-long" r="5" fill="#00B6C4" />
-            </svg>
-
-            {/* Labels across extended trajectory */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '12px',
-              color: '#4A5568',
-              marginTop: '12px',
-              textAlign: 'center'
+            {/* HEADLINE SUBTITLE - EXACTLY 2 LINES IN SMALLER FONT */}
+            <h2 style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 'clamp(20px, 2.4vw, 26px)',
+              fontWeight: 800,
+              lineHeight: 1.25,
+              letterSpacing: '-0.02em',
+              color: '#000000',
+              marginBottom: '20px',
+              maxWidth: '560px',
+              textAlign: 'left'
             }}>
-              <span style={{ textAlign: 'left', color: '#2E3FE8', fontWeight: 700 }}>VICTIM</span>
-              <span>MULE 1</span>
-              <span>MULE 2</span>
-              <span>MULE 3</span>
-              <span style={{ textAlign: 'right', color: '#D63E3E', fontWeight: 700 }}>PREDICTED CASH-OUT</span>
+              Stolen Money Moves in Minutes.<br />
+              Now Investigators Can Too.
+            </h2>
+
+            {/* DESCRIPTION - BOLD BLACK FONT */}
+            <p style={{
+              fontSize: '16px',
+              lineHeight: 1.6,
+              color: '#000000',
+              fontWeight: 700,
+              marginBottom: '32px',
+              maxWidth: '520px'
+            }}>
+              Fraud investigation today starts after the money has already moved through five accounts. NEXUS maps the entire mule network as it forms, predicts where funds will be cashed out, and gives officers a window to intercept — before the trail goes cold.
+            </p>
+
+            {/* LEFT-ALIGNED ACTION BUTTONS */}
+            <div style={{ display: 'flex', gap: '14px', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/dashboard')}
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '13px 26px',
+                  borderRadius: '8px',
+                  backgroundColor: '#000000',
+                  color: '#FFFFFF',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 6px 18px rgba(0, 0, 0, 0.35)',
+                  transition: 'transform 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <span>See the Intelligence Pipeline</span>
+                <ChevronRight size={16} />
+              </button>
+
+              <button
+                onClick={() => scrollToSection('architecture')}
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  padding: '13px 26px',
+                  borderRadius: '8px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#000000',
+                  border: '2px solid #000000'
+                }}
+              >
+                Read the methodology
+              </button>
             </div>
           </div>
         </div>
+
+        {/* EXACT USER INDIAN SKYLINE LINEART BACKGROUND (COMPACT AT BOTTOM) */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          width: '100%',
+          height: '90px',
+          zIndex: 5,
+          pointerEvents: 'none',
+          backgroundImage: 'url("/indian_skyline_lineart.png")',
+          backgroundSize: '100% 100%',
+          backgroundPosition: 'bottom center',
+          backgroundRepeat: 'no-repeat',
+          mixBlendMode: 'multiply',
+          opacity: 0.95
+        }} />
       </header>
 
       {/* 3. PROBLEM & METRICS SECTION - EDITORIAL BENTO LAYOUT */}
