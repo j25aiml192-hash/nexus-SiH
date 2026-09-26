@@ -5,8 +5,10 @@ import uuid
 import datetime
 import random
 import math
+import logging
 from typing import List, Dict, Any, Optional
 
+logger = logging.getLogger("nexus.repo")
 DB_PATH = os.path.join(os.path.dirname(__file__), "nexus.db")
 
 def get_connection() -> sqlite3.Connection:
@@ -654,7 +656,58 @@ def seed_full_operational_data():
     print("Nexus repository successfully seeded with live operational records.")
 
 # Helper queries for Repository
-def get_complaints(limit: int = 50, offset: int = 0, search: Optional[str] = None, status: Optional[str] = None) -> List[Dict[str, Any]]:
+def is_valid_uuid(val: Any) -> bool:
+    if not val:
+        return False
+    try:
+        uuid.UUID(str(val))
+        return True
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
+def _use_supabase() -> bool:
+    from db.supabase_client import SUPABASE_URL, SUPABASE_SERVICE_KEY, NEXUS_ENV
+    is_production = NEXUS_ENV == "production" or os.getenv("NEXUS_ENV", "").lower() == "production"
+    if is_production:
+        return True
+    if os.getenv("USE_LOCAL_SQLITE", "").lower() == "true":
+        return False
+    return bool(SUPABASE_URL and SUPABASE_SERVICE_KEY)
+
+
+def get_supabase_complaints(
+    limit: int = 50,
+    offset: int = 0,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    try:
+        q = supabase.table("complaints").select("*").order("created_at", desc=True)
+        if status and status.lower() not in ("all", "*"):
+            q = q.eq("status", status.lower())
+        if search:
+            clean_search = search.replace(",", " ").strip()
+            if is_valid_uuid(clean_search):
+                q = q.eq("complaint_id", clean_search)
+            else:
+                q = q.or_(f"fraud_type.ilike.%{clean_search}%,victim_state.ilike.%{clean_search}%,accused_bank.ilike.%{clean_search}%")
+        start = max(0, offset)
+        end = start + max(1, limit) - 1
+        res = q.range(start, end).execute()
+        return res.data or []
+    except Exception as e:
+        logger.error(f"[SUPABASE COMPLAINTS ERROR] Failed to fetch complaints: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_complaints(
+    limit: int = 50,
+    offset: int = 0,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     query = "SELECT * FROM complaints WHERE 1=1"
@@ -673,13 +726,44 @@ def get_complaints(limit: int = 50, offset: int = 0, search: Optional[str] = Non
     conn.close()
     return rows
 
-def get_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
+
+def get_complaints(
+    limit: int = 50,
+    offset: int = 0,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_complaints(limit=limit, offset=offset, search=search, status=status)
+    return get_sqlite_complaints(limit=limit, offset=offset, search=search, status=status)
+
+
+def get_supabase_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    if not is_valid_uuid(complaint_id):
+        return None
+    try:
+        res = supabase.table("complaints").select("*").eq("complaint_id", complaint_id).execute()
+        return res.data[0] if res.data else None
+    except Exception as e:
+        logger.error(f"[SUPABASE COMPLAINT GET ERROR] Failed to fetch complaint {complaint_id}: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM complaints WHERE complaint_id = ?", (complaint_id,))
     row = c.fetchone()
     conn.close()
     return dict(row) if row else None
+
+
+def get_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_complaint_by_id(complaint_id)
+    return get_sqlite_complaint_by_id(complaint_id)
+
 
 def create_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
     conn = get_connection()
@@ -721,7 +805,27 @@ def create_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
     conn.close()
     return get_complaint_by_id(cid)
 
-def get_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
+def get_supabase_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    if not is_valid_uuid(complaint_id):
+        return None
+    try:
+        res = supabase.table("predictions").select("*").eq("complaint_id", complaint_id).order("created_at", desc=True).limit(1).execute()
+        if not res.data:
+            return None
+        row = res.data[0]
+        if isinstance(row.get("shap_features"), str):
+            try:
+                row["shap_features"] = json.loads(row["shap_features"])
+            except Exception:
+                pass
+        return row
+    except Exception as e:
+        logger.error(f"[SUPABASE PREDICTION BY COMPLAINT ERROR] {complaint_id}: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM predictions WHERE complaint_id = ?", (complaint_id,))
@@ -741,6 +845,12 @@ def get_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
         except Exception:
             pass
     return d
+
+
+def get_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_prediction_by_complaint(complaint_id)
+    return get_sqlite_prediction_by_complaint(complaint_id)
 
 def save_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
     conn = get_connection()
@@ -773,7 +883,29 @@ def save_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
     conn.close()
     return get_prediction_by_complaint(cid)
 
-def get_all_active_predictions() -> List[Dict[str, Any]]:
+def get_supabase_all_active_predictions() -> List[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    try:
+        res = supabase.table("predictions").select("*").eq("status", "active").order("created_at", desc=True).execute()
+        rows = res.data or []
+        for r in rows:
+            if isinstance(r.get("shap_features"), str):
+                try:
+                    r["shap_features"] = json.loads(r["shap_features"])
+                except Exception:
+                    pass
+            if isinstance(r.get("predicted_atms"), str):
+                try:
+                    r["predicted_atms"] = json.loads(r["predicted_atms"])
+                except Exception:
+                    pass
+        return rows
+    except Exception as e:
+        logger.error(f"[SUPABASE PREDICTIONS ERROR] Failed to fetch active predictions: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_all_active_predictions() -> List[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM predictions WHERE status = 'active' ORDER BY created_at DESC")
@@ -793,6 +925,12 @@ def get_all_active_predictions() -> List[Dict[str, Any]]:
         rows.append(d)
     conn.close()
     return rows
+
+
+def get_all_active_predictions() -> List[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_all_active_predictions()
+    return get_sqlite_all_active_predictions()
 
 def get_mule_chain(complaint_id: str) -> Dict[str, Any]:
     conn = get_connection()
@@ -848,13 +986,29 @@ def get_hotspots() -> List[Dict[str, Any]]:
     conn.close()
     return rows
 
-def get_alerts(limit: int = 50) -> List[Dict[str, Any]]:
+def get_supabase_alerts(limit: int = 50) -> List[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    try:
+        res = supabase.table("alerts").select("*").order("created_at", desc=True).limit(limit).execute()
+        return res.data or []
+    except Exception as e:
+        logger.error(f"[SUPABASE ALERTS ERROR] Failed to fetch alerts: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_alerts(limit: int = 50) -> List[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM alerts ORDER BY created_at DESC LIMIT ?", (limit,))
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
+
+
+def get_alerts(limit: int = 50) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_alerts(limit=limit)
+    return get_sqlite_alerts(limit=limit)
 
 def assign_alert_officer(alert_id: str, officer: str) -> Dict[str, Any]:
     conn = get_connection()
@@ -881,7 +1035,17 @@ def assign_alert_officer(alert_id: str, officer: str) -> Dict[str, Any]:
     conn.close()
     return alert
 
-def get_incidents(limit: int = 50) -> List[Dict[str, Any]]:
+def get_supabase_incidents(limit: int = 50) -> List[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    try:
+        res = supabase.table("incidents").select("*").order("created_at", desc=True).limit(limit).execute()
+        return res.data or []
+    except Exception as e:
+        logger.error(f"[SUPABASE INCIDENTS ERROR] Failed to fetch incidents: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_incidents(limit: int = 50) -> List[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM incidents ORDER BY created_at DESC LIMIT ?", (limit,))
@@ -889,13 +1053,38 @@ def get_incidents(limit: int = 50) -> List[Dict[str, Any]]:
     conn.close()
     return rows
 
-def get_incident_by_id(incident_id: str) -> Optional[Dict[str, Any]]:
+
+def get_incidents(limit: int = 50) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_incidents(limit=limit)
+    return get_sqlite_incidents(limit=limit)
+
+
+def get_supabase_incident_by_id(incident_id: str) -> Optional[Dict[str, Any]]:
+    from db.supabase_client import supabase
+    if not is_valid_uuid(incident_id):
+        return None
+    try:
+        res = supabase.table("incidents").select("*").eq("incident_id", incident_id).execute()
+        return res.data[0] if res.data else None
+    except Exception as e:
+        logger.error(f"[SUPABASE INCIDENT GET ERROR] Failed to fetch incident {incident_id}: {e}", exc_info=True)
+        raise
+
+
+def get_sqlite_incident_by_id(incident_id: str) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM incidents WHERE incident_id = ?", (incident_id,))
     row = c.fetchone()
     conn.close()
     return dict(row) if row else None
+
+
+def get_incident_by_id(incident_id: str) -> Optional[Dict[str, Any]]:
+    if _use_supabase():
+        return get_supabase_incident_by_id(incident_id)
+    return get_sqlite_incident_by_id(incident_id)
 
 def add_incident_note(incident_id: str, note: str) -> Optional[Dict[str, Any]]:
     conn = get_connection()
@@ -1183,21 +1372,9 @@ def get_sqlite_dashboard_stats() -> Dict[str, Any]:
     }
 
 def get_dashboard_stats() -> Dict[str, Any]:
-    from db.supabase_client import SUPABASE_URL, SUPABASE_SERVICE_KEY, NEXUS_ENV
-
-    # In production, Supabase is mandatory. No fallback to SQLite.
-    is_production = NEXUS_ENV == "production" or os.getenv("NEXUS_ENV", "").lower() == "production"
-    use_sqlite_explicit = (
-        not is_production
-        and os.getenv("USE_LOCAL_SQLITE", "").lower() == "true"
-        and (not SUPABASE_URL or not SUPABASE_SERVICE_KEY)
-    )
-
-    if use_sqlite_explicit:
-        return get_sqlite_dashboard_stats()
-
-    # Query Supabase production database
-    return get_supabase_dashboard_stats()
+    if _use_supabase():
+        return get_supabase_dashboard_stats()
+    return get_sqlite_dashboard_stats()
 
 # Initialize SQLite only if in development and explicitly enabled
 if os.getenv("NEXUS_ENV", "").lower() != "production" and os.getenv("USE_LOCAL_SQLITE", "").lower() == "true":

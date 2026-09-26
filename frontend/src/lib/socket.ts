@@ -14,7 +14,12 @@ class NexusSocketService {
 
   private init() {
     try {
-      const socketUrl = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
+      const explicitSocketUrl = import.meta.env.VITE_SOCKET_URL;
+      if (!explicitSocketUrl) {
+        // Backend is FastAPI without Socket.IO. Do not poll VITE_API_BASE_URL.
+        return;
+      }
+      const socketUrl = explicitSocketUrl.replace(/\/+$/, '');
       this.socket = io(socketUrl, {
         autoConnect: true,
         reconnection: true,

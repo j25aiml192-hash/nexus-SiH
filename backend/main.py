@@ -38,8 +38,11 @@ app = FastAPI(
 )
 
 # CORS Configuration
-frontend_origin_env = os.getenv("FRONTEND_ORIGIN", "")
+# Production allowed origin must be: https://nexus-rouge-nu.vercel.app
+# Local development allows Vite dev origins (http://localhost:5173, etc.)
+frontend_origin_env = os.getenv("FRONTEND_ORIGIN", "https://nexus-rouge-nu.vercel.app")
 allowed_origins = [
+    "https://nexus-rouge-nu.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
@@ -57,11 +60,23 @@ if frontend_origin_env:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$" if nexus_env == "production" else None,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"[GLOBAL EXCEPTION] {type(exc).__name__}: {str(exc)}", exc_info=True)
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal server error: {type(exc).__name__}: {str(exc)}"},
+    )
+
 
 app.include_router(complaints.router, prefix="/complaints", tags=["Complaints"])
 app.include_router(predictions.router, prefix="/predictions", tags=["Predictions"])

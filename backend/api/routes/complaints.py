@@ -1,9 +1,11 @@
+import logging
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional
 from core.pipeline import run_pipeline
 from db import repo
 
+logger = logging.getLogger("nexus.api.complaints")
 router = APIRouter()
 
 class ComplaintCreate(BaseModel):
@@ -62,7 +64,14 @@ def list_complaints(
     search: Optional[str] = None,
     status: Optional[str] = None
 ):
-    return repo.get_complaints(limit=limit, offset=offset, search=search, status=status)
+    try:
+        return repo.get_complaints(limit=limit, offset=offset, search=search, status=status)
+    except Exception as e:
+        logger.error(f"[COMPLAINTS LIST ERROR] {type(e).__name__}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query error: {type(e).__name__}: {str(e)}"
+        )
 
 
 @router.get("/enriched")
