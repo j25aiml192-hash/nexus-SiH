@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
+import { Map, setWorkerUrl } from 'maplibre-gl';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'maplibre-gl/dist/maplibre-gl.css';
+
+setWorkerUrl(workerUrl);
+
 import type { FeatureCollection } from 'geojson';
 import {
   Search,
@@ -18,8 +23,9 @@ import { useMapData, useComplaints } from '../hooks/useNexusData';
 import { useNexusStore } from '../store/useNexusStore';
 import { useNavigate } from 'react-router-dom';
 
-// MapTiler High-Resolution Vector Basemap (User API Key)
-const MAPTILER_STYLE_URL = 'https://api.maptiler.com/maps/streets-v4/style.json?key=PzegCb1XWc7AEBZYRmB3';
+// MapTiler High-Resolution Vector Basemap
+const MAPTILER_API_KEY = import.meta.env.VITE_MAPTILER_API_KEY || 'PzegCb1XWc7AEBZYRmB3';
+const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/streets-v4/style.json?key=${MAPTILER_API_KEY}`;
 
 const NATIONAL_DEFAULT_CENTER: [number, number] = [78.9629, 20.5937]; // Neutral National Geographic Center of India
 const NATIONAL_DEFAULT_ZOOM = 4.8;
@@ -53,7 +59,7 @@ export const MapPage: React.FC = () => {
   } = useMapData(selectedComplaintId);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
+  const mapRef = useRef<Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -159,7 +165,7 @@ export const MapPage: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = new maplibregl.Map({
+    const map = new Map({
       container: mapContainerRef.current,
       style: MAPTILER_STYLE_URL,
       center: NATIONAL_DEFAULT_CENTER,
