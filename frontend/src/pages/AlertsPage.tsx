@@ -806,22 +806,28 @@ export const AlertsPage: React.FC = () => {
                     <span style={{ fontSize: '11px', color: '#64748B', fontFamily: 'monospace', fontWeight: 700 }}>
                       TARGET CASE:
                     </span>
-                    <span
-                      onClick={() => navigate(`/complaints/${alertItem.complaint_id}`)}
-                      style={{
-                        fontSize: '12px',
-                        fontFamily: 'monospace',
-                        fontWeight: 800,
-                        color: '#2563EB',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      {alertItem.complaint_id || 'CMP-2026-9081'}
-                      <ArrowUpRight size={13} />
-                    </span>
+                    {alertItem.complaint_id ? (
+                      <span
+                        onClick={() => navigate(`/complaints/${alertItem.complaint_id}`)}
+                        style={{
+                          fontSize: '12px',
+                          fontFamily: 'monospace',
+                          fontWeight: 800,
+                          color: '#2563EB',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {alertItem.complaint_id}
+                        <ArrowUpRight size={13} />
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#64748B' }}>
+                        General Surveillance
+                      </span>
+                    )}
                   </div>
 
                   {/* Alert Message Box */}

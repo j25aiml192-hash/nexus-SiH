@@ -29,7 +29,7 @@ export interface ComplaintDetail {
 
 export const COMPLAINTS_DATA: ComplaintDetail[] = [
   {
-    id: 'C1030',
+    id: 'CMP-1030',
     reportedOn: '06 Sep 2026, 10:42',
     complaintType: 'UPI Fraud',
     primaryAccount: 'XXXX 4821',
@@ -44,7 +44,7 @@ export const COMPLAINTS_DATA: ComplaintDetail[] = [
     transactionReference: 'UPI-4821-0916',
     description: 'Unauthorized UPI transactions were reported from the linked account. The complainant reported multiple transfers to accounts that were not recognized.',
     timeline: [
-      { time: '10:42', title: 'Complaint received', description: 'Complaint C1030 was submitted through the online portal.' },
+      { time: '10:42', title: 'Complaint received', description: 'Complaint was submitted through the online portal.' },
       { time: '10:48', title: 'Initial screening completed', description: 'Complaint classified as UPI Fraud.' },
       { time: '10:56', title: 'Risk assessment updated', description: 'Case marked as Critical risk.' },
       { time: '11:03', title: 'Investigation assigned', description: 'Assigned to A. Sharma.' },

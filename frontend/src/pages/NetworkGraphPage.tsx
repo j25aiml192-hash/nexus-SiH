@@ -29,9 +29,9 @@ export function NetworkGraphPage() {
   const storeComplaintId = useNexusStore((state) => state.selectedComplaintId);
   const setSelectedComplaintId = useNexusStore((state) => state.setSelectedComplaintId);
 
-  const complaintId = routeComplaintId || storeComplaintId || "CMP-2026-9081";
+  const complaintId = routeComplaintId || storeComplaintId || "";
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(complaintId));
   const [error, setError] = useState<string | null>(null);
   const [complaintData, setComplaintData] = useState<any>(null);
   const [rawNodes, setRawNodes] = useState<NetworkNode[]>([]);
@@ -50,7 +50,10 @@ export function NetworkGraphPage() {
 
   // Fetch real mule chain for this complaint from backend
   const fetchMuleChain = useCallback(() => {
-    if (!complaintId) return;
+    if (!complaintId) {
+      setIsLoading(false);
+      return;
+    }
 
     setSelectedComplaintId(complaintId);
     setIsLoading(true);
@@ -262,6 +265,51 @@ export function NetworkGraphPage() {
             }}
           >
             ← Return to Complaints List
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!complaintId) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 'calc(100vh - 120px)',
+        padding: '24px'
+      }}>
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: '16px',
+          padding: '32px 28px',
+          textAlign: 'center',
+          maxWidth: '440px',
+          boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.05)'
+        }}>
+          <Network size={48} style={{ color: '#2563EB', margin: '0 auto 14px auto' }} />
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+            NO CASE SELECTED
+          </h2>
+          <p style={{ fontSize: '12.5px', color: '#64748B', marginTop: '8px', marginBottom: '20px' }}>
+            Please select an active complaint from the registry to inspect its money mule transaction graph.
+          </p>
+          <button
+            onClick={() => navigate('/complaints')}
+            style={{
+              padding: '10px 20px',
+              borderRadius: '10px',
+              backgroundColor: '#2563EB',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            ← View Complaints Registry
           </button>
         </div>
       </div>

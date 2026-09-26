@@ -153,6 +153,6 @@ export const useNexusStore = create<NexusState>((set, get) => ({
   },
 
   getComplaintById: (complaintId) => {
-    return get().complaints.find((c) => c.id === complaintId);
+    return get().complaints.find((c) => c.complaint_id === complaintId || c.id === complaintId);
   },
 }));

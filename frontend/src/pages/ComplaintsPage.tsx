@@ -223,12 +223,12 @@ export const ComplaintsPage: React.FC = () => {
             ) : (
               paginatedComplaints.map((complaint) => (
                 <tr
-                  key={complaint.id}
-                  onClick={() => handleSelectComplaint(complaint.id)}
+                  key={complaint.complaint_id}
+                  onClick={() => handleSelectComplaint(complaint.complaint_id)}
                   className="nexus-table-row cursor-pointer hover:bg-slate-50 transition-colors"
                 >
                   <td className="font-mono font-bold text-[#087F5B]">
-                    {complaint.id}
+                    {complaint.ncrp_id || complaint.complaint_id}
                   </td>
                   <td className="font-mono text-xs text-[#102A2A]">
                     {formatDate(complaint.created_at || complaint.filed_at)}

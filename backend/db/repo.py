@@ -932,7 +932,39 @@ def get_all_active_predictions() -> List[Dict[str, Any]]:
         return get_supabase_all_active_predictions()
     return get_sqlite_all_active_predictions()
 
-def get_mule_chain(complaint_id: str) -> Dict[str, Any]:
+def get_supabase_mule_chain(complaint_id: str) -> Dict[str, Any]:
+    from db.supabase_client import supabase
+    try:
+        complaint = get_supabase_complaint_by_id(complaint_id)
+        nodes_res = supabase.table("mule_chain_nodes").select("*").eq("complaint_id", complaint_id).order("hop_position").execute()
+        nodes = nodes_res.data or []
+        acc_ids = [n["account_id"] for n in nodes if n.get("account_id")]
+        accs_by_id = {}
+        if acc_ids:
+            acc_res = supabase.table("mule_accounts").select("*").in_("account_id", acc_ids).execute()
+            for a in (acc_res.data or []):
+                accs_by_id[a["account_id"]] = a
+
+        mules = []
+        for n in nodes:
+            acc_data = accs_by_id.get(n.get("account_id"), {})
+            merged = {**acc_data, **n}
+            mules.append(merged)
+
+        txns_res = supabase.table("transactions").select("*").eq("complaint_id", complaint_id).order("created_at").execute()
+        txns = txns_res.data or []
+
+        return {
+            "complaint": complaint,
+            "mule_nodes": mules,
+            "transactions": txns
+        }
+    except Exception as e:
+        logger.error(f"[SUPABASE MULE CHAIN ERROR] {complaint_id}: {e}", exc_info=True)
+        return {"complaint": None, "mule_nodes": [], "transactions": []}
+
+
+def get_sqlite_mule_chain(complaint_id: str) -> Dict[str, Any]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM complaints WHERE complaint_id = ?", (complaint_id,))
@@ -957,6 +989,12 @@ def get_mule_chain(complaint_id: str) -> Dict[str, Any]:
         "mule_nodes": mules,
         "transactions": txns
     }
+
+
+def get_mule_chain(complaint_id: str) -> Dict[str, Any]:
+    if _use_supabase():
+        return get_supabase_mule_chain(complaint_id)
+    return get_sqlite_mule_chain(complaint_id)
 
 def get_supabase_atms(ids: Optional[List[str]] = None, limit: int = 100) -> List[Dict[str, Any]]:
     from db.supabase_client import supabase

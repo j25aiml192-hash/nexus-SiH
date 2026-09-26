@@ -12,7 +12,6 @@ import {
   Loader2,
 } from "lucide-react";
 import {
-  caseMeta,
   flaggedConnections,
   formatEdgeTime,
   formatINR,
@@ -45,13 +44,13 @@ interface SummaryViewProps {
 }
 
 function SummaryView({ complaintId, totalEntities, totalTransactions }: SummaryViewProps) {
-  const cId = complaintId || caseMeta.complaintId;
+  const cId = complaintId || 'Active Case';
   return (
     <div className="nexus-inspector-content">
       <div>
         <h3 className="nexus-inspector-title">Network summary</h3>
         <p className="nexus-inspector-subtitle">
-          Entities and money movement traced for complaint {cId}.
+          {cId ? `Entities and money movement traced for complaint ${cId}.` : 'Entities and money movement traced.'}
         </p>
       </div>
 
@@ -229,7 +228,7 @@ export function InspectorPanel({
       encodeURIComponent(
         JSON.stringify(
           {
-            complaintId: complaintId || caseMeta.complaintId,
+            complaintId: complaintId || "unspecified",
             selectedNode: node ?? null,
             exportedAt: new Date().toISOString(),
           },
@@ -241,7 +240,7 @@ export function InspectorPanel({
     downloadAnchor.setAttribute("href", dataStr);
     downloadAnchor.setAttribute(
       "download",
-      `network_analysis_${complaintId || caseMeta.complaintId}.json`
+      `network_analysis_${complaintId || "case"}.json`
     );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();

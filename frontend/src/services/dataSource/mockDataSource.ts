@@ -59,6 +59,8 @@ export class MockDataSource implements IDataSource {
       complaint_id: complaintId,
       complaint: {
         id: complaintId,
+        complaint_id: complaintId,
+        ncrp_id: complaintId,
         victimInfo: { name: 'Complainant', contact: '+91-9800000000' },
         amount: 150000,
         status: 'flagged',

@@ -53,12 +53,12 @@ export interface FlaggedConnection {
 }
 
 export const caseMeta: CaseMeta = {
-  complaintId: "C1030",
-  accountId: "ACC-4821",
-  primaryAccount: "XXXX 4821",
+  complaintId: "",
+  accountId: "",
+  primaryAccount: "Victim Account",
   complaintType: "UPI Fraud",
-  amount: "₹4.8L",
-  risk: "Critical",
+  amount: "₹0",
+  risk: "Unknown",
 };
 
 const t = (d: string) => `2026-09-${d}`;

@@ -53,11 +53,13 @@ export class ApiDataSource implements IDataSource {
     const raw = await this.request<any[]>(`/complaints/list${query}`);
     
     return (raw || []).map((c: any) => {
-      const cid = c.complaint_id || c.id;
+      const cid = String(c.complaint_id || c.id || '');
+      const ncrpId = c.ncrp_id ? String(c.ncrp_id) : (cid.length >= 8 ? `CMP-${cid.slice(0, 8).toUpperCase()}` : cid);
       const amt = Number(c.amount_inr !== undefined ? c.amount_inr : (c.amount || 0));
       return {
         id: cid,
         complaint_id: cid,
+        ncrp_id: ncrpId,
         victimInfo: {
           name: c.victim_district ? `Citizen (${c.victim_district}, ${c.victim_state || 'IN'})` : (c.victimInfo?.name || 'Citizen Complainant'),
           contact: c.accused_phone_prefix ? `+91-${c.accused_phone_prefix}XXXX` : (c.victimInfo?.contact || '+91-9811XXXXXX'),
@@ -83,11 +85,13 @@ export class ApiDataSource implements IDataSource {
     const c = await this.request<any>(`/complaints/${encodeURIComponent(id)}`);
     if (!c) return null;
 
-    const cid = c.complaint_id || c.id || id;
+    const cid = String(c.complaint_id || c.id || id);
+    const ncrpId = c.ncrp_id ? String(c.ncrp_id) : (cid.length >= 8 ? `CMP-${cid.slice(0, 8).toUpperCase()}` : cid);
     const amt = Number(c.amount_inr !== undefined ? c.amount_inr : (c.amount || 0));
     return {
       id: cid,
       complaint_id: cid,
+      ncrp_id: ncrpId,
       victimInfo: {
         name: c.victim_district ? `Citizen (${c.victim_district}, ${c.victim_state || 'IN'})` : 'Citizen Complainant',
         contact: c.accused_phone_prefix ? `+91-${c.accused_phone_prefix}XXXX` : '+91-9811XXXXXX',

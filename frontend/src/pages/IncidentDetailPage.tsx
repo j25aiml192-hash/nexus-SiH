@@ -191,7 +191,7 @@ export const IncidentDetailPage: React.FC = () => {
                 <div className="relation-node">
                   <div className="relation-tag">2. TARGET ACCOUNT</div>
                   <div className="font-mono text-cyan-400 text-xs font-bold">
-                    {account?.id || prediction?.accountId || 'ACC-89214'}
+                    {account?.id || prediction?.accountId || 'Primary Beneficiary Node'}
                   </div>
                   <div className="text-[11px] text-slate-400">
                     Mule Node Risk: {account?.riskScore || 94}/100
@@ -200,7 +200,7 @@ export const IncidentDetailPage: React.FC = () => {
                     Txn Links: {account?.txnHistory.length || 4} transfers
                   </div>
                   <Link
-                    to={`/prediction/${incident.complaint_id || complaint?.id || ''}`}
+                    to={`/prediction/${incident.complaint_id || complaint?.complaint_id || complaint?.id || ''}`}
                     className="text-[10px] text-cyan-700 hover:underline flex items-center gap-0.5 mt-1 font-semibold"
                   >
                     View Predictive Cashout Dossier <ExternalLink size={10} />

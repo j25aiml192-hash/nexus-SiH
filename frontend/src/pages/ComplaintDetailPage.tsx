@@ -57,7 +57,7 @@ export const ComplaintDetailPage: React.FC = () => {
           setError(`Complaint record "${complaintId}" does not exist in the NEXUS database.`);
         } else {
           setComplaint(res);
-          setSelectedComplaintId(res.id);
+          setSelectedComplaintId(res.complaint_id);
           setAssignedOfficer(res.assignedOfficer || 'Unassigned');
           setCurrentStatus(
             res.status === 'resolved' ? 'Resolved' :
@@ -105,7 +105,7 @@ export const ComplaintDetailPage: React.FC = () => {
 
   const handleViewOnMap = () => {
     if (!complaint) return;
-    setSelectedComplaintId(complaint.id);
+    setSelectedComplaintId(complaint.complaint_id);
     navigate('/map');
   };
 
@@ -162,7 +162,7 @@ export const ComplaintDetailPage: React.FC = () => {
         <div className="nexus-breadcrumbs">
           <Link to="/complaints" className="nexus-breadcrumb-link">Complaints</Link>
           <span style={{ margin: '0 6px', color: '#94A3B8' }}>/</span>
-          <span className="nexus-breadcrumb-current">{complaint.id}</span>
+          <span className="nexus-breadcrumb-current">{complaint.ncrp_id || complaint.complaint_id}</span>
         </div>
       </div>
 
@@ -170,7 +170,7 @@ export const ComplaintDetailPage: React.FC = () => {
       <div className="nexus-detail-header">
         <div>
           <h1 className="nexus-detail-title">
-            Complaint {complaint.id}
+            Complaint {complaint.ncrp_id || complaint.complaint_id}
           </h1>
           <div className="nexus-detail-subtitle">
             {complaint.fraud_type || 'Cyber Fraud'} · Reported {reportedDate}
@@ -200,8 +200,8 @@ export const ComplaintDetailPage: React.FC = () => {
       {/* 3. 8-Box Metadata Overview Grid */}
       <div className="nexus-metadata-grid">
         <div className="nexus-metadata-box">
-          <span className="nexus-metadata-label">COMPLAINT ID</span>
-          <span className="nexus-metadata-val mono">{complaint.id}</span>
+          <span className="nexus-metadata-label">COMPLAINT REF</span>
+          <span className="nexus-metadata-val mono">{complaint.ncrp_id || complaint.complaint_id}</span>
         </div>
 
         <div className="nexus-metadata-box">
@@ -392,7 +392,7 @@ export const ComplaintDetailPage: React.FC = () => {
               </button>
 
               <button
-                onClick={() => navigate(`/prediction/${complaint.id}`)}
+                onClick={() => navigate(`/prediction/${complaint.complaint_id}`)}
                 className="nexus-case-action-btn"
               >
                 <Activity size={16} style={{ color: '#087F5B' }} />
@@ -400,7 +400,7 @@ export const ComplaintDetailPage: React.FC = () => {
               </button>
 
               <button
-                onClick={() => navigate(`/complaints/${complaint.id}/network`)}
+                onClick={() => navigate(`/complaints/${complaint.complaint_id}/network`)}
                 className="nexus-case-action-btn"
               >
                 <Activity size={16} style={{ color: '#64748B' }} />

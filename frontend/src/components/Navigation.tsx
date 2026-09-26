@@ -16,6 +16,7 @@ import { useNexusStore } from '../store/useNexusStore';
 export const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const incidents = useNexusStore((state) => state.incidents);
+  const selectedComplaintId = useNexusStore((state) => state.selectedComplaintId);
   const isSidebarCollapsed = useNexusStore((state) => state.isSidebarCollapsed);
   const isSidebarHovered = useNexusStore((state) => state.isSidebarHovered);
   const setIsSidebarHovered = useNexusStore((state) => state.setIsSidebarHovered);
@@ -99,7 +100,7 @@ export const Navigation: React.FC = () => {
         </NavLink>
 
         <NavLink
-          to="/prediction/CMP-2026-9081"
+          to={selectedComplaintId ? `/prediction/${selectedComplaintId}` : "/complaints"}
           className={({ isActive }) =>
             `nexus-floating-item ${isActive ? 'active' : ''}`
           }

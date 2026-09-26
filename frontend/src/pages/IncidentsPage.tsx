@@ -127,7 +127,7 @@ export const IncidentsPage: React.FC = () => {
                         {incident.alertId || 'ALT-LINKED'}
                       </td>
                       <td className="font-mono text-xs text-slate-800">
-                        {incident.complaint_id || 'CMP-2026-9081'}
+                        {incident.complaint_id || 'N/A'}
                       </td>
                       <td className="text-xs text-slate-600 max-w-xs truncate">
                         {incident.action_taken || 'Monitoring inter-bank mule activity.'}

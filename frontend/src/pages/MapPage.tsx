@@ -995,7 +995,7 @@ export const MapPage: React.FC = () => {
             {selectedMapItem.type === 'h3' && (
               <>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', fontFamily: 'sans-serif' }}>
-                  {(selectedMapItem.data as any).complaint_id || 'CMP-2026-9081'}
+                  {(selectedMapItem.data as any).complaint_id || 'Active Spatial Prediction'}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2px' }}>
                   <span style={{ color: '#475569' }}>Risk Score:</span>
@@ -1004,33 +1004,35 @@ export const MapPage: React.FC = () => {
                   </span>
                 </div>
 
-                <button
-                  onClick={() =>
-                    navigate(
-                      `/prediction/${(selectedMapItem.data as any).complaint_id || 'CMP-2026-9081'}`
-                    )
-                  }
-                  style={{
-                    width: '100%',
-                    marginTop: '10px',
-                    padding: '7px 10px',
-                    backgroundColor: '#2563EB',
-                    color: '#FFFFFF',
-                    fontSize: '11px',
-                    fontFamily: 'sans-serif',
-                    fontWeight: 600,
-                    borderRadius: '8px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <span>VIEW DOSSIER DETAIL</span>
-                  <ExternalLink size={12} />
-                </button>
+                {(selectedMapItem.data as any).complaint_id && (
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/prediction/${(selectedMapItem.data as any).complaint_id}`
+                      )
+                    }
+                    style={{
+                      width: '100%',
+                      marginTop: '10px',
+                      padding: '7px 10px',
+                      backgroundColor: '#2563EB',
+                      color: '#FFFFFF',
+                      fontSize: '11px',
+                      fontFamily: 'sans-serif',
+                      fontWeight: 600,
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>VIEW DOSSIER DETAIL</span>
+                    <ExternalLink size={12} />
+                  </button>
+                )}
               </>
             )}
 

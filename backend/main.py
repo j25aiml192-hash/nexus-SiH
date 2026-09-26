@@ -16,9 +16,16 @@ from api.routes import briefs
 from api.routes import mule
 from api.routes import atms
 from scheduler import start_scheduler
+from db.repo import init_db
 
 load_dotenv()
 logger = logging.getLogger("nexus.main")
+
+# Ensure SQLite schema is prepared if needed
+try:
+    init_db()
+except Exception as e:
+    logger.warning(f"init_db non-fatal warning: {e}")
 
 # Verify critical ML model artifacts in production
 nexus_env = os.getenv("NEXUS_ENV", "development").strip().lower()

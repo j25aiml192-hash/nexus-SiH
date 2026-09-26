@@ -47,9 +47,9 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
             <Route path="/complaints" element={<ComplaintsPage />} />
             <Route path="/complaints/:complaintId" element={<ComplaintDetailPage />} />
             <Route path="/complaints/:complaintId/network" element={<NetworkGraphPage />} />
-            <Route path="/network" element={<Navigate to="/complaints/CMP-2026-9081/network" replace />} />
+            <Route path="/network" element={<Navigate to="/complaints" replace />} />
             <Route path="/prediction/:complaintId" element={<PredictionResultsPage />} />
-            <Route path="/prediction" element={<Navigate to="/prediction/CMP-2026-9081" replace />} />
+            <Route path="/prediction" element={<Navigate to="/complaints" replace />} />
             <Route path="/map" element={<MapPage />} />
             <Route path="/alerts" element={<AlertsPage />} />
             <Route path="/incidents" element={<IncidentsPage />} />

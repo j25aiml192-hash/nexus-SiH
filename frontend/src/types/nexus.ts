@@ -1,6 +1,7 @@
 export interface Complaint {
   id: string;
-  complaint_id?: string;
+  complaint_id: string;
+  ncrp_id?: string;
   victimInfo: { name: string; contact: string };
   amount: number;
   amount_inr?: number;

@@ -352,7 +352,7 @@ export const DashboardPage: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Building2 size={15} style={{ color: '#475569' }} />
                     <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A' }}>Airtel Payments Bank</span>
-                    <span style={{ fontSize: '11.5px', fontFamily: 'monospace', color: '#94A3B8' }}>CMP-2026-9081</span>
+                    <span style={{ fontSize: '11.5px', fontFamily: 'monospace', color: '#94A3B8' }}>PRIORITY INTERCEPT</span>
                   </div>
                   <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: '#475569', lineHeight: 1.45 }}>
                     NEXUS CRITICAL: Rs 8,45,000 digital arrest fraud. Cash-out corridor detected in Deoghar, Jharkhand within 4h window.
@@ -368,7 +368,7 @@ export const DashboardPage: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => navigate('/prediction/CMP-2026-9081')}
+                  onClick={() => navigate('/alerts')}
                   style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#FFFFFF', border: '1px solid #CBD5E1', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                 >
                   <ChevronRight size={16} />
