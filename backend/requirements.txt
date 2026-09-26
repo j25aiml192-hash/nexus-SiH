@@ -2,6 +2,7 @@ fastapi
 uvicorn
 supabase
 xgboost
+lightgbm
 scikit-learn
 shap
 networkx

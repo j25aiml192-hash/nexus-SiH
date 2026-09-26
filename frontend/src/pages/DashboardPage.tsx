@@ -10,9 +10,7 @@ import {
   Clock,
   ChevronRight,
   Building2,
-  Activity,
-  Network,
-  Cpu
+  Activity
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TelemetryChartCard } from '../components/nexus/TelemetryChartCard';

@@ -1,0 +1,227 @@
+{
+  "model_version": "geo_lgbm_v3",
+  "algorithm": "LightGBM Regressor (L1 Objective)",
+  "training_date": "2026-09-22T18:50:34.461247+00:00",
+  "target_definitions": {
+    "latitude": "Actual cashout event latitude (target_lat)",
+    "longitude": "Actual cashout event longitude (target_lon)"
+  },
+  "row_counts": {
+    "total_rows": 2975,
+    "train_rows": 2082,
+    "val_rows": 457,
+    "test_rows": 436
+  },
+  "complaint_counts": {
+    "total_complaints": 1000,
+    "train_complaints": 700,
+    "val_complaints": 150,
+    "test_complaints": 150
+  },
+  "features": {
+    "feature_count": 40,
+    "feature_names": [
+      "log_amount",
+      "amount_inr",
+      "hour_of_day",
+      "day_of_week",
+      "complaint_delay_hours",
+      "mule_chain_depth",
+      "num_mule_nodes",
+      "num_transactions",
+      "total_txn_amount",
+      "avg_txn_amount",
+      "transaction_velocity",
+      "terminal_in_degree",
+      "terminal_out_degree",
+      "terminal_dormancy_days",
+      "terminal_account_age_days",
+      "terminal_reuse_count",
+      "avg_mule_risk_score",
+      "max_mule_risk_score",
+      "terminal_mule_risk_score",
+      "num_distinct_banks",
+      "fraction_same_bank",
+      "shared_device_any",
+      "shared_ip_any",
+      "kyc_victim_state_mismatch",
+      "last_mule_kyc_lat",
+      "last_mule_kyc_lon",
+      "first_mule_kyc_lat",
+      "first_mule_kyc_lon",
+      "kyc_centroid_lat",
+      "kyc_centroid_lon",
+      "kyc_chain_spread_km",
+      "first_to_last_kyc_dist_km",
+      "fraud_type_encoded",
+      "channel_encoded",
+      "victim_state_encoded",
+      "accused_bank_encoded",
+      "term_bank_encoded",
+      "first_bank_encoded",
+      "term_kyc_state_encoded",
+      "first_kyc_state_encoded"
+    ]
+  },
+  "model_parameters": {
+    "objective": "regression_l1",
+    "metric": "l1",
+    "boosting_type": "gbdt",
+    "n_estimators": 500,
+    "learning_rate": 0.03,
+    "num_leaves": 31,
+    "max_depth": 6,
+    "subsample": 0.85,
+    "colsample_bytree": 0.85,
+    "min_child_samples": 8,
+    "random_state": 42,
+    "verbose": -1,
+    "n_jobs": -1
+  },
+  "validation_metrics": {
+    "val_lat_mae_deg": 2.667388330999861,
+    "val_lon_mae_deg": 1.9208376933183582
+  },
+  "model_files": {
+    "latitude_model": "geo_model_lat.pkl",
+    "longitude_model": "geo_model_lon.pkl",
+    "feature_names": "geo_feature_names.json",
+    "feature_importance": "geo_feature_importance.json",
+    "metadata": "geo_model_metadata.json"
+  },
+  "test_evaluation": {
+    "test_rows": 436,
+    "test_complaints": 150,
+    "ml_model_metrics": {
+      "mean_error_km": 422.3307223840635,
+      "median_error_km": 165.6015483976993,
+      "p75_error_km": 845.3174039499739,
+      "p90_error_km": 1111.3224899036127,
+      "max_error_km": 1596.445719295635,
+      "acc_5km_pct": 0.0,
+      "acc_10km_pct": 1.146788990825688,
+      "acc_25km_pct": 9.403669724770642,
+      "acc_50km_pct": 25.0,
+      "acc_100km_pct": 42.201834862385326,
+      "acc_250km_pct": 54.58715596330275
+    },
+    "coordinate_component_errors": {
+      "lat_mae_deg": 2.5316487580013387,
+      "lat_rmse_deg": 4.1926844427186065,
+      "lon_mae_deg": 2.2345359987329476,
+      "lon_rmse_deg": 4.151800975993864
+    },
+    "baseline_comparison": {
+      "global_centroid": {
+        "mean_error_km": 633.6388784113949,
+        "median_error_km": 606.5256280213246,
+        "p75_error_km": 784.088598166182,
+        "p90_error_km": 939.5634168257561,
+        "max_error_km": 1315.1806917242006,
+        "acc_5km_pct": 0.0,
+        "acc_10km_pct": 0.0,
+        "acc_25km_pct": 0.0,
+        "acc_50km_pct": 0.0,
+        "acc_100km_pct": 0.0,
+        "acc_250km_pct": 0.0
+      },
+      "last_observed_kyc": {
+        "mean_error_km": 541.7012140838856,
+        "median_error_km": 372.87298389945283,
+        "p75_error_km": 872.212042961887,
+        "p90_error_km": 1352.3674561712605,
+        "max_error_km": 1784.4883380683323,
+        "acc_5km_pct": 0.22935779816513763,
+        "acc_10km_pct": 0.45871559633027525,
+        "acc_25km_pct": 2.522935779816514,
+        "acc_50km_pct": 10.550458715596331,
+        "acc_100km_pct": 21.55963302752294,
+        "acc_250km_pct": 30.963302752293576
+      },
+      "first_observed_kyc": {
+        "mean_error_km": 554.4346406251098,
+        "median_error_km": 357.13587296187507,
+        "p75_error_km": 928.2437448303136,
+        "p90_error_km": 1318.1096004352107,
+        "max_error_km": 1738.6252612083963,
+        "acc_5km_pct": 0.0,
+        "acc_10km_pct": 0.45871559633027525,
+        "acc_25km_pct": 2.293577981651376,
+        "acc_50km_pct": 8.256880733944955,
+        "acc_100km_pct": 19.495412844036696,
+        "acc_250km_pct": 26.834862385321102
+      },
+      "kyc_chain_centroid": {
+        "mean_error_km": 468.91066021862275,
+        "median_error_km": 222.42832463812425,
+        "p75_error_km": 837.8316303596054,
+        "p90_error_km": 1164.3183644398991,
+        "max_error_km": 1613.1945021539748,
+        "acc_5km_pct": 0.22935779816513763,
+        "acc_10km_pct": 0.45871559633027525,
+        "acc_25km_pct": 2.522935779816514,
+        "acc_50km_pct": 10.321100917431194,
+        "acc_100km_pct": 25.229357798165136,
+        "acc_250km_pct": 52.981651376146786
+      }
+    },
+    "improvements": {
+      "vs_last_kyc_median_reduction_km": 207.27143550175353,
+      "vs_kyc_centroid_median_reduction_km": 56.82677624042495,
+      "vs_last_kyc_mean_reduction_km": 119.37049169982208,
+      "vs_kyc_centroid_mean_reduction_km": 46.579937834559246
+    },
+    "top_permutation_features": [
+      {
+        "feature": "accused_bank_encoded",
+        "mean_error_increase_km": 164.088457445406,
+        "std_error_increase_km": 6.8108711915203735
+      },
+      {
+        "feature": "kyc_centroid_lat",
+        "mean_error_increase_km": 47.13792690404421,
+        "std_error_increase_km": 4.553847129630997
+      },
+      {
+        "feature": "kyc_centroid_lon",
+        "mean_error_increase_km": 19.186231407873663,
+        "std_error_increase_km": 0.5094846590876644
+      },
+      {
+        "feature": "avg_mule_risk_score",
+        "mean_error_increase_km": 13.698059917002846,
+        "std_error_increase_km": 2.260257039814822
+      },
+      {
+        "feature": "kyc_chain_spread_km",
+        "mean_error_increase_km": 5.061951400095798,
+        "std_error_increase_km": 0.9492999129678134
+      },
+      {
+        "feature": "last_mule_kyc_lon",
+        "mean_error_increase_km": 3.6091989626254226,
+        "std_error_increase_km": 0.4983556396138079
+      },
+      {
+        "feature": "first_mule_kyc_lat",
+        "mean_error_increase_km": 2.338536102773503,
+        "std_error_increase_km": 0.4806182235713767
+      },
+      {
+        "feature": "complaint_delay_hours",
+        "mean_error_increase_km": 2.0244064660062313,
+        "std_error_increase_km": 1.4695316150569047
+      },
+      {
+        "feature": "term_bank_encoded",
+        "mean_error_increase_km": 1.9144549048859478,
+        "std_error_increase_km": 0.3746722442333485
+      },
+      {
+        "feature": "num_mule_nodes",
+        "mean_error_increase_km": 1.8768410336248091,
+        "std_error_increase_km": 0.24649204473110187
+      }
+    ]
+  }
+}

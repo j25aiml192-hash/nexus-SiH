@@ -8,9 +8,11 @@ export * from './IRealtimeClient';
  * Factory function injecting realtime client implementation based on environment flag
  */
 export function createRealtimeClient(): IRealtimeClient {
-  const dataSourceMode = import.meta.env.VITE_DATA_SOURCE || 'mock';
+  const isProduction = import.meta.env.PROD || import.meta.env.MODE === 'production';
+  const dataSourceMode = import.meta.env.VITE_DATA_SOURCE;
 
-  if (dataSourceMode === 'api') {
+  // In production, enforce real websocket client. Explicit mock mode only in development.
+  if (isProduction || dataSourceMode === 'api') {
     return new SocketRealtimeClient();
   }
 

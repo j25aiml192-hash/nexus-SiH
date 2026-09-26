@@ -1,3 +1,4 @@
+# Logs & debug
 logs
 *.log
 npm-debug.log*
@@ -6,30 +7,47 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+.vite/
 *.local
 
-.vscode/*
+# Editor & OS files
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.env
 
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
 *.pyc
 venv/
 .venv/
 backend/venv/
-*.pkl
-frontend/nexus-graph-explorer-main/
+.pytest_cache/
+.coverage
 *.db
+backend/db/nexus.db
+
+# Model artifacts: Ignore general pkl files but explicitly track backend/models/
+*.pkl
+!backend/models/*.pkl
+!backend/models/*.json
+
+# Exclude legacy / non-production items
+frontend/nexus-graph-explorer-main/
 /package.json
 /package-lock.json
 backend/db/seed_demo.py

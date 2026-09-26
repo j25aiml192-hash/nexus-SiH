@@ -6,7 +6,7 @@ export class SocketRealtimeClient implements IRealtimeClient {
   private socket: Socket;
   private connected = false;
 
-  constructor(serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000') {
+  constructor(serverUrl = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '')) {
     this.socket = io(serverUrl, {
       autoConnect: true,
       reconnection: true,

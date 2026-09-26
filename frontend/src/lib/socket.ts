@@ -14,7 +14,7 @@ class NexusSocketService {
 
   private init() {
     try {
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      const socketUrl = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
       this.socket = io(socketUrl, {
         autoConnect: true,
         reconnection: true,

@@ -1,0 +1,352 @@
+{
+  "features": [
+    "log_amount",
+    "amount_inr",
+    "hour_of_day",
+    "day_of_week",
+    "complaint_delay_hours",
+    "mule_chain_depth",
+    "num_mule_nodes",
+    "num_transactions",
+    "total_txn_amount",
+    "avg_txn_amount",
+    "transaction_velocity",
+    "terminal_in_degree",
+    "terminal_out_degree",
+    "terminal_dormancy_days",
+    "terminal_account_age_days",
+    "terminal_reuse_count",
+    "avg_mule_risk_score",
+    "max_mule_risk_score",
+    "terminal_mule_risk_score",
+    "num_distinct_banks",
+    "fraction_same_bank",
+    "shared_device_any",
+    "shared_ip_any",
+    "kyc_victim_state_mismatch",
+    "last_mule_kyc_lat",
+    "last_mule_kyc_lon",
+    "first_mule_kyc_lat",
+    "first_mule_kyc_lon",
+    "kyc_centroid_lat",
+    "kyc_centroid_lon",
+    "kyc_chain_spread_km",
+    "first_to_last_kyc_dist_km",
+    "fraud_type_encoded",
+    "channel_encoded",
+    "victim_state_encoded",
+    "accused_bank_encoded",
+    "term_bank_encoded",
+    "first_bank_encoded",
+    "term_kyc_state_encoded",
+    "first_kyc_state_encoded"
+  ],
+  "latitude_model": {
+    "gain_importance": {
+      "log_amount": 297.2496075630188,
+      "amount_inr": 77.37165021896362,
+      "hour_of_day": 386.6388385295868,
+      "day_of_week": 224.55573058128357,
+      "complaint_delay_hours": 1208.8930306434631,
+      "mule_chain_depth": 145.0846290588379,
+      "num_mule_nodes": 333.42765164375305,
+      "num_transactions": 5.366990089416504,
+      "total_txn_amount": 213.2208116054535,
+      "avg_txn_amount": 100.15822052955627,
+      "transaction_velocity": 1394.68115067482,
+      "terminal_in_degree": 11.784519672393799,
+      "terminal_out_degree": 0.0,
+      "terminal_dormancy_days": 1248.1695809364319,
+      "terminal_account_age_days": 173.0454294681549,
+      "terminal_reuse_count": 0.0,
+      "avg_mule_risk_score": 1255.6803317070007,
+      "max_mule_risk_score": 577.5511581897736,
+      "terminal_mule_risk_score": 1652.557312965393,
+      "num_distinct_banks": 56.86604976654053,
+      "fraction_same_bank": 380.97152972221375,
+      "shared_device_any": 0.0,
+      "shared_ip_any": 0.0,
+      "kyc_victim_state_mismatch": 115.29917907714844,
+      "last_mule_kyc_lat": 1851.6516313552856,
+      "last_mule_kyc_lon": 1178.8573191165924,
+      "first_mule_kyc_lat": 1885.5883617401123,
+      "first_mule_kyc_lon": 442.17235136032104,
+      "kyc_centroid_lat": 12586.846034049988,
+      "kyc_centroid_lon": 746.1698129177094,
+      "kyc_chain_spread_km": 1638.4829359054565,
+      "first_to_last_kyc_dist_km": 555.7944691181183,
+      "fraud_type_encoded": 0.0,
+      "channel_encoded": 30.781600952148438,
+      "victim_state_encoded": 288.73921942710876,
+      "accused_bank_encoded": 2045.7350826263428,
+      "term_bank_encoded": 565.3236894607544,
+      "first_bank_encoded": 297.320280790329,
+      "term_kyc_state_encoded": 59.55390024185181,
+      "first_kyc_state_encoded": 53.43595004081726
+    },
+    "split_importance": {
+      "log_amount": 54,
+      "amount_inr": 13,
+      "hour_of_day": 73,
+      "day_of_week": 36,
+      "complaint_delay_hours": 194,
+      "mule_chain_depth": 16,
+      "num_mule_nodes": 22,
+      "num_transactions": 1,
+      "total_txn_amount": 45,
+      "avg_txn_amount": 18,
+      "transaction_velocity": 215,
+      "terminal_in_degree": 2,
+      "terminal_out_degree": 0,
+      "terminal_dormancy_days": 192,
+      "terminal_account_age_days": 28,
+      "terminal_reuse_count": 0,
+      "avg_mule_risk_score": 203,
+      "max_mule_risk_score": 96,
+      "terminal_mule_risk_score": 271,
+      "num_distinct_banks": 8,
+      "fraction_same_bank": 71,
+      "shared_device_any": 0,
+      "shared_ip_any": 0,
+      "kyc_victim_state_mismatch": 21,
+      "last_mule_kyc_lat": 211,
+      "last_mule_kyc_lon": 199,
+      "first_mule_kyc_lat": 113,
+      "first_mule_kyc_lon": 71,
+      "kyc_centroid_lat": 269,
+      "kyc_centroid_lon": 124,
+      "kyc_chain_spread_km": 182,
+      "first_to_last_kyc_dist_km": 101,
+      "fraud_type_encoded": 0,
+      "channel_encoded": 2,
+      "victim_state_encoded": 48,
+      "accused_bank_encoded": 70,
+      "term_bank_encoded": 99,
+      "first_bank_encoded": 33,
+      "term_kyc_state_encoded": 9,
+      "first_kyc_state_encoded": 10
+    },
+    "top_10_gain": [
+      [
+        "kyc_centroid_lat",
+        12586.846034049988
+      ],
+      [
+        "accused_bank_encoded",
+        2045.7350826263428
+      ],
+      [
+        "first_mule_kyc_lat",
+        1885.5883617401123
+      ],
+      [
+        "last_mule_kyc_lat",
+        1851.6516313552856
+      ],
+      [
+        "terminal_mule_risk_score",
+        1652.557312965393
+      ],
+      [
+        "kyc_chain_spread_km",
+        1638.4829359054565
+      ],
+      [
+        "transaction_velocity",
+        1394.68115067482
+      ],
+      [
+        "avg_mule_risk_score",
+        1255.6803317070007
+      ],
+      [
+        "terminal_dormancy_days",
+        1248.1695809364319
+      ],
+      [
+        "complaint_delay_hours",
+        1208.8930306434631
+      ]
+    ]
+  },
+  "longitude_model": {
+    "gain_importance": {
+      "log_amount": 384.2666834592819,
+      "amount_inr": 54.61352038383484,
+      "hour_of_day": 867.7400406897068,
+      "day_of_week": 338.60726833343506,
+      "complaint_delay_hours": 1784.6026847362518,
+      "mule_chain_depth": 51.01795029640198,
+      "num_mule_nodes": 620.735360711813,
+      "num_transactions": 93.08725070953369,
+      "total_txn_amount": 213.21833980083466,
+      "avg_txn_amount": 281.84867149591446,
+      "transaction_velocity": 783.2149747014046,
+      "terminal_in_degree": 65.72569012641907,
+      "terminal_out_degree": 42.00917959213257,
+      "terminal_dormancy_days": 1633.8390010297298,
+      "terminal_account_age_days": 252.09095072746277,
+      "terminal_reuse_count": 3.100759983062744,
+      "avg_mule_risk_score": 1104.5072565078735,
+      "max_mule_risk_score": 1078.2528163194656,
+      "terminal_mule_risk_score": 2051.318004131317,
+      "num_distinct_banks": 135.6852787733078,
+      "fraction_same_bank": 327.98931300640106,
+      "shared_device_any": 0.0,
+      "shared_ip_any": 0.0,
+      "kyc_victim_state_mismatch": 138.03339359164238,
+      "last_mule_kyc_lat": 1477.6630706191063,
+      "last_mule_kyc_lon": 1846.0275010466576,
+      "first_mule_kyc_lat": 725.1385781764984,
+      "first_mule_kyc_lon": 685.2782743275166,
+      "kyc_centroid_lat": 1154.8684046268463,
+      "kyc_centroid_lon": 4918.5937666893005,
+      "kyc_chain_spread_km": 643.7629889249802,
+      "first_to_last_kyc_dist_km": 1830.847185075283,
+      "fraud_type_encoded": 26.00418996810913,
+      "channel_encoded": 0.0,
+      "victim_state_encoded": 264.87707817554474,
+      "accused_bank_encoded": 30160.18337726593,
+      "term_bank_encoded": 498.79476952552795,
+      "first_bank_encoded": 147.0571904182434,
+      "term_kyc_state_encoded": 64.30793046951294,
+      "first_kyc_state_encoded": 51.59919035434723
+    },
+    "split_importance": {
+      "log_amount": 79,
+      "amount_inr": 10,
+      "hour_of_day": 206,
+      "day_of_week": 77,
+      "complaint_delay_hours": 359,
+      "mule_chain_depth": 9,
+      "num_mule_nodes": 79,
+      "num_transactions": 13,
+      "total_txn_amount": 46,
+      "avg_txn_amount": 59,
+      "transaction_velocity": 167,
+      "terminal_in_degree": 14,
+      "terminal_out_degree": 10,
+      "terminal_dormancy_days": 357,
+      "terminal_account_age_days": 57,
+      "terminal_reuse_count": 1,
+      "avg_mule_risk_score": 243,
+      "max_mule_risk_score": 235,
+      "terminal_mule_risk_score": 459,
+      "num_distinct_banks": 29,
+      "fraction_same_bank": 78,
+      "shared_device_any": 0,
+      "shared_ip_any": 0,
+      "kyc_victim_state_mismatch": 29,
+      "last_mule_kyc_lat": 322,
+      "last_mule_kyc_lon": 335,
+      "first_mule_kyc_lat": 144,
+      "first_mule_kyc_lon": 151,
+      "kyc_centroid_lat": 251,
+      "kyc_centroid_lon": 225,
+      "kyc_chain_spread_km": 124,
+      "first_to_last_kyc_dist_km": 367,
+      "fraud_type_encoded": 6,
+      "channel_encoded": 0,
+      "victim_state_encoded": 57,
+      "accused_bank_encoded": 162,
+      "term_bank_encoded": 108,
+      "first_bank_encoded": 33,
+      "term_kyc_state_encoded": 14,
+      "first_kyc_state_encoded": 15
+    },
+    "top_10_gain": [
+      [
+        "accused_bank_encoded",
+        30160.18337726593
+      ],
+      [
+        "kyc_centroid_lon",
+        4918.5937666893005
+      ],
+      [
+        "terminal_mule_risk_score",
+        2051.318004131317
+      ],
+      [
+        "last_mule_kyc_lon",
+        1846.0275010466576
+      ],
+      [
+        "first_to_last_kyc_dist_km",
+        1830.847185075283
+      ],
+      [
+        "complaint_delay_hours",
+        1784.6026847362518
+      ],
+      [
+        "terminal_dormancy_days",
+        1633.8390010297298
+      ],
+      [
+        "last_mule_kyc_lat",
+        1477.6630706191063
+      ],
+      [
+        "kyc_centroid_lat",
+        1154.8684046268463
+      ],
+      [
+        "avg_mule_risk_score",
+        1104.5072565078735
+      ]
+    ]
+  },
+  "test_permutation_importance": [
+    {
+      "feature": "accused_bank_encoded",
+      "mean_error_increase_km": 164.088457445406,
+      "std_error_increase_km": 6.8108711915203735
+    },
+    {
+      "feature": "kyc_centroid_lat",
+      "mean_error_increase_km": 47.13792690404421,
+      "std_error_increase_km": 4.553847129630997
+    },
+    {
+      "feature": "kyc_centroid_lon",
+      "mean_error_increase_km": 19.186231407873663,
+      "std_error_increase_km": 0.5094846590876644
+    },
+    {
+      "feature": "avg_mule_risk_score",
+      "mean_error_increase_km": 13.698059917002846,
+      "std_error_increase_km": 2.260257039814822
+    },
+    {
+      "feature": "kyc_chain_spread_km",
+      "mean_error_increase_km": 5.061951400095798,
+      "std_error_increase_km": 0.9492999129678134
+    },
+    {
+      "feature": "last_mule_kyc_lon",
+      "mean_error_increase_km": 3.6091989626254226,
+      "std_error_increase_km": 0.4983556396138079
+    },
+    {
+      "feature": "first_mule_kyc_lat",
+      "mean_error_increase_km": 2.338536102773503,
+      "std_error_increase_km": 0.4806182235713767
+    },
+    {
+      "feature": "complaint_delay_hours",
+      "mean_error_increase_km": 2.0244064660062313,
+      "std_error_increase_km": 1.4695316150569047
+    },
+    {
+      "feature": "term_bank_encoded",
+      "mean_error_increase_km": 1.9144549048859478,
+      "std_error_increase_km": 0.3746722442333485
+    },
+    {
+      "feature": "num_mule_nodes",
+      "mean_error_increase_km": 1.8768410336248091,
+      "std_error_increase_km": 0.24649204473110187
+    }
+  ]
+}

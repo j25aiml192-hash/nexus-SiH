@@ -100,6 +100,8 @@ def predict(complaint_id: str, graph_data):
             probability = model.predict_proba(X)[0][1]
             risk_score = float(probability)
     else:
+        if os.getenv("NEXUS_ENV", "").lower() == "production":
+            raise FileNotFoundError(f"[PRODUCTION ERROR] Required ML Model artifact not found at {model_path}")
         risk_score = 0.82
 
     if risk_score >= 0.75:
