@@ -12,7 +12,6 @@ import { IncidentsPage } from './pages/IncidentsPage';
 import { IncidentDetailPage } from './pages/IncidentDetailPage';
 import { NetworkGraphPage } from './pages/NetworkGraphPage';
 import { useNexusStore } from './store/useNexusStore';
-import { NexusAnimatedBackground } from './components/nexus/NexusAnimatedBackground';
 
 export function App() {
   const isSidebarCollapsed = useNexusStore((state) => state.isSidebarCollapsed);
@@ -37,7 +36,6 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
 
   return (
     <div className="nexus-app-container">
-      <NexusAnimatedBackground />
       <Navigation />
       <div className={`nexus-main-wrapper ${isSidebarCollapsed ? 'collapsed-sidebar' : ''}`}>
         <TopBar />

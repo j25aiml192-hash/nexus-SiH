@@ -63,7 +63,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
               placeholder="Search complaint ID, account ID, officer, bank, location..."
               className="nexus-topbar-search-input"
             />
-            {searchValue ? (
+            {searchValue && (
               <button
                 type="button"
                 onClick={() => setSearchValue('')}
@@ -72,10 +72,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
               >
                 <X size={12} />
               </button>
-            ) : (
-              <div className="nexus-search-shortcut" onClick={() => inputRef.current?.focus()}>
-                <span>⌘</span> K
-              </div>
             )}
           </div>
         </form>

@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
   scroll-behavior: smooth !important;
   scroll-padding-top: 90px !important;
 }
@@ -605,6 +606,7 @@ body {
 }
 
 @keyframes pulseDot {
+
   0%,
   100% {
     opacity: 1;
@@ -3404,10 +3406,12 @@ body {
   .nexus-filter-bar {
     flex-wrap: nowrap;
   }
+
   .nexus-filter-search {
     flex: 0 1 290px;
     min-width: 220px;
   }
+
   .nexus-filter-dropdowns {
     flex-wrap: nowrap;
     flex: 1;
@@ -4992,6 +4996,7 @@ body {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -5036,7 +5041,7 @@ body {
 
 .nexus-main-wrapper {
   flex: 1;
-  margin-left: 272px;
+  margin-left: 242px;
   padding-top: 76px;
   min-width: 0;
   display: flex;
@@ -5053,7 +5058,7 @@ body {
   top: 16px;
   left: 16px;
   bottom: 16px;
-  width: 240px;
+  width: 210px;
   background-color: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 20px;
@@ -5078,6 +5083,7 @@ body {
 .nexus-floating-sidebar::-webkit-scrollbar {
   width: 4px;
 }
+
 .nexus-floating-sidebar::-webkit-scrollbar-thumb {
   background-color: #E2E8F0;
   border-radius: 4px;
@@ -5322,7 +5328,7 @@ body {
   right: 0;
   width: 100vw;
   height: 76px;
-  padding: 0 24px 0 272px;
+  padding: 0 24px 0 242px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -5346,7 +5352,7 @@ body {
 
 .nexus-topbar-search-form {
   width: 100%;
-  max-width: 520px !important;
+  max-width: 380px !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -5365,7 +5371,7 @@ body {
 
 .nexus-search-icon {
   position: absolute !important;
-  left: 14px !important;
+  left: 18px !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
   color: #818CF8 !important;
@@ -5376,20 +5382,20 @@ body {
 
 .nexus-topbar-search-input {
   width: 100% !important;
-  height: 42px !important;
-  padding: 0 58px 0 44px !important;
-  background-color: rgba(11, 34, 56, 0.70) !important;
-  backdrop-filter: blur(14px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
-  border-radius: 12px !important;
-  font-size: 13.5px !important;
+  height: 40px !important;
+  padding: 0 46px 0 46px !important;
+  background-color: rgba(11, 34, 56, 0.75) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 20px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
   outline: none !important;
-  box-shadow: 0 2px 10px rgba(7, 25, 41, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 4px 16px rgba(7, 25, 41, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .nexus-topbar-search-input::placeholder {
@@ -5400,15 +5406,15 @@ body {
 }
 
 .nexus-topbar-search-input:hover {
-  background-color: rgba(15, 45, 74, 0.85) !important;
-  border-color: rgba(129, 140, 248, 0.40) !important;
-  box-shadow: 0 4px 16px rgba(7, 25, 41, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(15, 45, 74, 0.90) !important;
+  border-color: rgba(129, 140, 248, 0.45) !important;
+  box-shadow: 0 6px 20px rgba(7, 25, 41, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
 }
 
 .nexus-topbar-search-input:focus {
   background-color: #071929 !important;
   border-color: #6366F1 !important;
-  box-shadow: 0 0 0 3.5px rgba(99, 102, 241, 0.30), 0 8px 24px rgba(7, 25, 41, 0.5) !important;
+  box-shadow: 0 0 0 3.5px rgba(99, 102, 241, 0.35), 0 8px 24px rgba(7, 25, 41, 0.5) !important;
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
 }
@@ -5419,7 +5425,7 @@ body {
 }
 
 .nexus-topbar-search-input:-webkit-autofill,
-.nexus-topbar-search-input:-webkit-autofill:hover, 
+.nexus-topbar-search-input:-webkit-autofill:hover,
 .nexus-topbar-search-input:-webkit-autofill:focus {
   -webkit-text-fill-color: #FFFFFF !important;
   -webkit-box-shadow: 0 0 0px 1000px #071929 inset !important;
@@ -5458,7 +5464,7 @@ body {
 
 .nexus-search-clear-btn {
   position: absolute !important;
-  right: 12px !important;
+  right: 18px !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
   display: inline-flex !important;
@@ -6083,10 +6089,12 @@ body {
     transform: translateY(0px);
     box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.07), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
   }
+
   50% {
     transform: translateY(-6px);
     box-shadow: 0 20px 38px -8px rgba(15, 23, 42, 0.11), 0 8px 18px -4px rgba(49, 94, 235, 0.08);
   }
+
   100% {
     transform: translateY(0px);
     box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.07), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
@@ -6110,16 +6118,27 @@ body {
 }
 
 /* Stagger floating delays across explicit KPI grid card children */
-.nexus-kpi-grid > div:nth-child(1) { animation: nexusFloatGentle 6.2s ease-in-out infinite 0s; }
-.nexus-kpi-grid > div:nth-child(2) { animation: nexusFloatGentle 6.8s ease-in-out infinite 0.9s; }
-.nexus-kpi-grid > div:nth-child(3) { animation: nexusFloatGentle 6.4s ease-in-out infinite 1.8s; }
-.nexus-kpi-grid > div:nth-child(4) { animation: nexusFloatGentle 7.0s ease-in-out infinite 2.7s; }
+.nexus-kpi-grid>div:nth-child(1) {
+  animation: nexusFloatGentle 6.2s ease-in-out infinite 0s;
+}
+
+.nexus-kpi-grid>div:nth-child(2) {
+  animation: nexusFloatGentle 6.8s ease-in-out infinite 0.9s;
+}
+
+.nexus-kpi-grid>div:nth-child(3) {
+  animation: nexusFloatGentle 6.4s ease-in-out infinite 1.8s;
+}
+
+.nexus-kpi-grid>div:nth-child(4) {
+  animation: nexusFloatGentle 7.0s ease-in-out infinite 2.7s;
+}
 
 /* Interactive Hover Elevation */
 .nexus-card:hover,
 .nexus-kpi-card:hover,
 .nexus-floating-box:hover,
-.nexus-kpi-grid > div:hover {
+.nexus-kpi-grid>div:hover {
   animation-play-state: paused;
   transform: translateY(-4px);
   box-shadow: 0 20px 40px -8px rgba(37, 99, 235, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
@@ -6217,8 +6236,13 @@ body {
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease !important;
 }
 
-.nexus-complaints-summary-left { animation-delay: 0.2s; }
-.nexus-complaints-summary-right { animation-delay: 1.0s; }
+.nexus-complaints-summary-left {
+  animation-delay: 0.2s;
+}
+
+.nexus-complaints-summary-right {
+  animation-delay: 1.0s;
+}
 
 .nexus-complaints-summary-left:hover,
 .nexus-complaints-summary-right:hover {
@@ -6435,8 +6459,17 @@ body {
 }
 
 @keyframes nexusPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
 }
 
 /* Box Card Container */
@@ -6555,19 +6588,22 @@ body {
   flex-shrink: 0;
 }
 
-.nexus-badge-critical, .nexus-badge-red {
+.nexus-badge-critical,
+.nexus-badge-red {
   color: #b91c1c;
   background-color: #fef2f2;
   border: 1px solid #fecaca;
 }
 
-.nexus-badge-high, .nexus-badge-amber {
+.nexus-badge-high,
+.nexus-badge-amber {
   color: #c2410c;
   background-color: #fff7ed;
   border: 1px solid #ffedd5;
 }
 
-.nexus-badge-medium, .nexus-badge-green {
+.nexus-badge-medium,
+.nexus-badge-green {
   color: #15803d;
   background-color: #f0fdf4;
   border: 1px solid #bbf7d0;
@@ -6645,11 +6681,30 @@ body {
   flex-shrink: 0;
 }
 
-.nexus-activity-badge-critical { color: #dc2626; background: #fef2f2; }
-.nexus-activity-badge-high { color: #ea580c; background: #fff7ed; }
-.nexus-activity-badge-medium { color: #d97706; background: #fefce8; }
-.nexus-activity-badge-intake { color: #2563eb; background: #eff6ff; }
-.nexus-activity-badge-closed { color: #16a34a; background: #f0fdf4; }
+.nexus-activity-badge-critical {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.nexus-activity-badge-high {
+  color: #ea580c;
+  background: #fff7ed;
+}
+
+.nexus-activity-badge-medium {
+  color: #d97706;
+  background: #fefce8;
+}
+
+.nexus-activity-badge-intake {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.nexus-activity-badge-closed {
+  color: #16a34a;
+  background: #f0fdf4;
+}
 
 .nexus-activity-desc {
   font-size: 11px;
@@ -6759,10 +6814,12 @@ body {
     transform: translateY(0px);
     box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.8);
   }
+
   50% {
     transform: translateY(-5px);
     box-shadow: 0 18px 36px -6px rgba(15, 23, 42, 0.11), 0 8px 14px -4px rgba(79, 70, 229, 0.08), 0 0 0 1px rgba(94, 106, 210, 0.15);
   }
+
   100% {
     transform: translateY(0px);
     box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.8);
@@ -6771,18 +6828,37 @@ body {
 
 /* Golden Ratio & Motion Keyframes for Landing Page */
 @keyframes travelLong {
-  0% { offset-distance: 0%; }
-  100% { offset-distance: 100%; }
+  0% {
+    offset-distance: 0%;
+  }
+
+  100% {
+    offset-distance: 100%;
+  }
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.65; filter: drop-shadow(0 0 4px rgba(0, 182, 196, 0.6)); }
-  50% { opacity: 1; filter: drop-shadow(0 0 10px rgba(0, 182, 196, 0.9)); }
+
+  0%,
+  100% {
+    opacity: 0.65;
+    filter: drop-shadow(0 0 4px rgba(0, 182, 196, 0.6));
+  }
+
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 10px rgba(0, 182, 196, 0.9));
+  }
 }
 
 @keyframes nexusMarquee {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .nexus-marquee-track {
@@ -6801,18 +6877,37 @@ body {
 }
 
 @keyframes flowBeamAnim {
-  0% { stroke-dashoffset: 400; }
-  100% { stroke-dashoffset: 0; }
+  0% {
+    stroke-dashoffset: 400;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
 }
 
 @keyframes nodeFloat1 {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes nodeFloat2 {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(8px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(8px);
+  }
 }
 
 .flow-dash-beam {
@@ -6826,11 +6921,3 @@ body {
 .node-float-2 {
   animation: nodeFloat2 4.5s ease-in-out infinite;
 }
-
-
-
-
-
-
-
-
