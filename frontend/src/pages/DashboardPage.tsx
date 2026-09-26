@@ -181,7 +181,7 @@ export const DashboardPage: React.FC = () => {
             </span>
           </div>
           <div style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'monospace', color: '#0F172A', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: '6px' }}>
-            {isLoading ? '...' : (stats?.openComplaints ?? 5)}
+            {isLoading ? '...' : (stats?.openComplaints ?? 0)}
           </div>
           <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
             Currently under active investigation
@@ -207,14 +207,14 @@ export const DashboardPage: React.FC = () => {
               ACTIVE ALERTS
             </span>
             <span style={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 800, color: '#DC2626', border: '1px solid #FECACA', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase', backgroundColor: '#FEF2F2' }}>
-              CRITICAL
+              {stats?.highestAlertRisk || 'CRITICAL'}
             </span>
           </div>
           <div style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'monospace', color: '#0F172A', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: '6px' }}>
-            5
+            {isLoading ? '...' : (stats?.activeAlerts ?? 0)}
           </div>
           <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
-            Highest risk: Critical
+            Highest risk: {stats?.highestAlertRisk || 'None'}
           </div>
         </div>
 
@@ -238,13 +238,13 @@ export const DashboardPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', marginBottom: '6px' }}>
             <div>
               <span style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'monospace', color: '#0F172A', letterSpacing: '-0.04em' }}>
-                {isLoading ? '...' : (stats?.incidentsInProgress ?? 3)}
+                {isLoading ? '...' : (stats?.incidentsInProgress ?? 0)}
               </span>
               <span style={{ fontSize: '11px', color: '#64748B', marginLeft: '6px', fontWeight: 500 }}>In progress</span>
             </div>
             <div>
               <span style={{ fontSize: '24px', fontWeight: 800, fontFamily: 'monospace', color: '#64748B', letterSpacing: '-0.04em' }}>
-                {isLoading ? '...' : (stats?.incidentsClosedToday ?? 1)}
+                {isLoading ? '...' : (stats?.incidentsClosedToday ?? 0)}
               </span>
               <span style={{ fontSize: '11px', color: '#94A3B8', marginLeft: '4px', fontWeight: 500 }}>Closed/Auth</span>
             </div>
@@ -269,10 +269,10 @@ export const DashboardPage: React.FC = () => {
             FUNDS AT RISK
           </div>
           <div style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'monospace', color: '#DC2626', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: '6px' }}>
-            {isLoading ? '...' : (stats?.totalFundsAtRisk ?? '₹27.8 L')}
+            {isLoading ? '...' : (stats?.totalFundsAtRisk ?? '₹0')}
           </div>
           <div style={{ fontSize: '12px', color: '#16A34A', fontWeight: 600 }}>
-            {isLoading ? '...' : (stats?.totalFundsFrozen ?? '₹8.4 L secured / frozen')}
+            {isLoading ? '...' : (stats?.totalFundsFrozen ?? '₹0 secured / frozen')}
           </div>
         </div>
 

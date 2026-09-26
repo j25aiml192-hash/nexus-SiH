@@ -82,7 +82,12 @@ def health():
 @app.get("/dashboard/stats")
 @app.get("/stats")
 def get_dashboard_stats(timeframe: str = "24h"):
-    return repo.get_dashboard_stats()
+    try:
+        return repo.get_dashboard_stats()
+    except Exception as e:
+        logger.error(f"[DASHBOARD STATS ERROR] Failed to fetch stats: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail=f"Database service unavailable: {str(e)}")
 
 
 @app.get("/config")

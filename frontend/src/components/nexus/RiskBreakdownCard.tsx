@@ -17,13 +17,8 @@ interface RiskBreakdownCardProps {
 export const RiskBreakdownCard: React.FC<RiskBreakdownCardProps> = ({ data, defaultExpanded = false }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
-  const totalActiveCases = data?.totalActiveCases ?? 55;
-  const rawBreakdown = data?.breakdown ?? [
-    { level: 'CRITICAL', count: 5, percentage: 10, color: '#EF4444' },
-    { level: 'HIGH', count: 32, percentage: 64, color: '#F59E0B' },
-    { level: 'MEDIUM', count: 18, percentage: 26, color: '#06B6D4' },
-    { level: 'LOW', count: 0, percentage: 0, color: '#10B981' },
-  ];
+  const totalActiveCases = data?.totalActiveCases ?? 0;
+  const rawBreakdown = data?.breakdown ?? [];
 
   // Filter out categories with 0 count as per redesign principles
   const activeBreakdown = rawBreakdown.filter((item) => item.count > 0);
@@ -67,35 +62,41 @@ export const RiskBreakdownCard: React.FC<RiskBreakdownCardProps> = ({ data, defa
       {/* Progressive Collapsible Body */}
       {isExpanded && (
         <div className="space-y-3.5 pt-2 animate-fadeIn">
-          {activeBreakdown.map((item) => (
-            <div key={item.level} className="space-y-1.5">
-              <div className="flex justify-between items-center text-xs">
-                <div className="flex items-center gap-2 font-bold tracking-wide text-slate-200">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full inline-block shadow-xs"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span>{item.level}</span>
-                </div>
-                <div className="font-mono text-slate-300">
-                  <span className="font-bold text-sm text-white">{item.count}</span>{' '}
-                  <span className="text-slate-400 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 font-semibold ml-1">
-                    {item.percentage}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
-                <div
-                  className="h-2 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.max(item.percentage, 4)}%`,
-                    backgroundColor: item.color,
-                  }}
-                />
-              </div>
+          {activeBreakdown.length === 0 ? (
+            <div className="p-4 text-center text-xs text-slate-400 bg-slate-900/40 rounded-xl border border-slate-800">
+              No active risk categories recorded.
             </div>
-          ))}
+          ) : (
+            activeBreakdown.map((item) => (
+              <div key={item.level} className="space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-2 font-bold tracking-wide text-slate-200">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full inline-block shadow-xs"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span>{item.level}</span>
+                  </div>
+                  <div className="font-mono text-slate-300">
+                    <span className="font-bold text-sm text-white">{item.count}</span>{' '}
+                    <span className="text-slate-400 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 font-semibold ml-1">
+                      {item.percentage}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                  <div
+                    className="h-2 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.max(item.percentage, 4)}%`,
+                      backgroundColor: item.color,
+                    }}
+                  />
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>
