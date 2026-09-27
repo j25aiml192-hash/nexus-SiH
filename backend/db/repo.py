@@ -6,7 +6,9 @@ import datetime
 import random
 import math
 import logging
-from typing import List, Dict, Any, Optional
+import hashlib
+import re
+from typing import List, Dict, Any, Optional, Tuple
 
 logger = logging.getLogger("nexus.repo")
 DB_PATH = os.path.join(os.path.dirname(__file__), "nexus.db")
@@ -138,6 +140,135 @@ def init_db():
         account_id TEXT NOT NULL,
         latitude REAL NOT NULL,
         longitude REAL NOT NULL,
+        created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS truth_graph_entities (
+        entity_id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL,
+        canonical_reference TEXT UNIQUE NOT NULL,
+        raw_fingerprint_hash TEXT NOT NULL,
+        masked_value TEXT NOT NULL,
+        metadata TEXT NOT NULL DEFAULT '{}',
+        first_seen_at TEXT NOT NULL,
+        last_seen_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS truth_graph_relations (
+        relation_id TEXT PRIMARY KEY,
+        source_entity_id TEXT NOT NULL,
+        target_entity_id TEXT NOT NULL,
+        relation_type TEXT NOT NULL,
+        semantic_level TEXT NOT NULL DEFAULT 'DIRECT_OBSERVED',
+        complaint_id TEXT,
+        source_record_type TEXT NOT NULL,
+        source_record_id TEXT NOT NULL,
+        confidence REAL NOT NULL DEFAULT 1.0,
+        evidence_metadata TEXT NOT NULL DEFAULT '{}',
+        first_seen_at TEXT NOT NULL,
+        last_seen_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (source_entity_id) REFERENCES truth_graph_entities(entity_id),
+        FOREIGN KEY (target_entity_id) REFERENCES truth_graph_entities(entity_id),
+        UNIQUE (source_entity_id, target_entity_id, relation_type, source_record_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS potential_network_clusters (
+        cluster_id TEXT PRIMARY KEY,
+        cluster_label TEXT NOT NULL,
+        cluster_type TEXT NOT NULL DEFAULT 'POTENTIAL_SHARED_INFRASTRUCTURE',
+        status TEXT NOT NULL DEFAULT 'candidate',
+        confidence_score REAL NOT NULL DEFAULT 0.5,
+        supporting_entity_count INTEGER NOT NULL DEFAULT 0,
+        supporting_complaint_count INTEGER NOT NULL DEFAULT 0,
+        total_exposure_inr REAL NOT NULL DEFAULT 0.0,
+        summary_metadata TEXT NOT NULL DEFAULT '{}',
+        detected_at TEXT NOT NULL,
+        last_updated_at TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS potential_network_members (
+        id TEXT PRIMARY KEY,
+        cluster_id TEXT NOT NULL,
+        member_type TEXT NOT NULL,
+        entity_id TEXT,
+        complaint_id TEXT,
+        evidence_basis TEXT NOT NULL,
+        confidence REAL NOT NULL DEFAULT 1.0,
+        evidence_metadata TEXT NOT NULL DEFAULT '{}',
+        joined_at TEXT NOT NULL,
+        FOREIGN KEY (cluster_id) REFERENCES potential_network_clusters(cluster_id),
+        FOREIGN KEY (entity_id) REFERENCES truth_graph_entities(entity_id),
+        UNIQUE (cluster_id, member_type, entity_id, complaint_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS autonomy_events (
+        event_id TEXT PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        complaint_id TEXT,
+        payload TEXT NOT NULL DEFAULT '{}',
+        processing_status TEXT NOT NULL DEFAULT 'pending',
+        idempotency_key TEXT UNIQUE NOT NULL,
+        processed_at TEXT,
+        error_message TEXT,
+        created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS autonomy_audit_log (
+        log_id TEXT PRIMARY KEY,
+        complaint_id TEXT,
+        trigger_event_id TEXT,
+        trigger_event_type TEXT NOT NULL,
+        action_type TEXT NOT NULL,
+        decision_factors TEXT NOT NULL DEFAULT '{"reason_codes": []}',
+        action_payload TEXT NOT NULL DEFAULT '{}',
+        requires_approval INTEGER NOT NULL DEFAULT 0,
+        approval_status TEXT NOT NULL DEFAULT 'not_required',
+        approved_by TEXT,
+        approval_notes TEXT,
+        executed_at TEXT,
+        execution_result TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS victim_advisories (
+        advisory_id TEXT PRIMARY KEY,
+        complaint_id TEXT NOT NULL,
+        phone_number_masked TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        advisory_type TEXT NOT NULL,
+        advisory_version TEXT NOT NULL DEFAULT 'v1.0',
+        advisory_text TEXT NOT NULL,
+        delivery_status TEXT NOT NULL DEFAULT 'queued',
+        sent_at TEXT,
+        created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS model_evaluations (
+        eval_id TEXT PRIMARY KEY,
+        prediction_id TEXT NOT NULL,
+        complaint_id TEXT NOT NULL,
+        incident_id TEXT,
+        predicted_lat REAL,
+        predicted_lon REAL,
+        predicted_h3 TEXT,
+        predicted_time_start TEXT,
+        predicted_time_end TEXT,
+        actual_lat REAL,
+        actual_lon REAL,
+        actual_h3 TEXT,
+        actual_cashout_at TEXT,
+        distance_error_km REAL,
+        time_error_minutes REAL,
+        geo_correct_2_5km INTEGER,
+        time_correct_window INTEGER,
+        evaluation_status TEXT NOT NULL DEFAULT 'pending',
+        evaluated_at TEXT,
         created_at TEXT NOT NULL
     );
     """)
@@ -1720,7 +1851,1112 @@ def get_dashboard_stats(timeframe: str = "24h") -> Dict[str, Any]:
         return get_supabase_dashboard_stats(timeframe)
     return get_sqlite_dashboard_stats(timeframe)
 
+
+# =============================================================================
+# PHASE 1: TRUTH GRAPH & AUTONOMY DATA FOUNDATION UTILITIES & REPOSITORY
+# =============================================================================
+
+def normalize_entity_identity(entity_type: str, raw_value: str) -> Tuple[str, str, str]:
+    """
+    Deterministically normalizes an entity identifier into:
+    (canonical_reference, raw_fingerprint_hash, masked_value)
+    Guarantees consistent cross-case matching without exposing plaintext PII.
+    """
+    etype = str(entity_type).strip().lower()
+    val = str(raw_value).strip()
+
+    if etype == "phone":
+        digits = re.sub(r"\D", "", val)
+        norm = digits[-10:] if len(digits) >= 10 else digits
+        fp = hashlib.sha256(f"phone:{norm}".encode()).hexdigest()
+        canon = f"phone:{fp[:16]}"
+        masked = ("*" * (len(norm) - 4) + norm[-4:]) if len(norm) > 4 else "****"
+        return canon, fp, masked
+
+    elif etype == "bank_account":
+        norm = re.sub(r"[^A-Za-z0-9]", "", val.upper())
+        fp = hashlib.sha256(f"account:{norm}".encode()).hexdigest()
+        canon = f"account:{fp[:16]}"
+        masked = ("*" * (len(norm) - 4) + norm[-4:]) if len(norm) > 4 else "****"
+        return canon, fp, masked
+
+    elif etype == "upi_id":
+        norm = val.lower()
+        fp = hashlib.sha256(f"upi:{norm}".encode()).hexdigest()
+        canon = f"upi:{fp[:16]}"
+        handle = norm.split("@")[-1] if "@" in norm else "upi"
+        masked = f"***@{handle}"
+        return canon, fp, masked
+
+    elif etype == "device":
+        norm = val.lower()
+        fp = hashlib.sha256(f"device:{norm}".encode()).hexdigest()
+        canon = f"device:{fp[:16]}"
+        masked = f"DEV-******{norm[-4:] if len(norm) >= 4 else norm}"
+        return canon, fp, masked
+
+    elif etype == "ip_subnet":
+        norm = val.strip()
+        fp = hashlib.sha256(f"ip:{norm}".encode()).hexdigest()
+        canon = f"ip:{fp[:16]}"
+        parts = norm.split(".")
+        masked = f"***.***.{parts[-2] if len(parts) >= 2 else 'X'}.0/24"
+        return canon, fp, masked
+
+    elif etype == "complaint":
+        canon = f"complaint:{val}"
+        fp = hashlib.sha256(canon.encode()).hexdigest()
+        return canon, fp, val
+
+    elif etype == "transaction":
+        canon = f"txn:{val}"
+        fp = hashlib.sha256(canon.encode()).hexdigest()
+        masked = f"TXN-******{val[-4:] if len(val) >= 4 else val}"
+        return canon, fp, masked
+
+    elif etype == "atm":
+        canon = f"atm:{val}"
+        fp = hashlib.sha256(canon.encode()).hexdigest()
+        return canon, fp, val
+
+    else:
+        norm = val.lower()
+        fp = hashlib.sha256(f"{etype}:{norm}".encode()).hexdigest()
+        canon = f"{etype}:{fp[:16]}"
+        masked = f"{etype.upper()}-******"
+        return canon, fp, masked
+
+
+# -----------------------------------------------------------------------------
+# 1. TRUTH GRAPH ENTITIES
+# -----------------------------------------------------------------------------
+
+def create_or_get_truth_entity(
+    entity_type: str,
+    raw_value: str,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Creates or retrieves a deterministic Truth Graph entity.
+    Resolves duplicates deterministically across complaints.
+    """
+    canon_ref, fp_hash, masked = normalize_entity_identity(entity_type, raw_value)
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    meta = metadata or {}
+
+    # Attempt Supabase if active
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            existing = supabase.table("truth_graph_entities").select("*").eq("canonical_reference", canon_ref).execute()
+            if existing.data:
+                row = existing.data[0]
+                merged_meta = {**(row.get("metadata") or {}), **meta}
+                supabase.table("truth_graph_entities").update({
+                    "last_seen_at": now_iso,
+                    "updated_at": now_iso,
+                    "metadata": merged_meta,
+                }).eq("entity_id", row["entity_id"]).execute()
+                row["last_seen_at"] = now_iso
+                row["metadata"] = merged_meta
+                return row
+
+            new_id = str(uuid.uuid4())
+            new_row = {
+                "entity_id": new_id,
+                "entity_type": entity_type.strip().lower(),
+                "canonical_reference": canon_ref,
+                "raw_fingerprint_hash": fp_hash,
+                "masked_value": masked,
+                "metadata": meta,
+                "first_seen_at": now_iso,
+                "last_seen_at": now_iso,
+                "created_at": now_iso,
+                "updated_at": now_iso,
+            }
+            res = supabase.table("truth_graph_entities").insert(new_row).execute()
+            if res.data:
+                return res.data[0]
+            return new_row
+        except Exception as e:
+            logger.debug(f"[SUPABASE TRUTH ENTITY FALLBACK]: {e}")
+
+    # SQLite fallback / local execution
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM truth_graph_entities WHERE canonical_reference = ?", (canon_ref,))
+    row = c.fetchone()
+    if row:
+        d = dict(row)
+        try:
+            cur_meta = json.loads(d.get("metadata") or "{}")
+        except Exception:
+            cur_meta = {}
+        merged_meta = {**cur_meta, **meta}
+        c.execute("""
+            UPDATE truth_graph_entities 
+            SET last_seen_at = ?, updated_at = ?, metadata = ?
+            WHERE canonical_reference = ?
+        """, (now_iso, now_iso, json.dumps(merged_meta), canon_ref))
+        conn.commit()
+        conn.close()
+        d["last_seen_at"] = now_iso
+        d["metadata"] = merged_meta
+        return d
+
+    new_id = str(uuid.uuid4())
+    c.execute("""
+        INSERT INTO truth_graph_entities (
+            entity_id, entity_type, canonical_reference, raw_fingerprint_hash,
+            masked_value, metadata, first_seen_at, last_seen_at, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        new_id, entity_type.strip().lower(), canon_ref, fp_hash,
+        masked, json.dumps(meta), now_iso, now_iso, now_iso, now_iso
+    ))
+    conn.commit()
+    conn.close()
+
+    return {
+        "entity_id": new_id,
+        "entity_type": entity_type.strip().lower(),
+        "canonical_reference": canon_ref,
+        "raw_fingerprint_hash": fp_hash,
+        "masked_value": masked,
+        "metadata": meta,
+        "first_seen_at": now_iso,
+        "last_seen_at": now_iso,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+
+
+def get_truth_entity_by_id(entity_id: str) -> Optional[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("truth_graph_entities").select("*").eq("entity_id", entity_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            logger.debug(f"[SUPABASE GET ENTITY FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM truth_graph_entities WHERE entity_id = ?", (entity_id,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    if isinstance(d.get("metadata"), str):
+        try:
+            d["metadata"] = json.loads(d["metadata"])
+        except Exception:
+            d["metadata"] = {}
+    return d
+
+
+def get_truth_entity_by_reference(canonical_reference: str) -> Optional[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("truth_graph_entities").select("*").eq("canonical_reference", canonical_reference).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            logger.debug(f"[SUPABASE GET REF FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM truth_graph_entities WHERE canonical_reference = ?", (canonical_reference,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    if isinstance(d.get("metadata"), str):
+        try:
+            d["metadata"] = json.loads(d["metadata"])
+        except Exception:
+            d["metadata"] = {}
+    return d
+
+
+# -----------------------------------------------------------------------------
+# 2. TRUTH GRAPH RELATIONS
+# -----------------------------------------------------------------------------
+
+def create_truth_relation(
+    source_entity_id: str,
+    target_entity_id: str,
+    relation_type: str,
+    semantic_level: str = "DIRECT_OBSERVED",
+    complaint_id: Optional[str] = None,
+    source_record_type: str = "analysis",
+    source_record_id: str = "",
+    confidence: float = 1.0,
+    evidence_metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Creates a provenance-backed relation between two Truth Graph entities.
+    Distinguishes fact from inference via semantic_level:
+    DIRECT_OBSERVED | DERIVED | INFERRED | MODEL_SIGNAL
+    """
+    valid_levels = {"DIRECT_OBSERVED", "DERIVED", "INFERRED", "MODEL_SIGNAL"}
+    sem_level = semantic_level.upper() if semantic_level.upper() in valid_levels else "DIRECT_OBSERVED"
+    rel_type = relation_type.strip().upper()
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    ev_meta = evidence_metadata or {}
+    rec_id = source_record_id or f"{source_entity_id}_{target_entity_id}_{rel_type}"
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            existing = supabase.table("truth_graph_relations")\
+                .select("*")\
+                .eq("source_entity_id", source_entity_id)\
+                .eq("target_entity_id", target_entity_id)\
+                .eq("relation_type", rel_type)\
+                .eq("source_record_id", rec_id)\
+                .execute()
+            if existing.data:
+                row = existing.data[0]
+                supabase.table("truth_graph_relations").update({"last_seen_at": now_iso}).eq("relation_id", row["relation_id"]).execute()
+                row["last_seen_at"] = now_iso
+                return row
+
+            new_id = str(uuid.uuid4())
+            new_row = {
+                "relation_id": new_id,
+                "source_entity_id": source_entity_id,
+                "target_entity_id": target_entity_id,
+                "relation_type": rel_type,
+                "semantic_level": sem_level,
+                "complaint_id": complaint_id,
+                "source_record_type": source_record_type,
+                "source_record_id": rec_id,
+                "confidence": min(1.0, max(0.0, float(confidence))),
+                "evidence_metadata": ev_meta,
+                "first_seen_at": now_iso,
+                "last_seen_at": now_iso,
+                "created_at": now_iso,
+            }
+            res = supabase.table("truth_graph_relations").insert(new_row).execute()
+            if res.data:
+                return res.data[0]
+            return new_row
+        except Exception as e:
+            logger.debug(f"[SUPABASE TRUTH RELATION FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM truth_graph_relations
+        WHERE source_entity_id = ? AND target_entity_id = ? AND relation_type = ? AND source_record_id = ?
+    """, (source_entity_id, target_entity_id, rel_type, rec_id))
+    row = c.fetchone()
+    if row:
+        d = dict(row)
+        c.execute("UPDATE truth_graph_relations SET last_seen_at = ? WHERE relation_id = ?", (now_iso, d["relation_id"]))
+        conn.commit()
+        conn.close()
+        d["last_seen_at"] = now_iso
+        return d
+
+    new_id = str(uuid.uuid4())
+    c.execute("""
+        INSERT INTO truth_graph_relations (
+            relation_id, source_entity_id, target_entity_id, relation_type,
+            semantic_level, complaint_id, source_record_type, source_record_id,
+            confidence, evidence_metadata, first_seen_at, last_seen_at, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        new_id, source_entity_id, target_entity_id, rel_type,
+        sem_level, complaint_id, source_record_type, rec_id,
+        float(confidence), json.dumps(ev_meta), now_iso, now_iso, now_iso
+    ))
+    conn.commit()
+    conn.close()
+
+    return {
+        "relation_id": new_id,
+        "source_entity_id": source_entity_id,
+        "target_entity_id": target_entity_id,
+        "relation_type": rel_type,
+        "semantic_level": sem_level,
+        "complaint_id": complaint_id,
+        "source_record_type": source_record_type,
+        "source_record_id": rec_id,
+        "confidence": float(confidence),
+        "evidence_metadata": ev_meta,
+        "first_seen_at": now_iso,
+        "last_seen_at": now_iso,
+        "created_at": now_iso,
+    }
+
+
+def get_truth_graph_for_complaint(complaint_id: str) -> Dict[str, Any]:
+    """Returns the unified Truth Graph (entities + relations) associated with a complaint."""
+    relations = []
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("truth_graph_relations").select("*").eq("complaint_id", complaint_id).execute()
+            if res.data:
+                relations = res.data
+        except Exception:
+            relations = []
+
+    if not relations:
+        conn = get_connection()
+        c = conn.cursor()
+        c.execute("SELECT * FROM truth_graph_relations WHERE complaint_id = ?", (complaint_id,))
+        relations = [dict(r) for r in c.fetchall()]
+        conn.close()
+
+    entity_ids = set()
+    for rel in relations:
+        entity_ids.add(rel["source_entity_id"])
+        entity_ids.add(rel["target_entity_id"])
+
+    entities = []
+    for eid in entity_ids:
+        ent = get_truth_entity_by_id(eid)
+        if ent:
+            entities.append(ent)
+
+    return {
+        "complaint_id": complaint_id,
+        "entities": entities,
+        "relations": relations,
+    }
+
+
+def get_entity_cross_case_links(entity_id: str) -> Dict[str, Any]:
+    """Retrieves all complaints and connected entities linked to an entity across cases."""
+    relations = []
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            r1 = supabase.table("truth_graph_relations").select("*").eq("source_entity_id", entity_id).execute()
+            r2 = supabase.table("truth_graph_relations").select("*").eq("target_entity_id", entity_id).execute()
+            relations = (r1.data or []) + (r2.data or [])
+        except Exception:
+            relations = []
+
+    if not relations:
+        conn = get_connection()
+        c = conn.cursor()
+        c.execute("""
+            SELECT * FROM truth_graph_relations
+            WHERE source_entity_id = ? OR target_entity_id = ?
+        """, (entity_id, entity_id))
+        relations = [dict(r) for r in c.fetchall()]
+        conn.close()
+
+    linked_complaint_ids = sorted(list({r.get("complaint_id") for r in relations if r.get("complaint_id")}))
+    neighbor_entity_ids = sorted(list({
+        r["target_entity_id"] if r["source_entity_id"] == entity_id else r["source_entity_id"]
+        for r in relations
+    }))
+
+    return {
+        "entity_id": entity_id,
+        "cross_case_count": len(linked_complaint_ids),
+        "linked_complaints": linked_complaint_ids,
+        "connected_entity_ids": neighbor_entity_ids,
+        "relations": relations,
+    }
+
+
+# -----------------------------------------------------------------------------
+# 3. POTENTIAL NETWORK CLUSTERS (INFERRED NETWORKS / SYNDICATE DNA)
+# -----------------------------------------------------------------------------
+
+def create_potential_network_cluster(
+    cluster_label: str,
+    cluster_type: str = "POTENTIAL_SHARED_INFRASTRUCTURE",
+    status: str = "candidate",
+    confidence_score: float = 0.5,
+    summary_metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Creates an inferred operational network cluster candidate.
+    DOES NOT modify or overload the authoritative `syndicates` table.
+    """
+    new_id = str(uuid.uuid4())
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    meta = summary_metadata or {}
+    score = min(1.0, max(0.0, float(confidence_score)))
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            new_row = {
+                "cluster_id": new_id,
+                "cluster_label": cluster_label,
+                "cluster_type": cluster_type,
+                "status": status,
+                "confidence_score": score,
+                "supporting_entity_count": 0,
+                "supporting_complaint_count": 0,
+                "total_exposure_inr": 0.0,
+                "summary_metadata": meta,
+                "detected_at": now_iso,
+                "last_updated_at": now_iso,
+                "created_at": now_iso,
+            }
+            res = supabase.table("potential_network_clusters").insert(new_row).execute()
+            if res.data:
+                return res.data[0]
+            return new_row
+        except Exception as e:
+            logger.debug(f"[SUPABASE NETWORK CLUSTER FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO potential_network_clusters (
+            cluster_id, cluster_label, cluster_type, status, confidence_score,
+            supporting_entity_count, supporting_complaint_count, total_exposure_inr,
+            summary_metadata, detected_at, last_updated_at, created_at
+        ) VALUES (?, ?, ?, ?, ?, 0, 0, 0.0, ?, ?, ?, ?)
+    """, (new_id, cluster_label, cluster_type, status, score, json.dumps(meta), now_iso, now_iso, now_iso))
+    conn.commit()
+    conn.close()
+
+    return {
+        "cluster_id": new_id,
+        "cluster_label": cluster_label,
+        "cluster_type": cluster_type,
+        "status": status,
+        "confidence_score": score,
+        "supporting_entity_count": 0,
+        "supporting_complaint_count": 0,
+        "total_exposure_inr": 0.0,
+        "summary_metadata": meta,
+        "detected_at": now_iso,
+        "last_updated_at": now_iso,
+        "created_at": now_iso,
+    }
+
+
+def add_potential_network_member(
+    cluster_id: str,
+    member_type: str,
+    entity_id: Optional[str] = None,
+    complaint_id: Optional[str] = None,
+    evidence_basis: str = "SHARED_INFRASTRUCTURE",
+    confidence: float = 1.0,
+    evidence_metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Adds an entity or complaint membership link to an inferred network cluster."""
+    new_id = str(uuid.uuid4())
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    meta = evidence_metadata or {}
+    conf = min(1.0, max(0.0, float(confidence)))
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            new_row = {
+                "id": new_id,
+                "cluster_id": cluster_id,
+                "member_type": member_type,
+                "entity_id": entity_id,
+                "complaint_id": complaint_id,
+                "evidence_basis": evidence_basis,
+                "confidence": conf,
+                "evidence_metadata": meta,
+                "joined_at": now_iso,
+            }
+            res = supabase.table("potential_network_members").insert(new_row).execute()
+            if res.data:
+                return res.data[0]
+            return new_row
+        except Exception as e:
+            logger.debug(f"[SUPABASE CLUSTER MEMBER FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO potential_network_members (
+            id, cluster_id, member_type, entity_id, complaint_id,
+            evidence_basis, confidence, evidence_metadata, joined_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (new_id, cluster_id, member_type, entity_id, complaint_id, evidence_basis, conf, json.dumps(meta), now_iso))
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": new_id,
+        "cluster_id": cluster_id,
+        "member_type": member_type,
+        "entity_id": entity_id,
+        "complaint_id": complaint_id,
+        "evidence_basis": evidence_basis,
+        "confidence": conf,
+        "evidence_metadata": meta,
+        "joined_at": now_iso,
+    }
+
+
+def get_potential_network_clusters(limit: int = 50, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            query = supabase.table("potential_network_clusters").select("*").order("detected_at", desc=True).limit(limit)
+            if status:
+                query = query.eq("status", status)
+            res = query.execute()
+            if res.data:
+                return res.data
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    if status:
+        c.execute("SELECT * FROM potential_network_clusters WHERE status = ? ORDER BY detected_at DESC LIMIT ?", (status, limit))
+    else:
+        c.execute("SELECT * FROM potential_network_clusters ORDER BY detected_at DESC LIMIT ?", (limit,))
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+# -----------------------------------------------------------------------------
+# 4. AUTONOMY EVENT OUTBOX (IDEMPOTENT EVENT PERSISTENCE)
+# -----------------------------------------------------------------------------
+
+def create_autonomy_event(
+    event_type: str,
+    entity_type: str,
+    entity_id: str,
+    complaint_id: Optional[str] = None,
+    payload: Optional[Dict[str, Any]] = None,
+    idempotency_key: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Persists an autonomy event with deterministic idempotency.
+    Guarantees no duplicate events from repeated webhooks or intake calls.
+    """
+    idem_key = idempotency_key or f"evt:{event_type}:{entity_type}:{entity_id}:{complaint_id or 'none'}"
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    payl = payload or {}
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            existing = supabase.table("autonomy_events").select("*").eq("idempotency_key", idem_key).execute()
+            if existing.data:
+                return existing.data[0]
+
+            new_id = str(uuid.uuid4())
+            new_row = {
+                "event_id": new_id,
+                "event_type": event_type,
+                "entity_type": entity_type,
+                "entity_id": str(entity_id),
+                "complaint_id": complaint_id,
+                "payload": payl,
+                "processing_status": "pending",
+                "idempotency_key": idem_key,
+                "created_at": now_iso,
+            }
+            res = supabase.table("autonomy_events").insert(new_row).execute()
+            if res.data:
+                return res.data[0]
+            return new_row
+        except Exception as e:
+            logger.debug(f"[SUPABASE AUTONOMY EVENT FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM autonomy_events WHERE idempotency_key = ?", (idem_key,))
+    row = c.fetchone()
+    if row:
+        conn.close()
+        d = dict(row)
+        if isinstance(d.get("payload"), str):
+            try:
+                d["payload"] = json.loads(d["payload"])
+            except Exception:
+                d["payload"] = {}
+        return d
+
+    new_id = str(uuid.uuid4())
+    c.execute("""
+        INSERT INTO autonomy_events (
+            event_id, event_type, entity_type, entity_id, complaint_id,
+            payload, processing_status, idempotency_key, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+    """, (new_id, event_type, entity_type, str(entity_id), complaint_id, json.dumps(payl), idem_key, now_iso))
+    conn.commit()
+    conn.close()
+
+    return {
+        "event_id": new_id,
+        "event_type": event_type,
+        "entity_type": entity_type,
+        "entity_id": str(entity_id),
+        "complaint_id": complaint_id,
+        "payload": payl,
+        "processing_status": "pending",
+        "idempotency_key": idem_key,
+        "created_at": now_iso,
+    }
+
+
+def get_pending_autonomy_events(limit: int = 50) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("autonomy_events").select("*").eq("processing_status", "pending").order("created_at", desc=False).limit(limit).execute()
+            if res.data:
+                return res.data
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM autonomy_events WHERE processing_status = 'pending' ORDER BY created_at ASC LIMIT ?", (limit,))
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+def update_autonomy_event_status(
+    event_id: str,
+    status: str,
+    error_message: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            update_data = {"processing_status": status, "processed_at": now_iso}
+            if error_message:
+                update_data["error_message"] = error_message
+            res = supabase.table("autonomy_events").update(update_data).eq("event_id", event_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE autonomy_events
+        SET processing_status = ?, processed_at = ?, error_message = ?
+        WHERE event_id = ?
+    """, (status, now_iso, error_message, event_id))
+    conn.commit()
+    c.execute("SELECT * FROM autonomy_events WHERE event_id = ?", (event_id,))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+# -----------------------------------------------------------------------------
+# 5. AUTONOMY AUDIT LOG (STRUCTURED REASONING CODES)
+# -----------------------------------------------------------------------------
+
+def create_autonomy_audit_log(
+    trigger_event_type: str,
+    action_type: str,
+    decision_factors: Dict[str, Any],
+    complaint_id: Optional[str] = None,
+    trigger_event_id: Optional[str] = None,
+    action_payload: Optional[Dict[str, Any]] = None,
+    requires_approval: bool = False,
+    approval_status: str = "not_required",
+) -> Dict[str, Any]:
+    """
+    Records an immutable audit trace of autonomous system reasoning.
+    Enforces structured machine-readable reason codes; forbids raw LLM hidden transcripts.
+    """
+    clean_factors = dict(decision_factors)
+    if "reason_codes" not in clean_factors:
+        clean_factors["reason_codes"] = [str(action_type)]
+
+    new_id = str(uuid.uuid4())
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    payl = action_payload or {}
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            new_row = {
+                "log_id": new_id,
+                "complaint_id": complaint_id,
+                "trigger_event_id": trigger_event_id,
+                "trigger_event_type": trigger_event_type,
+                "action_type": action_type,
+                "decision_factors": clean_factors,
+                "action_payload": payl,
+                "requires_approval": requires_approval,
+                "approval_status": approval_status,
+                "created_at": now_iso,
+            }
+            res = supabase.table("autonomy_audit_log").insert(new_row).execute()
+            if res.data:
+                return res.data[0]
+            return new_row
+        except Exception as e:
+            logger.debug(f"[SUPABASE AUDIT LOG FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO autonomy_audit_log (
+            log_id, complaint_id, trigger_event_id, trigger_event_type,
+            action_type, decision_factors, action_payload, requires_approval,
+            approval_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        new_id, complaint_id, trigger_event_id, trigger_event_type,
+        action_type, json.dumps(clean_factors), json.dumps(payl),
+        1 if requires_approval else 0, approval_status, now_iso
+    ))
+    conn.commit()
+    conn.close()
+
+    return {
+        "log_id": new_id,
+        "complaint_id": complaint_id,
+        "trigger_event_id": trigger_event_id,
+        "trigger_event_type": trigger_event_type,
+        "action_type": action_type,
+        "decision_factors": clean_factors,
+        "action_payload": payl,
+        "requires_approval": requires_approval,
+        "approval_status": approval_status,
+        "created_at": now_iso,
+    }
+
+
+def get_autonomy_audit_logs(complaint_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            query = supabase.table("autonomy_audit_log").select("*").order("created_at", desc=True).limit(limit)
+            if complaint_id:
+                query = query.eq("complaint_id", complaint_id)
+            res = query.execute()
+            if res.data:
+                return res.data
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    if complaint_id:
+        c.execute("SELECT * FROM autonomy_audit_log WHERE complaint_id = ? ORDER BY created_at DESC LIMIT ?", (complaint_id, limit))
+    else:
+        c.execute("SELECT * FROM autonomy_audit_log ORDER BY created_at DESC LIMIT ?", (limit,))
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+# -----------------------------------------------------------------------------
+# 6. VICTIM PROACTIVE ADVISORIES
+# -----------------------------------------------------------------------------
+
+def create_victim_advisory(
+    complaint_id: str,
+    phone_number_masked: str,
+    channel: str,
+    advisory_type: str,
+    advisory_text: str,
+    advisory_version: str = "v1.0",
+) -> Dict[str, Any]:
+    """Persists a deterministic citizen scam warning or case advisory."""
+    new_id = str(uuid.uuid4())
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    chan = channel.upper()
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            new_row = {
+                "advisory_id": new_id,
+                "complaint_id": complaint_id,
+                "phone_number_masked": phone_number_masked,
+                "channel": chan,
+                "advisory_type": advisory_type,
+                "advisory_version": advisory_version,
+                "advisory_text": advisory_text,
+                "delivery_status": "queued",
+                "created_at": now_iso,
+            }
+            res = supabase.table("victim_advisories").insert(new_row).execute()
+            if res.data:
+                return res.data[0]
+            return new_row
+        except Exception as e:
+            logger.debug(f"[SUPABASE VICTIM ADVISORY FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO victim_advisories (
+            advisory_id, complaint_id, phone_number_masked, channel,
+            advisory_type, advisory_version, advisory_text, delivery_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?)
+    """, (new_id, complaint_id, phone_number_masked, chan, advisory_type, advisory_version, advisory_text, now_iso))
+    conn.commit()
+    conn.close()
+
+    return {
+        "advisory_id": new_id,
+        "complaint_id": complaint_id,
+        "phone_number_masked": phone_number_masked,
+        "channel": chan,
+        "advisory_type": advisory_type,
+        "advisory_version": advisory_version,
+        "advisory_text": advisory_text,
+        "delivery_status": "queued",
+        "created_at": now_iso,
+    }
+
+
+def get_victim_advisories(complaint_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            query = supabase.table("victim_advisories").select("*").order("created_at", desc=True).limit(limit)
+            if complaint_id:
+                query = query.eq("complaint_id", complaint_id)
+            res = query.execute()
+            if res.data:
+                return res.data
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    if complaint_id:
+        c.execute("SELECT * FROM victim_advisories WHERE complaint_id = ? ORDER BY created_at DESC LIMIT ?", (complaint_id, limit))
+    else:
+        c.execute("SELECT * FROM victim_advisories ORDER BY created_at DESC LIMIT ?", (limit,))
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+# -----------------------------------------------------------------------------
+# 7. MODEL EVALUATIONS (PREDICTION OUTCOME COMPARISON)
+# -----------------------------------------------------------------------------
+
+def create_model_evaluation(
+    prediction_id: str,
+    complaint_id: str,
+    incident_id: Optional[str] = None,
+    predicted_lat: Optional[float] = None,
+    predicted_lon: Optional[float] = None,
+    predicted_h3: Optional[str] = None,
+    predicted_time_start: Optional[str] = None,
+    predicted_time_end: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Creates an additive outcome evaluation record against a prediction.
+    DOES NOT overwrite or mutate the original prediction row.
+    """
+    new_id = str(uuid.uuid4())
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            new_row = {
+                "eval_id": new_id,
+                "prediction_id": str(prediction_id),
+                "complaint_id": str(complaint_id),
+                "incident_id": str(incident_id) if incident_id else None,
+                "predicted_lat": predicted_lat,
+                "predicted_lon": predicted_lon,
+                "predicted_h3": predicted_h3,
+                "predicted_time_start": predicted_time_start,
+                "predicted_time_end": predicted_time_end,
+                "evaluation_status": "pending",
+                "created_at": now_iso,
+            }
+            res = supabase.table("model_evaluations").insert(new_row).execute()
+            if res.data:
+                return res.data[0]
+            return new_row
+        except Exception as e:
+            logger.debug(f"[SUPABASE MODEL EVALUATION FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO model_evaluations (
+            eval_id, prediction_id, complaint_id, incident_id,
+            predicted_lat, predicted_lon, predicted_h3,
+            predicted_time_start, predicted_time_end, evaluation_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+    """, (
+        new_id, str(prediction_id), str(complaint_id), str(incident_id) if incident_id else None,
+        predicted_lat, predicted_lon, predicted_h3,
+        predicted_time_start, predicted_time_end, now_iso
+    ))
+    conn.commit()
+    conn.close()
+
+    return {
+        "eval_id": new_id,
+        "prediction_id": str(prediction_id),
+        "complaint_id": str(complaint_id),
+        "incident_id": str(incident_id) if incident_id else None,
+        "predicted_lat": predicted_lat,
+        "predicted_lon": predicted_lon,
+        "predicted_h3": predicted_h3,
+        "predicted_time_start": predicted_time_start,
+        "predicted_time_end": predicted_time_end,
+        "evaluation_status": "pending",
+        "created_at": now_iso,
+    }
+
+
+def update_model_evaluation_outcome(
+    eval_id: str,
+    actual_lat: float,
+    actual_lon: float,
+    actual_cashout_at: Optional[str] = None,
+    actual_h3: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Computes spatial and temporal accuracy when actual ground-truth field data is known.
+    Additive computation — original prediction remains completely preserved.
+    """
+    eval_row = get_model_evaluation(eval_id)
+    if not eval_row:
+        raise ValueError(f"Model evaluation record '{eval_id}' not found")
+
+    pred_lat = eval_row.get("predicted_lat")
+    pred_lon = eval_row.get("predicted_lon")
+
+    dist_km = None
+    geo_correct = None
+    if pred_lat is not None and pred_lon is not None and actual_lat is not None and actual_lon is not None:
+        # Haversine distance
+        R = 6371.0
+        dlat = math.radians(actual_lat - pred_lat)
+        dlon = math.radians(actual_lon - pred_lon)
+        a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(pred_lat)) * math.cos(math.radians(actual_lat)) * math.sin(dlon / 2) ** 2
+        dist_km = round(R * 2 * math.asin(math.sqrt(a)), 3)
+        geo_correct = bool(dist_km <= 2.5)
+
+    time_error_min = None
+    time_correct = None
+    if actual_cashout_at and eval_row.get("predicted_time_start"):
+        try:
+            t_act = datetime.datetime.fromisoformat(actual_cashout_at.replace("Z", "+00:00"))
+            t_start = datetime.datetime.fromisoformat(eval_row["predicted_time_start"].replace("Z", "+00:00"))
+            time_error_min = round(abs((t_act - t_start).total_seconds()) / 60, 1)
+            if eval_row.get("predicted_time_end"):
+                t_end = datetime.datetime.fromisoformat(eval_row["predicted_time_end"].replace("Z", "+00:00"))
+                time_correct = bool(t_start <= t_act <= t_end)
+        except Exception:
+            pass
+
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    status = "evaluated"
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            update_data = {
+                "actual_lat": actual_lat,
+                "actual_lon": actual_lon,
+                "actual_h3": actual_h3,
+                "actual_cashout_at": actual_cashout_at,
+                "distance_error_km": dist_km,
+                "time_error_minutes": time_error_min,
+                "geo_correct_2_5km": geo_correct,
+                "time_correct_window": time_correct,
+                "evaluation_status": status,
+                "evaluated_at": now_iso,
+            }
+            res = supabase.table("model_evaluations").update(update_data).eq("eval_id", eval_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            logger.debug(f"[SUPABASE UPDATE EVAL FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE model_evaluations
+        SET actual_lat = ?, actual_lon = ?, actual_h3 = ?, actual_cashout_at = ?,
+            distance_error_km = ?, time_error_minutes = ?, geo_correct_2_5km = ?,
+            time_correct_window = ?, evaluation_status = ?, evaluated_at = ?
+        WHERE eval_id = ?
+    """, (
+        actual_lat, actual_lon, actual_h3, actual_cashout_at,
+        dist_km, time_error_min, 1 if geo_correct else 0,
+        1 if time_correct else 0, status, now_iso, eval_id
+    ))
+    conn.commit()
+    conn.close()
+
+    eval_row.update({
+        "actual_lat": actual_lat,
+        "actual_lon": actual_lon,
+        "actual_h3": actual_h3,
+        "actual_cashout_at": actual_cashout_at,
+        "distance_error_km": dist_km,
+        "time_error_minutes": time_error_min,
+        "geo_correct_2_5km": geo_correct,
+        "time_correct_window": time_correct,
+        "evaluation_status": status,
+        "evaluated_at": now_iso,
+    })
+    return eval_row
+
+
+def get_model_evaluation(eval_id: str) -> Optional[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("model_evaluations").select("*").eq("eval_id", eval_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM model_evaluations WHERE eval_id = ?", (eval_id,))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_model_evaluations_for_complaint(complaint_id: str) -> List[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("model_evaluations").select("*").eq("complaint_id", complaint_id).execute()
+            if res.data:
+                return res.data
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM model_evaluations WHERE complaint_id = ?", (complaint_id,))
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
 # Initialize SQLite only if in development and explicitly enabled
 if os.getenv("NEXUS_ENV", "").lower() != "production" and os.getenv("USE_LOCAL_SQLITE", "").lower() == "true":
     init_db()
     seed_if_empty()
+
