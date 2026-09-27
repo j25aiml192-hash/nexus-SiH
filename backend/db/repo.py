@@ -1414,74 +1414,73 @@ def authorize_incident(incident_id: str) -> Optional[Dict[str, Any]]:
     conn.close()
     return get_incident_by_id(incident_id)
 
-def get_supabase_dashboard_stats() -> Dict[str, Any]:
+def get_cutoff_iso(timeframe: str) -> Optional[str]:
+    tf = (timeframe or "24h").lower()
+    now = datetime.datetime.now(datetime.timezone.utc)
+    if tf == "24h":
+        return (now - datetime.timedelta(hours=24)).isoformat()
+    elif tf == "7d":
+        return (now - datetime.timedelta(days=7)).isoformat()
+    elif tf == "30d":
+        return (now - datetime.timedelta(days=30)).isoformat()
+    return None
+
+
+def format_inr_currency(val: float) -> str:
+    if not val or val == 0:
+        return "₹0"
+    if val >= 10000000:
+        return f"₹{val/10000000:.2f} Cr"
+    elif val >= 100000:
+        return f"₹{val/100000:.2f} L"
+    else:
+        return f"₹{val:,.0f}"
+
+
+def get_supabase_dashboard_stats(timeframe: str = "24h") -> Dict[str, Any]:
     from db.supabase_client import supabase
 
-    # 1. Complaints
     c_res = supabase.table("complaints").select("complaint_id, fraud_type, amount_inr, status, created_at, filed_at, victim_state").execute()
     complaints = c_res.data or []
+
+    a_res = supabase.table("alerts").select("alert_id, prediction_id, complaint_id, message, severity, created_at, status").order("created_at", desc=True).execute()
+    alerts = a_res.data or []
+
+    i_res = supabase.table("incidents").select("incident_id, complaint_id, prediction_id, alert_id, status, suspect_apprehended, action_taken, amount_recovered_inr, outcome, created_at").order("created_at", desc=True).execute()
+    incidents = i_res.data or []
+
+    p_res = supabase.table("predictions").select("complaint_id, risk_score, predicted_lat, cashout_window_hours, status, created_at").execute()
+    predictions = p_res.data or []
+
+    cutoff_iso = get_cutoff_iso(timeframe)
+    if cutoff_iso:
+        complaints = [c for c in complaints if str(c.get("created_at") or c.get("filed_at") or "") >= cutoff_iso]
+        alerts = [a for a in alerts if str(a.get("created_at") or "") >= cutoff_iso]
+        incidents = [i for i in incidents if str(i.get("created_at") or "") >= cutoff_iso]
+        predictions = [p for p in predictions if str(p.get("created_at") or "") >= cutoff_iso]
+
     total_complaints = len(complaints)
     open_complaints = len([c for c in complaints if str(c.get("status", "")).lower() != "closed"])
     total_funds = sum(float(c.get("amount_inr") or 0) for c in complaints)
 
-    # 2. Alerts
-    a_res = supabase.table("alerts").select("alert_id, prediction_id, complaint_id, message, severity, created_at, status").order("created_at", desc=True).execute()
-    alerts = a_res.data or []
     active_alerts = len([a for a in alerts if str(a.get("status", "")).lower() not in ("actioned", "resolved", "closed", "failed")])
-
-    # 3. Incidents
-    i_res = supabase.table("incidents").select("incident_id, complaint_id, prediction_id, alert_id, status, suspect_apprehended, action_taken, amount_recovered_inr, outcome, created_at").order("created_at", desc=True).execute()
-    incidents = i_res.data or []
     incidents_in_progress = len([i for i in incidents if str(i.get("status", "")).lower() in ("open", "in_progress", "authorized")])
-    today_str = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
-    incidents_closed_today = len([
-        i for i in incidents
-        if str(i.get("status", "")).lower() in ("closed", "resolved")
-        and str(i.get("created_at", "")).startswith(today_str)
-    ])
+    incidents_closed = len([i for i in incidents if str(i.get("status", "")).lower() in ("closed", "resolved")])
     funds_frozen = sum(float(i.get("amount_recovered_inr") or 0) for i in incidents)
-
-    # 4. Predictions
-    p_res = supabase.table("predictions").select("complaint_id, risk_score, predicted_lat, cashout_window_hours, status").execute()
-    predictions = p_res.data or []
 
     red_count = len([p for p in predictions if float(p.get("risk_score") or 0) >= 0.75])
     amber_count = len([p for p in predictions if 0.45 <= float(p.get("risk_score") or 0) < 0.75])
     green_count = len([p for p in predictions if 0 < float(p.get("risk_score") or 0) < 0.45])
     total_predictions = len(predictions)
 
-    if total_predictions > 0:
-        breakdown = [
-            {"level": "CRITICAL", "count": red_count, "percentage": round(red_count / total_predictions * 100), "color": "#DC2626"},
-            {"level": "HIGH", "count": amber_count, "percentage": round(amber_count / total_predictions * 100), "color": "#EA580C"},
-            {"level": "MEDIUM", "count": green_count, "percentage": round(green_count / total_predictions * 100), "color": "#D97706"},
-            {"level": "LOW", "count": max(0, total_complaints - total_predictions), "percentage": round(max(0, total_complaints - total_predictions) / max(total_complaints, 1) * 100), "color": "#087F5B"}
-        ]
-    else:
-        breakdown = [
-            {"level": "CRITICAL", "count": 0, "percentage": 0, "color": "#DC2626"},
-            {"level": "HIGH", "count": 0, "percentage": 0, "color": "#EA580C"},
-            {"level": "MEDIUM", "count": 0, "percentage": 0, "color": "#D97706"},
-            {"level": "LOW", "count": 0, "percentage": 0, "color": "#087F5B"}
-        ]
+    breakdown = [
+        {"level": "CRITICAL", "count": red_count, "percentage": round(red_count / max(total_predictions, 1) * 100) if total_predictions > 0 else 0, "color": "#DC2626"},
+        {"level": "HIGH", "count": amber_count, "percentage": round(amber_count / max(total_predictions, 1) * 100) if total_predictions > 0 else 0, "color": "#EA580C"},
+        {"level": "MEDIUM", "count": green_count, "percentage": round(green_count / max(total_predictions, 1) * 100) if total_predictions > 0 else 0, "color": "#D97706"},
+        {"level": "LOW", "count": max(0, total_complaints - total_predictions), "percentage": round(max(0, total_complaints - total_predictions) / max(total_complaints, 1) * 100) if total_complaints > 0 else 0, "color": "#087F5B"}
+    ]
 
-    highest_risk = "None"
-    if red_count > 0:
-        highest_risk = "Critical"
-    elif amber_count > 0:
-        highest_risk = "High"
-    elif green_count > 0:
-        highest_risk = "Medium"
-
-    def format_inr(val):
-        if not val or val == 0:
-            return "₹0"
-        if val >= 10000000:
-            return f"₹{val/10000000:.1f} Cr"
-        elif val >= 100000:
-            return f"₹{val/100000:.1f} L"
-        else:
-            return f"₹{val:,.0f}"
+    highest_risk = "Critical" if red_count > 0 else ("High" if amber_count > 0 else ("Medium" if green_count > 0 else "None"))
 
     complaints_map = {c["complaint_id"]: c for c in complaints if c.get("complaint_id")}
     predictions_map = {p["complaint_id"]: p for p in predictions if p.get("complaint_id")}
@@ -1504,10 +1503,10 @@ def get_supabase_dashboard_stats() -> Dict[str, Any]:
             "accused_bank": comp.get("accused_bank") or "National Bank",
         })
 
-    activity_items = []
-    for c in complaints:
+    live_activity = []
+    for c in complaints[:4]:
         f_amt = int(float(c.get("amount_inr") or 0))
-        activity_items.append({
+        live_activity.append({
             "type": "complaint",
             "ref_id": c.get("complaint_id") or "",
             "title": f"New intake: {c.get('fraud_type', 'Fraud')}",
@@ -1515,18 +1514,8 @@ def get_supabase_dashboard_stats() -> Dict[str, Any]:
             "badge": c.get("status") or "flagged",
             "created_at": c.get("created_at") or c.get("filed_at") or "",
         })
-    for p in predictions:
-        cid = p.get("complaint_id") or ""
-        activity_items.append({
-            "type": "prediction",
-            "ref_id": cid,
-            "title": "Predictive risk computed",
-            "subtitle": f"Cashout window: {p.get('cashout_window_hours') or 12}h",
-            "badge": "CRITICAL" if float(p.get("risk_score") or 0) >= 0.75 else "HIGH",
-            "created_at": p.get("created_at") or "",
-        })
-    for a in alerts:
-        activity_items.append({
+    for a in alerts[:4]:
+        live_activity.append({
             "type": "alert",
             "ref_id": a.get("alert_id") or a.get("complaint_id") or "",
             "title": "Alert escalation",
@@ -1534,8 +1523,7 @@ def get_supabase_dashboard_stats() -> Dict[str, Any]:
             "badge": a.get("severity") or "HIGH",
             "created_at": a.get("created_at") or "",
         })
-    activity_items.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
-    live_activity = activity_items[:8]
+    live_activity.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
 
     kpis = {
         "openComplaints": open_complaints,
@@ -1543,9 +1531,9 @@ def get_supabase_dashboard_stats() -> Dict[str, Any]:
         "activeAlerts": active_alerts,
         "highestAlertRisk": highest_risk,
         "incidentsInProgress": incidents_in_progress,
-        "incidentsClosedToday": incidents_closed_today,
-        "totalFundsAtRisk": format_inr(total_funds),
-        "totalFundsFrozen": f"{format_inr(funds_frozen)} secured / frozen" if funds_frozen > 0 else "₹0 secured / frozen",
+        "incidentsClosedToday": incidents_closed,
+        "totalFundsAtRisk": format_inr_currency(total_funds),
+        "totalFundsFrozen": f"{format_inr_currency(funds_frozen)} secured / frozen" if funds_frozen > 0 else "₹0 secured / frozen",
     }
 
     return {
@@ -1555,101 +1543,157 @@ def get_supabase_dashboard_stats() -> Dict[str, Any]:
         "activeAlerts": active_alerts,
         "highestAlertRisk": highest_risk,
         "incidentsInProgress": incidents_in_progress,
-        "incidentsClosedToday": incidents_closed_today,
-        "totalFundsAtRisk": format_inr(total_funds),
-        "totalFundsFrozen": f"{format_inr(funds_frozen)} secured / frozen" if funds_frozen > 0 else "₹0 secured / frozen",
+        "incidentsClosedToday": incidents_closed,
+        "totalFundsAtRisk": format_inr_currency(total_funds),
+        "totalFundsFrozen": f"{format_inr_currency(funds_frozen)} secured / frozen" if funds_frozen > 0 else "₹0 secured / frozen",
         "priorityAlerts": priority_alerts,
-        "liveActivity": live_activity,
+        "liveActivity": live_activity[:8],
         "riskBreakdown": {
             "totalActiveCases": total_complaints,
             "breakdown": breakdown,
         }
     }
 
-def get_sqlite_dashboard_stats() -> Dict[str, Any]:
+
+def get_sqlite_dashboard_stats(timeframe: str = "24h") -> Dict[str, Any]:
     conn = get_connection()
     c = conn.cursor()
 
-    c.execute("SELECT COUNT(*) FROM complaints")
-    total_complaints = c.fetchone()[0]
+    cutoff_iso = get_cutoff_iso(timeframe)
 
-    c.execute("SELECT COUNT(*) FROM complaints WHERE status != 'resolved'")
-    open_complaints = c.fetchone()[0]
+    if cutoff_iso:
+        c.execute("SELECT COUNT(*) FROM complaints WHERE created_at >= ?", (cutoff_iso,))
+        total_complaints = c.fetchone()[0]
 
-    c.execute("SELECT COALESCE(SUM(amount_inr), 0) FROM complaints")
-    total_funds = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM complaints WHERE status != 'resolved' AND created_at >= ?", (cutoff_iso,))
+        open_complaints = c.fetchone()[0]
 
-    c.execute("SELECT COUNT(*) FROM alerts WHERE status != 'actioned'")
-    active_alerts = c.fetchone()[0]
+        c.execute("SELECT COALESCE(SUM(amount_inr), 0) FROM complaints WHERE created_at >= ?", (cutoff_iso,))
+        total_funds = float(c.fetchone()[0] or 0)
 
-    c.execute("SELECT COUNT(*) FROM incidents WHERE status = 'open'")
-    incidents_in_progress = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM alerts WHERE status != 'actioned' AND created_at >= ?", (cutoff_iso,))
+        active_alerts = c.fetchone()[0]
 
-    c.execute("SELECT COUNT(*) FROM incidents WHERE status = 'closed'")
-    incidents_closed = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM incidents WHERE status IN ('open', 'in_progress', 'authorized') AND created_at >= ?", (cutoff_iso,))
+        incidents_in_progress = c.fetchone()[0]
 
-    c.execute("""
-    SELECT COALESCE(SUM(c.amount_inr), 0)
-    FROM incidents i
-    JOIN complaints c ON i.complaint_id = c.complaint_id
-    WHERE i.status IN ('authorized', 'closed')
-    """)
-    funds_frozen = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM incidents WHERE status IN ('closed', 'resolved') AND created_at >= ?", (cutoff_iso,))
+        incidents_closed = c.fetchone()[0]
 
-    c.execute("SELECT risk_level, COUNT(*) FROM predictions GROUP BY risk_level")
-    risk_counts = {r[0]: r[1] for r in c.fetchall()}
+        c.execute("""
+        SELECT COALESCE(SUM(c.amount_inr), 0)
+        FROM incidents i
+        JOIN complaints c ON i.complaint_id = c.complaint_id
+        WHERE i.status IN ('authorized', 'closed', 'resolved') AND i.created_at >= ?
+        """, (cutoff_iso,))
+        funds_frozen = float(c.fetchone()[0] or 0)
 
-    c.execute("""
-    SELECT a.alert_id, a.complaint_id, a.message, a.severity, a.created_at, p.risk_score, p.cashout_window_hours, c.amount_inr, c.accused_bank
-    FROM alerts a
-    JOIN predictions p ON a.complaint_id = p.complaint_id
-    JOIN complaints c ON a.complaint_id = c.complaint_id
-    ORDER BY p.risk_score DESC, a.created_at DESC
-    LIMIT 4
-    """)
-    priority_alerts = [dict(r) for r in c.fetchall()]
+        c.execute("SELECT risk_level, COUNT(*) FROM predictions WHERE created_at >= ? GROUP BY risk_level", (cutoff_iso,))
+        risk_counts = {r[0]: r[1] for r in c.fetchall()}
 
-    c.execute("""
-    SELECT 'complaint' as type, complaint_id as ref_id, 'New intake: ' || fraud_type as title, 'Reported amount: Rs ' || CAST(ROUND(amount_inr) as TEXT) as subtitle, status as badge, created_at
-    FROM complaints
-    UNION ALL
-    SELECT 'prediction' as type, complaint_id as ref_id, 'Predictive risk computed' as title, 'Cashout window: ' || CAST(cashout_window_hours as TEXT) || 'h' as subtitle, risk_level as badge, created_at
-    FROM predictions
-    UNION ALL
-    SELECT 'alert' as type, alert_id as ref_id, 'Alert escalation' as title, message as subtitle, severity as badge, created_at
-    FROM alerts
-    ORDER BY created_at DESC
-    LIMIT 8
-    """)
-    live_activity = [dict(r) for r in c.fetchall()]
+        c.execute("""
+        SELECT a.alert_id, a.complaint_id, a.message, a.severity, a.created_at, p.risk_score, p.cashout_window_hours, c.amount_inr, c.accused_bank
+        FROM alerts a
+        JOIN predictions p ON a.complaint_id = p.complaint_id
+        JOIN complaints c ON a.complaint_id = c.complaint_id
+        WHERE a.created_at >= ?
+        ORDER BY p.risk_score DESC, a.created_at DESC
+        LIMIT 4
+        """, (cutoff_iso,))
+        priority_alerts = [dict(r) for r in c.fetchall()]
+
+        c.execute("""
+        SELECT 'complaint' as type, complaint_id as ref_id, 'New intake: ' || fraud_type as title, 'Reported amount: Rs ' || CAST(ROUND(amount_inr) as TEXT) as subtitle, status as badge, created_at
+        FROM complaints WHERE created_at >= ?
+        UNION ALL
+        SELECT 'prediction' as type, complaint_id as ref_id, 'Predictive risk computed' as title, 'Cashout window: ' || CAST(cashout_window_hours as TEXT) || 'h' as subtitle, risk_level as badge, created_at
+        FROM predictions WHERE created_at >= ?
+        UNION ALL
+        SELECT 'alert' as type, alert_id as ref_id, 'Alert escalation' as title, message as subtitle, severity as badge, created_at
+        FROM alerts WHERE created_at >= ?
+        ORDER BY created_at DESC
+        LIMIT 8
+        """, (cutoff_iso, cutoff_iso, cutoff_iso))
+        live_activity = [dict(r) for r in c.fetchall()]
+    else:
+        c.execute("SELECT COUNT(*) FROM complaints")
+        total_complaints = c.fetchone()[0]
+
+        c.execute("SELECT COUNT(*) FROM complaints WHERE status != 'resolved'")
+        open_complaints = c.fetchone()[0]
+
+        c.execute("SELECT COALESCE(SUM(amount_inr), 0) FROM complaints")
+        total_funds = float(c.fetchone()[0] or 0)
+
+        c.execute("SELECT COUNT(*) FROM alerts WHERE status != 'actioned'")
+        active_alerts = c.fetchone()[0]
+
+        c.execute("SELECT COUNT(*) FROM incidents WHERE status IN ('open', 'in_progress', 'authorized')")
+        incidents_in_progress = c.fetchone()[0]
+
+        c.execute("SELECT COUNT(*) FROM incidents WHERE status IN ('closed', 'resolved')")
+        incidents_closed = c.fetchone()[0]
+
+        c.execute("""
+        SELECT COALESCE(SUM(c.amount_inr), 0)
+        FROM incidents i
+        JOIN complaints c ON i.complaint_id = c.complaint_id
+        WHERE i.status IN ('authorized', 'closed', 'resolved')
+        """)
+        funds_frozen = float(c.fetchone()[0] or 0)
+
+        c.execute("SELECT risk_level, COUNT(*) FROM predictions GROUP BY risk_level")
+        risk_counts = {r[0]: r[1] for r in c.fetchall()}
+
+        c.execute("""
+        SELECT a.alert_id, a.complaint_id, a.message, a.severity, a.created_at, p.risk_score, p.cashout_window_hours, c.amount_inr, c.accused_bank
+        FROM alerts a
+        JOIN predictions p ON a.complaint_id = p.complaint_id
+        JOIN complaints c ON a.complaint_id = c.complaint_id
+        ORDER BY p.risk_score DESC, a.created_at DESC
+        LIMIT 4
+        """)
+        priority_alerts = [dict(r) for r in c.fetchall()]
+
+        c.execute("""
+        SELECT 'complaint' as type, complaint_id as ref_id, 'New intake: ' || fraud_type as title, 'Reported amount: Rs ' || CAST(ROUND(amount_inr) as TEXT) as subtitle, status as badge, created_at
+        FROM complaints
+        UNION ALL
+        SELECT 'prediction' as type, complaint_id as ref_id, 'Predictive risk computed' as title, 'Cashout window: ' || CAST(cashout_window_hours as TEXT) || 'h' as subtitle, risk_level as badge, created_at
+        FROM predictions
+        UNION ALL
+        SELECT 'alert' as type, alert_id as ref_id, 'Alert escalation' as title, message as subtitle, severity as badge, created_at
+        FROM alerts
+        ORDER BY created_at DESC
+        LIMIT 8
+        """)
+        live_activity = [dict(r) for r in c.fetchall()]
 
     conn.close()
 
-    def format_inr(val):
-        if val >= 10000000:
-            return f"₹{val/10000000:.1f} Cr"
-        elif val >= 100000:
-            return f"₹{val/100000:.1f} L"
-        else:
-            return f"₹{val:,.0f}"
+    total_predictions = sum(risk_counts.values()) or max(total_complaints, 1)
+    red_c = risk_counts.get("RED", 0)
+    amber_c = risk_counts.get("AMBER", 0)
+    green_c = risk_counts.get("GREEN", 0)
 
-    total_predictions = sum(risk_counts.values()) or 1
     breakdown = [
-        {"level": "CRITICAL", "count": risk_counts.get("RED", 0), "percentage": round(risk_counts.get("RED", 0)/total_predictions*100), "color": "#DC2626"},
-        {"level": "HIGH", "count": risk_counts.get("AMBER", 0), "percentage": round(risk_counts.get("AMBER", 0)/total_predictions*100), "color": "#EA580C"},
-        {"level": "MEDIUM", "count": risk_counts.get("GREEN", 0), "percentage": round(risk_counts.get("GREEN", 0)/total_predictions*100), "color": "#D97706"},
-        {"level": "LOW", "count": max(0, total_complaints - total_predictions), "percentage": round(max(0, total_complaints - total_predictions)/max(total_complaints, 1)*100), "color": "#087F5B"}
+        {"level": "CRITICAL", "count": red_c, "percentage": round(red_c / total_predictions * 100) if total_predictions > 0 else 0, "color": "#DC2626"},
+        {"level": "HIGH", "count": amber_c, "percentage": round(amber_c / total_predictions * 100) if total_predictions > 0 else 0, "color": "#EA580C"},
+        {"level": "MEDIUM", "count": green_c, "percentage": round(green_c / total_predictions * 100) if total_predictions > 0 else 0, "color": "#D97706"},
+        {"level": "LOW", "count": max(0, total_complaints - total_predictions), "percentage": round(max(0, total_complaints - total_predictions) / max(total_complaints, 1) * 100) if total_complaints > 0 else 0, "color": "#087F5B"}
     ]
+
+    highest_risk = "Critical" if red_c > 0 else ("High" if amber_c > 0 else ("Medium" if green_c > 0 else "None"))
 
     kpis = {
         "openComplaints": open_complaints,
         "totalComplaints": total_complaints,
         "activeAlerts": active_alerts,
-        "highestAlertRisk": "Critical" if risk_counts.get("RED", 0) > 0 else "High",
+        "highestAlertRisk": highest_risk,
         "incidentsInProgress": incidents_in_progress,
         "incidentsClosedToday": incidents_closed,
-        "totalFundsAtRisk": format_inr(total_funds),
-        "totalFundsFrozen": format_inr(funds_frozen),
+        "totalFundsAtRisk": format_inr_currency(total_funds),
+        "totalFundsFrozen": f"{format_inr_currency(funds_frozen)} secured / frozen" if funds_frozen > 0 else "₹0 secured / frozen",
     }
 
     return {
@@ -1657,11 +1701,11 @@ def get_sqlite_dashboard_stats() -> Dict[str, Any]:
         "openComplaints": open_complaints,
         "totalComplaints": total_complaints,
         "activeAlerts": active_alerts,
-        "highestAlertRisk": "Critical" if risk_counts.get("RED", 0) > 0 else "High",
+        "highestAlertRisk": highest_risk,
         "incidentsInProgress": incidents_in_progress,
         "incidentsClosedToday": incidents_closed,
-        "totalFundsAtRisk": format_inr(total_funds),
-        "totalFundsFrozen": format_inr(funds_frozen),
+        "totalFundsAtRisk": format_inr_currency(total_funds),
+        "totalFundsFrozen": f"{format_inr_currency(funds_frozen)} secured / frozen" if funds_frozen > 0 else "₹0 secured / frozen",
         "priorityAlerts": priority_alerts,
         "liveActivity": live_activity,
         "riskBreakdown": {
@@ -1670,10 +1714,11 @@ def get_sqlite_dashboard_stats() -> Dict[str, Any]:
         }
     }
 
-def get_dashboard_stats() -> Dict[str, Any]:
+
+def get_dashboard_stats(timeframe: str = "24h") -> Dict[str, Any]:
     if _use_supabase():
-        return get_supabase_dashboard_stats()
-    return get_sqlite_dashboard_stats()
+        return get_supabase_dashboard_stats(timeframe)
+    return get_sqlite_dashboard_stats(timeframe)
 
 # Initialize SQLite only if in development and explicitly enabled
 if os.getenv("NEXUS_ENV", "").lower() != "production" and os.getenv("USE_LOCAL_SQLITE", "").lower() == "true":

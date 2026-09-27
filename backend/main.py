@@ -46,19 +46,21 @@ app = FastAPI(
 )
 
 # CORS Configuration
-# Production allowed origin must be: https://nexus-rouge-nu.vercel.app
-# Local development allows Vite dev origins (http://localhost:5173, etc.)
-frontend_origin_env = os.getenv("FRONTEND_ORIGIN", "https://nexus-rouge-nu.vercel.app")
 allowed_origins = [
     "https://nexus-rouge-nu.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
 
+frontend_origin_env = os.getenv("FRONTEND_ORIGIN")
 if frontend_origin_env:
     for orig in frontend_origin_env.split(","):
         cleaned = orig.strip().rstrip("/")
@@ -68,7 +70,7 @@ if frontend_origin_env:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
+    allow_origin_regex=r"^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -80,14 +82,13 @@ app.add_middleware(
 async def global_exception_handler(request, exc):
     logger.error(f"[GLOBAL EXCEPTION] {type(exc).__name__}: {str(exc)}", exc_info=True)
     from fastapi.responses import JSONResponse
-    origin = request.headers.get("origin")
-    headers = {}
-    if origin:
-        if origin in allowed_origins or "vercel.app" in origin or "localhost" in origin or "127.0.0.1" in origin:
-            headers["Access-Control-Allow-Origin"] = origin
-            headers["Access-Control-Allow-Credentials"] = "true"
-            headers["Access-Control-Allow-Headers"] = "*"
-            headers["Access-Control-Allow-Methods"] = "*"
+    origin = request.headers.get("origin", "*")
+    headers = {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Methods": "*",
+    }
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal server error: {type(exc).__name__}: {str(exc)}"},
@@ -116,7 +117,7 @@ def health():
 @app.get("/stats")
 def get_dashboard_stats(timeframe: str = "24h"):
     try:
-        return repo.get_dashboard_stats()
+        return repo.get_dashboard_stats(timeframe)
     except Exception as e:
         logger.error(f"[DASHBOARD STATS ERROR] Failed to fetch stats: {e}")
         from fastapi import HTTPException

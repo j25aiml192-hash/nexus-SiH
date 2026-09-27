@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -996,51 +997,83 @@ export const AlertsPage: React.FC = () => {
       </div>
 
       {/* 6. MODAL: ASSIGN OFFICER FLOATING DIALOG */}
-      {assignModalAlertId && (
+      {assignModalAlertId && createPortal(
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(10px)',
-          zIndex: 9999,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          zIndex: 999999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '20px'
+          padding: '24px',
+          transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
           <div style={{
             width: '100%',
-            maxWidth: '480px',
+            maxWidth: '520px',
             backgroundColor: '#FFFFFF',
             border: '1px solid rgba(226, 232, 240, 0.9)',
             borderRadius: '24px',
-            padding: '28px',
-            boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.3), 0 8px 24px rgba(15, 23, 42, 0.1)',
+            padding: '32px',
+            boxShadow: '0 30px 60px -12px rgba(15, 23, 42, 0.45), 0 12px 32px rgba(15, 23, 42, 0.15)',
             color: '#0F172A'
           }}>
             {/* Modal Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ padding: '10px', borderRadius: '14px', backgroundColor: '#EFF6FF', color: '#2563EB', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)' }}>
-                  <Shield size={22} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ padding: '12px', borderRadius: '16px', backgroundColor: '#EFF6FF', color: '#2563EB', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.18)' }}>
+                  <Shield size={24} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '17px', fontWeight: 800, margin: 0, color: '#0F172A' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0, color: '#0F172A' }}>
                     Assign Tactical Officer
                   </h3>
-                  <div style={{ fontSize: '11.5px', fontFamily: 'monospace', color: '#64748B', marginTop: '2px', fontWeight: 700 }}>
+                  <div style={{ fontSize: '12px', fontFamily: 'monospace', color: '#64748B', marginTop: '3px', fontWeight: 700 }}>
                     ALERT TARGET: {assignModalAlertId}
                   </div>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setAssignModalAlertId(null)}
-                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '6px', borderRadius: '8px' }}
+                title="Close window"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  backgroundColor: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  color: '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
+                  flexShrink: 0
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#EF4444';
+                  e.currentTarget.style.borderColor = '#DC2626';
+                  e.currentTarget.style.color = '#FFFFFF';
+                  e.currentTarget.style.transform = 'scale(1.1) rotate(90deg)';
+                  e.currentTarget.style.boxShadow = '0 6px 18px rgba(239, 68, 68, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#F1F5F9';
+                  e.currentTarget.style.borderColor = '#E2E8F0';
+                  e.currentTarget.style.color = '#475569';
+                  e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(15, 23, 42, 0.08)';
+                }}
               >
-                <X size={20} />
+                <X size={24} strokeWidth={2.5} />
               </button>
             </div>
 
@@ -1139,7 +1172,8 @@ export const AlertsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

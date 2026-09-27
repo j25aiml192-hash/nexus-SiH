@@ -18,13 +18,25 @@ import { NewComplaintModal } from '../components/nexus/NewComplaintModal';
 import { useDashboardStats } from '../hooks/useNexusData';
 import type { Complaint } from '../types/nexus';
 
+import { useNexusStore } from '../store/useNexusStore';
+
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [showNewComplaintModal, setShowNewComplaintModal] = useState(false);
   const [telemetryTab, setTelemetryTab] = useState<'flow' | 'volume' | 'risk'>('flow');
 
-  // Fetch stats from backend API
-  const { stats, isLoading, error, refetch } = useDashboardStats('24h');
+  const selectedTimeframe = useNexusStore((state) => state.selectedTimeframe);
+  const tfParam =
+    selectedTimeframe === 'Last 7d'
+      ? '7d'
+      : selectedTimeframe === 'Last 30d'
+      ? '30d'
+      : selectedTimeframe === 'All Time'
+      ? 'all'
+      : '24h';
+
+  // Fetch stats from backend API matching selected timeframe
+  const { stats, isLoading, error, refetch } = useDashboardStats(tfParam);
 
   const handleNewComplaint = (_createdComp: Complaint) => {
     refetch();
@@ -881,7 +893,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Telemetry Chart Component */}
-        <TelemetryChartCard />
+        <TelemetryChartCard activeTab={telemetryTab} />
 
         {/* Bottom 4 Metric Pillars */}
         <div style={{

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   ShieldAlert,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import { dataSource } from '../../services/dataSource';
 import type { Complaint } from '../../types/nexus';
+import { INDIA_STATES, getFastStateFromPincode, lookupPincodeDetails } from '../../constants/indiaStates';
 
 interface NewComplaintModalProps {
   isOpen: boolean;
@@ -26,15 +28,91 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
   onComplaintCreated,
 }) => {
   const [fraudType, setFraudType] = useState('UPI_PHISHING');
-  const [victimState, setVictimState] = useState('Jharkhand');
-  const [victimDistrict, setVictimDistrict] = useState('Deoghar');
-  const [amount, setAmount] = useState('150000');
+  const [pincode, setPincode] = useState('');
+  const [victimState, setVictimState] = useState('');
+  const [victimDistrict, setVictimDistrict] = useState('');
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [amount, setAmount] = useState('');
   const [accusedBank, setAccusedBank] = useState('State Bank of India');
-  const [accusedPhone, setAccusedPhone] = useState('7091234567');
+  const [accusedPhone, setAccusedPhone] = useState('');
   const [channel, setChannel] = useState('UPI');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setFraudType('UPI_PHISHING');
+    setPincode('');
+    setVictimState('');
+    setVictimDistrict('');
+    setAmount('');
+    setAccusedBank('State Bank of India');
+    setAccusedPhone('');
+    setChannel('UPI');
+    setErrorMessage(null);
+    setSuccessMessage(null);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
+  // Blur the entire background (#root) when New Complaint Modal is open
+  useEffect(() => {
+    const rootEl = document.getElementById('root');
+    if (isOpen) {
+      if (rootEl) {
+        rootEl.style.transition = 'filter 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+        rootEl.style.filter = 'blur(4px) brightness(0.95)';
+        rootEl.style.pointerEvents = 'none';
+        rootEl.style.userSelect = 'none';
+      }
+      document.body.style.overflow = 'hidden';
+    } else {
+      if (rootEl) {
+        rootEl.style.filter = '';
+        rootEl.style.pointerEvents = '';
+        rootEl.style.userSelect = '';
+      }
+      document.body.style.overflow = '';
+    }
+    return () => {
+      if (rootEl) {
+        rootEl.style.filter = '';
+        rootEl.style.pointerEvents = '';
+        rootEl.style.userSelect = '';
+      }
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  const handlePincodeChange = async (val: string) => {
+    setPincode(val);
+    const clean = val.trim().replace(/\D/g, '');
+
+    // Instant prefix match
+    if (clean.length >= 2) {
+      const fastState = getFastStateFromPincode(clean);
+      if (fastState) {
+        setVictimState(fastState);
+      }
+    }
+
+    // Exact 6-digit live API lookup
+    if (clean.length === 6) {
+      setIsDetecting(true);
+      const details = await lookupPincodeDetails(clean);
+      setIsDetecting(false);
+      if (details?.state) {
+        setVictimState(details.state);
+      }
+      if (details?.district) {
+        setVictimDistrict(details.district);
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -86,63 +164,95 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.65)',
-      backdropFilter: 'blur(10px)',
-      zIndex: 9999,
+      backgroundColor: 'rgba(15, 23, 42, 0.35)',
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      zIndex: 999999,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px'
+      padding: '24px',
+      transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '560px',
+        maxWidth: '640px',
         backgroundColor: '#FFFFFF',
         border: '1px solid rgba(226, 232, 240, 0.9)',
         borderRadius: '24px',
-        padding: '28px',
-        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.3), 0 8px 24px rgba(15, 23, 42, 0.1)',
+        padding: '32px',
+        boxShadow: '0 30px 60px -12px rgba(15, 23, 42, 0.45), 0 12px 32px rgba(15, 23, 42, 0.15)',
         color: '#0F172A',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
       }}>
         {/* Floating Modal Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
               backgroundColor: '#EFF6FF',
               border: '1px solid #BFDBFE',
               color: '#2563EB',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.2)'
             }}>
-              <PlusCircle size={22} />
+              <PlusCircle size={24} />
             </div>
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0, color: '#0F172A', letterSpacing: '-0.02em' }}>
+              <h3 style={{ fontSize: '19px', fontWeight: 900, margin: 0, color: '#0F172A', letterSpacing: '-0.02em' }}>
                 Ingest Cybercrime Complaint
               </h3>
-              <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>
+              <p style={{ fontSize: '12.5px', color: '#64748B', margin: '3px 0 0 0' }}>
                 Register new fraud intake to trigger real-time mule graph tracing & cash-out prediction.
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '6px', borderRadius: '8px' }}
+            title="Close window"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              backgroundColor: '#F1F5F9',
+              border: '1px solid #E2E8F0',
+              color: '#475569',
+              cursor: 'pointer',
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#EF4444';
+              e.currentTarget.style.borderColor = '#DC2626';
+              e.currentTarget.style.color = '#FFFFFF';
+              e.currentTarget.style.transform = 'scale(1.1) rotate(90deg)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(239, 68, 68, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#F1F5F9';
+              e.currentTarget.style.borderColor = '#E2E8F0';
+              e.currentTarget.style.color = '#475569';
+              e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(15, 23, 42, 0.08)';
+            }}
           >
-            <X size={20} />
+            <X size={24} strokeWidth={2.5} />
           </button>
         </div>
 
@@ -227,7 +337,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="150000"
+                placeholder="e.g. 150000"
                 style={{
                   width: '100%',
                   backgroundColor: '#F8FAFC',
@@ -253,7 +363,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                 required
                 value={accusedPhone}
                 onChange={(e) => setAccusedPhone(e.target.value)}
-                placeholder="7091234567"
+                placeholder="e.g. 7091234567"
                 style={{
                   width: '100%',
                   backgroundColor: '#F8FAFC',
@@ -271,8 +381,39 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
             </div>
           </div>
 
-          {/* Victim State & District */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          {/* Victim Location: PIN Code, State & District */}
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                <MapPin size={12} style={{ color: '#2563EB' }} />
+                <span>Pincode</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={pincode}
+                  onChange={(e) => handlePincodeChange(e.target.value)}
+                  placeholder="e.g. 814112"
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#F8FAFC',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '12px',
+                    padding: '10px 12px',
+                    fontSize: '13px',
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    color: '#0F172A',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {isDetecting && (
+                  <Loader2 size={13} className="animate-spin" style={{ position: 'absolute', right: '10px', top: '12px', color: '#2563EB' }} />
+                )}
+              </div>
+            </div>
             <div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
                 <MapPin size={12} style={{ color: '#2563EB' }} />
@@ -294,12 +435,12 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                   boxSizing: 'border-box'
                 }}
               >
-                <option value="Jharkhand">Jharkhand</option>
-                <option value="Haryana">Haryana</option>
-                <option value="Uttar Pradesh">Uttar Pradesh</option>
-                <option value="Delhi">Delhi</option>
-                <option value="Maharashtra">Maharashtra</option>
-                <option value="Karnataka">Karnataka</option>
+                <option value="">Select State...</option>
+                {INDIA_STATES.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -312,7 +453,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                 required
                 value={victimDistrict}
                 onChange={(e) => setVictimDistrict(e.target.value)}
-                placeholder="Deoghar"
+                placeholder="e.g. Deoghar"
                 style={{
                   width: '100%',
                   backgroundColor: '#F8FAFC',
@@ -452,6 +593,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

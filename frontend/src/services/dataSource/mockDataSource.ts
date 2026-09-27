@@ -175,20 +175,40 @@ export class MockDataSource implements IDataSource {
     return useNexusStore.getState().historicalHotspots;
   }
 
-  async getDashboardStats(): Promise<DashboardStatsResult> {
+  async getDashboardStats(_timeframe: string = '24h'): Promise<DashboardStatsResult> {
     await delay();
+    const complaints = useNexusStore.getState().complaints || [];
+    const totalComplaints = complaints.length;
+    const openComplaints = complaints.filter(c => c.status !== 'closed' && c.status !== 'resolved').length;
+    const totalFunds = complaints.reduce((sum, c) => sum + (c.amount_inr || 0), 0);
+
+    const formatInr = (val: number) => {
+      if (!val) return '₹0';
+      if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
+      if (val >= 100000) return `₹${(val / 100000).toFixed(2)} L`;
+      return `₹${val.toLocaleString()}`;
+    };
+
     return {
-      openComplaints: 0,
-      totalComplaints: 0,
-      activeAlerts: 0,
-      highestAlertRisk: 'LOW',
-      incidentsInProgress: 0,
+      openComplaints,
+      totalComplaints,
+      activeAlerts: useNexusStore.getState().alerts?.length || 0,
+      highestAlertRisk: 'High',
+      incidentsInProgress: useNexusStore.getState().incidents?.length || 0,
       incidentsClosedToday: 0,
-      totalFundsAtRisk: '₹0',
-      totalFundsFrozen: '₹0',
+      totalFundsAtRisk: formatInr(totalFunds),
+      totalFundsFrozen: '₹0 secured / frozen',
       priorityAlerts: [],
       liveActivity: [],
-      riskBreakdown: { totalActiveCases: 0, breakdown: [] },
+      riskBreakdown: {
+        totalActiveCases: totalComplaints,
+        breakdown: [
+          { level: 'CRITICAL', count: Math.ceil(totalComplaints * 0.4), percentage: 40, color: '#DC2626' },
+          { level: 'HIGH', count: Math.floor(totalComplaints * 0.6), percentage: 60, color: '#EA580C' },
+          { level: 'MEDIUM', count: 0, percentage: 0, color: '#D97706' },
+          { level: 'LOW', count: 0, percentage: 0, color: '#087F5B' }
+        ]
+      },
     };
   }
 }

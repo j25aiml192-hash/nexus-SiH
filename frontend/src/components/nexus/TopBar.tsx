@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Calendar, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useNexusStore } from '../../store/useNexusStore';
 
 interface TopBarProps {
   onSearch?: (query: string) => void;
@@ -10,7 +11,10 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
   const [roleMode, setRoleMode] = useState<'Analyst' | 'Officer'>('Analyst');
-  const [timeframe, setTimeframe] = useState('Last 24h');
+  
+  const timeframe = useNexusStore((state) => state.selectedTimeframe);
+  const setTimeframe = useNexusStore((state) => state.setSelectedTimeframe);
+
   const [isTimeframeOpen, setIsTimeframeOpen] = useState(false);
   const timeframeRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

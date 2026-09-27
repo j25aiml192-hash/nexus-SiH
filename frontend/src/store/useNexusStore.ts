@@ -30,6 +30,10 @@ interface NexusState {
   mapFocusTarget: MapFocusTarget | null;
   selectedMapItem: { type: 'h3' | 'atm' | 'hotspot'; data: unknown } | null;
 
+  // Global Timeframe Filter
+  selectedTimeframe: string;
+  setSelectedTimeframe: (timeframe: string) => void;
+
   // Sidebar Collapse state
   isSidebarCollapsed: boolean;
   isSidebarHovered: boolean;
@@ -72,6 +76,9 @@ export const useNexusStore = create<NexusState>((set, get) => ({
 
   mapFocusTarget: null,
   selectedMapItem: null,
+
+  selectedTimeframe: 'Last 24h',
+  setSelectedTimeframe: (timeframe: string) => set({ selectedTimeframe: timeframe }),
 
   isSidebarCollapsed: true,
   isSidebarHovered: false,

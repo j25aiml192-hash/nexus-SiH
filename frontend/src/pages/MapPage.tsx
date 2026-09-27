@@ -22,6 +22,7 @@ import {
 import { useMapData, useComplaints } from '../hooks/useNexusData';
 import { useNexusStore } from '../store/useNexusStore';
 import { useNavigate } from 'react-router-dom';
+import { INDIA_STATES } from '../constants/indiaStates';
 
 // MapTiler High-Resolution Vector Basemap (Strict Environment Validation)
 const mapTilerKey = import.meta.env.VITE_MAPTILER_API_KEY;
@@ -766,9 +767,11 @@ export const MapPage: React.FC = () => {
               >
                 <option value="National (All States)">National (All States)</option>
                 <option value="Delhi NCR">Delhi NCR</option>
-                <option value="Jharkhand">Jharkhand</option>
-                <option value="Haryana">Haryana</option>
-                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                {INDIA_STATES.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
               </select>
               <ChevronDown size={13} style={{ position: 'absolute', right: '10px', top: '10px', color: '#475569', pointerEvents: 'none' }} />
             </div>
