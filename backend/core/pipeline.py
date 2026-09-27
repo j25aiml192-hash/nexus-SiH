@@ -40,13 +40,6 @@ def run_pipeline(complaint_id, force_refresh=False):
         "model_version": "geo_lgbm_v3"
     }
 
-    # Save to repo (guaranteed persistent DB)
+    # Save to repo (guaranteed persistent DB / Supabase)
     saved = repo.save_prediction(prediction_row)
-    
-    # Also attempt Supabase upsert if online
-    try:
-        supabase.table("predictions").upsert(prediction_row).execute()
-    except Exception as e:
-        pass
-
     return saved

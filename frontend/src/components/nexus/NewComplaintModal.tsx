@@ -25,13 +25,13 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
   onClose,
   onComplaintCreated,
 }) => {
-  const [fraudType, setFraudType] = useState('upi_fraud');
+  const [fraudType, setFraudType] = useState('UPI_PHISHING');
   const [victimState, setVictimState] = useState('Jharkhand');
   const [victimDistrict, setVictimDistrict] = useState('Deoghar');
   const [amount, setAmount] = useState('150000');
   const [accusedBank, setAccusedBank] = useState('State Bank of India');
   const [accusedPhone, setAccusedPhone] = useState('7091234567');
-  const [channel, setChannel] = useState('Online Portal');
+  const [channel, setChannel] = useState('UPI');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -42,39 +42,45 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
+
+    const numAmount = parseFloat(amount);
+    if (!numAmount || numAmount <= 0) {
+      setErrorMessage('Disputed amount must be a positive number greater than 0.');
+      return;
+    }
+
     setIsSubmitting(true);
 
-    const numAmount = parseFloat(amount) || 50000;
-    const cid = `CMP-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-
     try {
+      const cleanPhone = accusedPhone.trim();
+      const phonePrefix = cleanPhone.startsWith('+') ? cleanPhone.slice(0, 5) : '+91' + cleanPhone.slice(0, 2);
+
       const res = await dataSource.createComplaint({
-        complaint_id: cid,
         fraud_type: fraudType,
         amount: numAmount,
         amount_inr: numAmount,
         victim_state: victimState,
         victim_district: victimDistrict,
-        accused_phone_prefix: accusedPhone.slice(0, 4),
+        accused_phone_prefix: phonePrefix,
         accused_bank: accusedBank,
         channel,
-        status: 'flagged',
+        status: 'active',
       });
 
-      setSuccessMessage(`Complaint ${cid} successfully ingested into NEXUS database.`);
+      const cid = res.complaint_id || res.complaint?.complaint_id || '';
+      const displayId = res.ncrp_id || res.complaint?.ncrp_id || cid;
+
+      setSuccessMessage(`Complaint ${displayId} successfully registered in NEXUS (UUID: ${cid.slice(0, 8)}...).`);
       setTimeout(() => {
-        onComplaintCreated(res.complaint || {
-          id: cid,
-          complaint_id: cid,
-          victimInfo: { name: `Citizen (${victimDistrict}, ${victimState})`, contact: accusedPhone },
-          amount: numAmount,
-          status: 'flagged',
-          linkedAccountId: accusedBank,
-        });
+        if (res.complaint) {
+          onComplaintCreated(res.complaint);
+        }
         onClose();
       }, 1000);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to submit complaint to backend.');
+      console.error('[NEXUS INTAKE ERROR]', err);
+      const msg = err?.message || 'Failed to submit complaint to backend.';
+      setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -198,12 +204,14 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                 boxSizing: 'border-box'
               }}
             >
-              <option value="upi_fraud">UPI Intercept / Fraud</option>
-              <option value="digital_arrest">Digital Arrest Extortion</option>
-              <option value="investment_scam">High-Yield Investment Scam</option>
-              <option value="vishing">Vishing / Voice Phishing</option>
-              <option value="loan">Illegal Lending App Fraud</option>
-              <option value="crypto_scam">Crypto OTC Cashout</option>
+              <option value="UPI_PHISHING">UPI Intercept / Fraud</option>
+              <option value="DIGITAL_ARREST">Digital Arrest Extortion</option>
+              <option value="INVESTMENT_SCAM">High-Yield Investment Scam</option>
+              <option value="FAKE_LOAN">Illegal Lending App Fraud</option>
+              <option value="SEXTORTION">Sextortion / Blackmail</option>
+              <option value="AEPS_FRAUD">AePS Biometric Cash-out</option>
+              <option value="TASK_FRAUD">Task / Part-time Job Scam</option>
+              <option value="OTHER">Other Cyber Fraud</option>
             </select>
           </div>
 
@@ -373,9 +381,13 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                   boxSizing: 'border-box'
                 }}
               >
-                <option value="Online Portal">National Cybercrime Portal (NCRP)</option>
-                <option value="1930 Helpline">Helpline 1930 Direct Transit</option>
-                <option value="Police Station">LEA Police Station Intake</option>
+                <option value="UPI">National Cybercrime Portal (NCRP) [UPI]</option>
+                <option value="IMPS">Helpline 1930 Direct Transit [IMPS]</option>
+                <option value="NEFT">LEA Police Station Intake [NEFT]</option>
+                <option value="AEPS">AePS Micro-ATM Clearing [AEPS]</option>
+                <option value="ATM">ATM Direct Cashout [ATM]</option>
+                <option value="RTGS">RTGS High-Value Transfer [RTGS]</option>
+                <option value="OTHER">Other Financial Channel</option>
               </select>
             </div>
           </div>

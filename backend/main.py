@@ -79,9 +79,18 @@ app.add_middleware(
 async def global_exception_handler(request, exc):
     logger.error(f"[GLOBAL EXCEPTION] {type(exc).__name__}: {str(exc)}", exc_info=True)
     from fastapi.responses import JSONResponse
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin:
+        if origin in allowed_origins or "vercel.app" in origin or "localhost" in origin or "127.0.0.1" in origin:
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Credentials"] = "true"
+            headers["Access-Control-Allow-Headers"] = "*"
+            headers["Access-Control-Allow-Methods"] = "*"
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal server error: {type(exc).__name__}: {str(exc)}"},
+        headers=headers,
     )
 
 

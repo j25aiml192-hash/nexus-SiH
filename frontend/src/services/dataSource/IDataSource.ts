@@ -97,7 +97,7 @@ export interface IDataSource {
   // Complaints
   getComplaints(search?: string, status?: string): Promise<Complaint[]>;
   getComplaintById(id: string): Promise<Complaint | null>;
-  createComplaint(data: Partial<Complaint>): Promise<{ status: string; complaint_id: string; complaint: Complaint; prediction?: Prediction }>;
+  createComplaint(data: Partial<Complaint>): Promise<{ status: string; complaint_id: string; complaint: Complaint; prediction?: Prediction; ncrp_id?: string; created_at?: string }>;
 
   // Accounts & Graph
   getAccountById(accountId: string): Promise<Account | null>;

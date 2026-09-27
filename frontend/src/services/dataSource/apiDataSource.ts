@@ -34,11 +34,29 @@ export class ApiDataSource implements IDataSource {
       ...options?.headers,
     };
 
-    const res = await fetch(url, { ...options, headers });
+    let res: Response;
+    try {
+      res = await fetch(url, { ...options, headers });
+    } catch (networkErr: any) {
+      const msg = networkErr?.message || 'Network request failed';
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Load failed')) {
+        throw new Error(
+          `Unable to connect to NEXUS backend at ${this.baseUrl}. The backend service may be spinning up, unreachable, or blocked by CORS.`
+        );
+      }
+      throw new Error(`Network failure: ${msg}`);
+    }
+
     if (!res.ok) {
-      const errorBody = await res.text().catch(() => '');
+      let detailMsg = '';
+      try {
+        const errorJson = await res.json();
+        detailMsg = errorJson.detail || errorJson.message || JSON.stringify(errorJson);
+      } catch {
+        detailMsg = await res.text().catch(() => '');
+      }
       throw new Error(
-        `API Request Failed [${res.status} ${res.statusText}] at ${endpoint}: ${errorBody}`
+        detailMsg ? `[${res.status}] ${detailMsg}` : `API Request Failed [${res.status} ${res.statusText}] at ${endpoint}`
       );
     }
     return (await res.json()) as T;
@@ -113,12 +131,49 @@ export class ApiDataSource implements IDataSource {
     };
   }
 
-  async createComplaint(data: Partial<Complaint>): Promise<{ status: string; complaint_id: string; complaint: Complaint; prediction?: Prediction }> {
+  async createComplaint(data: Partial<Complaint>): Promise<{ status: string; complaint_id: string; complaint: Complaint; prediction?: Prediction; ncrp_id?: string; created_at?: string }> {
     const res = await this.request<any>('/complaints/ingest', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return res;
+
+    const cid = String(res.complaint_id || res.complaint?.complaint_id || '');
+    const rawC = res.complaint || {};
+    const ncrp = res.ncrp_id || rawC.ncrp_id || (cid.length >= 8 ? `CMP-${cid.slice(0, 8).toUpperCase()}` : cid);
+    const amt = Number(rawC.amount_inr !== undefined ? rawC.amount_inr : (rawC.amount !== undefined ? rawC.amount : data.amount_inr || data.amount || 0));
+
+    const normalizedComplaint: Complaint = {
+      id: cid,
+      complaint_id: cid,
+      ncrp_id: ncrp,
+      victimInfo: rawC.victimInfo || {
+        name: `Citizen (${data.victim_district || rawC.victim_district || 'District'}, ${data.victim_state || rawC.victim_state || 'State'})`,
+        contact: data.accused_phone_prefix || rawC.accused_phone_prefix || '+91-XXXXXXXXXX',
+      },
+      amount: amt,
+      amount_inr: amt,
+      status: rawC.status || 'active',
+      linkedAccountId: rawC.accused_bank || data.accused_bank || 'ACC-PRIMARY',
+      fraud_type: rawC.fraud_type || data.fraud_type || 'UPI_PHISHING',
+      victim_state: rawC.victim_state || data.victim_state,
+      victim_district: rawC.victim_district || data.victim_district,
+      accused_phone_prefix: rawC.accused_phone_prefix || data.accused_phone_prefix,
+      accused_bank: rawC.accused_bank || data.accused_bank,
+      channel: rawC.channel || data.channel || 'UPI',
+      created_at: rawC.created_at || res.created_at || new Date().toISOString(),
+      filed_at: rawC.filed_at || new Date().toISOString(),
+      assignedOfficer: 'Unassigned',
+      description: `Intake reported: ${rawC.fraud_type || data.fraud_type || 'Cyber fraud'} case originating in ${rawC.victim_state || data.victim_state || 'State'}. Target institution: ${rawC.accused_bank || data.accused_bank || 'Bank'}.`,
+    };
+
+    return {
+      status: res.status || 'created',
+      complaint_id: cid,
+      ncrp_id: ncrp,
+      created_at: res.created_at || normalizedComplaint.created_at,
+      complaint: normalizedComplaint,
+      prediction: res.prediction,
+    };
   }
 
   async getAccountById(accountId: string): Promise<Account | null> {

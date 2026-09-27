@@ -765,19 +765,166 @@ def get_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
     return get_sqlite_complaint_by_id(complaint_id)
 
 
-def create_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
+FRAUD_TYPE_MAP = {
+    "upi_phishing": "UPI_PHISHING",
+    "upi_fraud": "UPI_PHISHING",
+    "upi intercept / fraud": "UPI_PHISHING",
+    "upi": "UPI_PHISHING",
+    "digital_arrest": "DIGITAL_ARREST",
+    "digital arrest extortion": "DIGITAL_ARREST",
+    "investment_scam": "INVESTMENT_SCAM",
+    "high-yield investment scam": "INVESTMENT_SCAM",
+    "fake_loan": "FAKE_LOAN",
+    "loan": "FAKE_LOAN",
+    "illegal lending app fraud": "FAKE_LOAN",
+    "sextortion": "SEXTORTION",
+    "aeps_fraud": "AEPS_FRAUD",
+    "aeps": "AEPS_FRAUD",
+    "task_fraud": "TASK_FRAUD",
+    "other": "OTHER",
+    "vishing": "OTHER",
+    "crypto_scam": "OTHER",
+}
+
+CHANNEL_MAP = {
+    "upi": "UPI",
+    "neft": "NEFT",
+    "imps": "IMPS",
+    "aeps": "AEPS",
+    "atm": "ATM",
+    "rtgs": "RTGS",
+    "other": "OTHER",
+    "online portal": "UPI",
+    "national cybercrime portal (ncrp)": "UPI",
+    "1930 helpline": "IMPS",
+    "helpline 1930 direct transit": "IMPS",
+    "police station": "NEFT",
+    "lea police station intake": "NEFT",
+}
+
+STATE_COORDINATES = {
+    "Jharkhand": (23.3569, 85.3347),
+    "Haryana": (28.4595, 77.0266),
+    "Uttar Pradesh": (28.5355, 77.3910),
+    "Delhi": (28.6139, 77.2090),
+    "Maharashtra": (19.0760, 72.8777),
+    "Karnataka": (12.9716, 77.5946),
+    "West Bengal": (22.5726, 88.3639),
+    "Rajasthan": (26.9124, 75.7873),
+}
+
+DISTRICT_COORDINATES = {
+    "deoghar": (24.4853, 86.6936),
+    "jamtara": (23.9631, 86.8029),
+    "giridih": (24.1805, 86.3117),
+    "ranchi": (23.3441, 85.3096),
+    "gurugram": (28.4595, 77.0266),
+    "faridabad": (28.4089, 77.3178),
+    "nuh": (28.1150, 77.0049),
+    "mumbai": (19.0760, 72.8777),
+    "pune": (18.5204, 73.8567),
+    "bengaluru": (12.9716, 77.5946),
+    "noida": (28.5355, 77.3910),
+}
+
+
+def create_supabase_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
+    from db.supabase_client import supabase
+
+    # Generate canonical UUID primary key
+    raw_cid = complaint.get("complaint_id")
+    if raw_cid and is_valid_uuid(raw_cid):
+        cid = raw_cid
+    else:
+        cid = str(uuid.uuid4())
+
+    # Generate / preserve human-facing reference
+    raw_ncrp = complaint.get("ncrp_id")
+    if raw_ncrp:
+        ncrp_id = raw_ncrp
+    elif raw_cid and not is_valid_uuid(raw_cid):
+        ncrp_id = raw_cid
+    else:
+        ncrp_id = f"NCRP-2026-{random.randint(100000, 999999)}"
+
+    cfcfrms_ticket = complaint.get("cfcfrms_ticket_id") or f"CFCFRMS-2026-{random.randint(100000, 999999)}"
+
+    raw_ft = str(complaint.get("fraud_type") or "UPI_PHISHING").strip().lower().replace(" ", "_")
+    fraud_type = FRAUD_TYPE_MAP.get(raw_ft, "UPI_PHISHING")
+
+    amount = float(complaint.get("amount_inr") or complaint.get("amount") or 50000.0)
+
+    raw_ch = str(complaint.get("channel") or "UPI").strip().lower()
+    channel = CHANNEL_MAP.get(raw_ch, "UPI")
+
+    state = complaint.get("victim_state") or "Jharkhand"
+    district = complaint.get("victim_district") or ""
+
+    # Resolve coordinates
+    lat = complaint.get("victim_lat")
+    lon = complaint.get("victim_lon")
+    if lat is None or lon is None:
+        if district and district.lower() in DISTRICT_COORDINATES:
+            lat, lon = DISTRICT_COORDINATES[district.lower()]
+        elif state in STATE_COORDINATES:
+            lat, lon = STATE_COORDINATES[state]
+        else:
+            lat, lon = (24.4853, 86.6936)
+
+    phone_prefix = complaint.get("accused_phone_prefix") or ""
+    if not phone_prefix:
+        phone = str(complaint.get("accused_phone") or "")
+        if phone:
+            phone_prefix = phone[:5] if phone.startswith("+") else "+91" + phone[:2]
+        else:
+            phone_prefix = "+9170"
+
+    bank = complaint.get("accused_bank") or "State Bank of India"
+    status = complaint.get("status") or "active"
+
+    # Prepare row strictly matching Supabase complaints columns (DO NOT include victim_district)
+    row = {
+        "complaint_id": cid,
+        "ncrp_id": ncrp_id,
+        "cfcfrms_ticket_id": cfcfrms_ticket,
+        "fraud_type": fraud_type,
+        "amount_inr": amount,
+        "victim_state": state,
+        "victim_lat": float(lat),
+        "victim_lon": float(lon),
+        "accused_phone_prefix": phone_prefix,
+        "accused_bank": bank,
+        "channel": channel,
+        "status": status,
+    }
+
+    try:
+        res = supabase.table("complaints").insert(row).execute()
+        if not res.data:
+            raise RuntimeError("Supabase returned empty data on complaint insert.")
+        inserted = res.data[0]
+        # Attach victim_district for the application/response model
+        if district:
+            inserted["victim_district"] = district
+        return inserted
+    except Exception as e:
+        logger.error(f"[SUPABASE CREATE COMPLAINT ERROR] {cid}: {e}", exc_info=True)
+        raise
+
+
+def create_sqlite_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
     conn = get_connection()
     c = conn.cursor()
-    cid = complaint.get("complaint_id") or f"NCRP-2026-{random.randint(100000, 999999)}"
+    cid = complaint.get("complaint_id") or str(uuid.uuid4())
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     amount = float(complaint.get("amount") or complaint.get("amount_inr") or 50000)
-    fraud_type = complaint.get("fraud_type") or "upi_fraud"
+    fraud_type = complaint.get("fraud_type") or "UPI_PHISHING"
     victim_state = complaint.get("victim_state") or "Maharashtra"
     victim_district = complaint.get("victim_district") or "Mumbai"
     phone = complaint.get("accused_phone_prefix") or "70" + str(random.randint(10000000, 99999999))
     bank = complaint.get("accused_bank") or "Paytm Payments Bank"
-    channel = complaint.get("channel") or "Online Portal"
-    status = complaint.get("status") or "flagged"
+    channel = complaint.get("channel") or "UPI"
+    status = complaint.get("status") or "active"
 
     c.execute("""
     INSERT INTO complaints (complaint_id, fraud_type, amount_inr, status, created_at, filed_at, victim_state, victim_district, accused_phone_prefix, accused_bank, channel)
@@ -785,7 +932,7 @@ def create_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
     """, (cid, fraud_type, amount, status, now, now, victim_state, victim_district, phone, bank, channel))
 
     # Create dummy initial mule node so prediction & graph have targets
-    mule_acc = f"ACC-{cid.replace('NCRP-', '')}-1"
+    mule_acc = f"ACC-{cid[:8]}-1"
     c.execute("""
     INSERT INTO mule_accounts (account_id, bank_name, risk_score, kyc_lat, kyc_lon, created_at)
     VALUES (?, ?, 0.85, 24.4853, 86.6936, ?)
@@ -794,16 +941,23 @@ def create_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
     c.execute("""
     INSERT INTO mule_chain_nodes (complaint_id, account_id, hop_position, parent_account_id)
     VALUES (?, ?, 1, ?)
-    """, (cid, mule_acc, f"VICTIM-{cid}"))
+    """, (cid, mule_acc, f"VICTIM-{cid[:8]}"))
 
     c.execute("""
     INSERT INTO transactions (transaction_id, complaint_id, sender_account_id, receiver_account_id, amount_inr, channel, created_at)
     VALUES (?, ?, ?, ?, ?, 'UPI', ?)
-    """, (f"TXN-{uuid.uuid4().hex[:8].upper()}", cid, f"VICTIM-{cid}", mule_acc, amount, now))
+    """, (f"TXN-{uuid.uuid4().hex[:8].upper()}", cid, f"VICTIM-{cid[:8]}", mule_acc, amount, now))
 
     conn.commit()
     conn.close()
-    return get_complaint_by_id(cid)
+    return get_sqlite_complaint_by_id(cid)
+
+
+def create_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
+    if _use_supabase():
+        return create_supabase_complaint(complaint)
+    return create_sqlite_complaint(complaint)
+
 
 def get_supabase_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
     from db.supabase_client import supabase
@@ -852,7 +1006,63 @@ def get_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
         return get_supabase_prediction_by_complaint(complaint_id)
     return get_sqlite_prediction_by_complaint(complaint_id)
 
-def save_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
+
+def save_supabase_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
+    from db.supabase_client import supabase
+    import h3
+
+    cid = pred["complaint_id"]
+    pid = pred.get("prediction_id") or str(uuid.uuid4())
+    lat = float(pred.get("predicted_lat") or 24.4853)
+    lon = float(pred.get("predicted_lon") or pred.get("predicted_lng") or 86.6936)
+
+    try:
+        h3_cell = h3.latlng_to_cell(lat, lon, 8) if hasattr(h3, 'latlng_to_cell') else h3.geo_to_h3(lat, lon, 8)
+    except Exception:
+        h3_cell = "883cad6f2bfffff"
+
+    atms_val = pred.get("nearest_atms") or pred.get("predicted_atms") or []
+    risk = float(pred.get("risk_score", 0.75))
+    level = pred.get("risk_level") or ("RED" if risk >= 0.75 else "AMBER" if risk >= 0.45 else "GREEN")
+    window = int(pred.get("cashout_window_hours", 8))
+    shap = pred.get("shap_features") or {}
+
+    row = {
+        "prediction_id": pid,
+        "complaint_id": cid,
+        "h3_index": h3_cell,
+        "predicted_h3_cell_r8": h3_cell,
+        "predicted_lat": lat,
+        "predicted_lon": lon,
+        "predicted_geom": f"POINT({lon} {lat})",
+        "risk_score": risk,
+        "risk_level": level,
+        "cashout_window_hours": window,
+        "shap_features": shap,
+        "nearest_atms": atms_val,
+        "status": "active",
+        "recovery_score": int(pred.get("recovery_score", 90)),
+        "confidence": float(pred.get("confidence", 0.88)),
+        "model_version": pred.get("model_version", "geo_lgbm_v3")
+    }
+
+    try:
+        res = supabase.table("predictions").upsert(row, on_conflict="complaint_id").execute()
+        if res.data:
+            return res.data[0]
+    except Exception as e:
+        logger.error(f"[SUPABASE SAVE PREDICTION ERROR] {cid}: {e}", exc_info=True)
+        try:
+            res = supabase.table("predictions").insert(row).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e2:
+            logger.error(f"[SUPABASE INSERT PREDICTION ERROR] {cid}: {e2}", exc_info=True)
+
+    return get_supabase_prediction_by_complaint(cid) or row
+
+
+def save_sqlite_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
     conn = get_connection()
     c = conn.cursor()
     pid = pred.get("prediction_id") or f"PRED-{uuid.uuid4().hex[:8].upper()}"
@@ -871,17 +1081,15 @@ def save_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
     VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, 100, 0.88, 'geo_lgbm_v3', ?)
     """, (pid, cid, risk, level, now, lat, lon, window, shap, atms))
 
-    # Also automatically generate alert for critical predictions
-    alert_id = f"ALT-{uuid.uuid4().hex[:6].upper()}"
-    msg = f"NEXUS ALERT: Complaint {cid} cashout predicted in district. Risk: {int(risk*100)}% ({level}). Window: {window}h."
-    c.execute("""
-    INSERT INTO alerts (alert_id, prediction_id, complaint_id, status, created_at, message, alert_type, severity, assigned_officer)
-    VALUES (?, ?, ?, 'new', ?, ?, 'dashboard', ?, 'Unassigned')
-    """, (alert_id, pid, cid, now, msg, level))
-
     conn.commit()
     conn.close()
-    return get_prediction_by_complaint(cid)
+    return get_sqlite_prediction_by_complaint(cid)
+
+
+def save_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
+    if _use_supabase():
+        return save_supabase_prediction(pred)
+    return save_sqlite_prediction(pred)
 
 def get_supabase_all_active_predictions() -> List[Dict[str, Any]]:
     from db.supabase_client import supabase

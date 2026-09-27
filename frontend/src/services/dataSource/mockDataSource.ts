@@ -34,7 +34,7 @@ export class MockDataSource implements IDataSource {
     return complaint || null;
   }
 
-  async createComplaint(data: Partial<Complaint>): Promise<{ status: string; complaint_id: string; complaint: Complaint; prediction?: Prediction }> {
+  async createComplaint(data: Partial<Complaint>): Promise<{ status: string; complaint_id: string; complaint: Complaint; prediction?: Prediction; ncrp_id?: string; created_at?: string }> {
     await delay();
     const cid = data.complaint_id || `CMP-${Date.now()}`;
     const comp: Complaint = {

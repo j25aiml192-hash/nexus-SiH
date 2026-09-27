@@ -10,48 +10,78 @@ router = APIRouter()
 
 class ComplaintCreate(BaseModel):
     complaint_id: Optional[str] = None
-    fraud_type: str = "upi_fraud"
+    ncrp_id: Optional[str] = None
+    cfcfrms_ticket_id: Optional[str] = None
+    fraud_type: Optional[str] = "UPI_PHISHING"
     amount: Optional[float] = None
     amount_inr: Optional[float] = None
-    victim_state: Optional[str] = "Maharashtra"
-    victim_district: Optional[str] = "Mumbai"
+    victim_state: Optional[str] = "Jharkhand"
+    victim_district: Optional[str] = "Deoghar"
+    victim_lat: Optional[float] = None
+    victim_lon: Optional[float] = None
+    accused_phone: Optional[str] = None
     accused_phone_prefix: Optional[str] = None
     accused_bank: Optional[str] = "State Bank of India"
     accused_account_hash: Optional[str] = None
     mule_chain_depth: Optional[int] = 1
-    channel: Optional[str] = "Online Portal"
-    status: Optional[str] = "flagged"
+    channel: Optional[str] = "UPI"
+    status: Optional[str] = "active"
 
 
 @router.post("/ingest")
 def ingest_complaint(complaint: ComplaintCreate):
     data = complaint.model_dump()
-    if data.get("amount") and not data.get("amount_inr"):
-        data["amount_inr"] = data["amount"]
+    amt = data.get("amount_inr") or data.get("amount")
+    if amt is None or float(amt) <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail="Disputed amount must be a positive number greater than 0"
+        )
+    data["amount_inr"] = float(amt)
+    data["amount"] = float(amt)
 
-    # Check if exists
+    # Check if a valid UUID was supplied and already exists
     cid = data.get("complaint_id")
-    if cid:
+    if cid and repo.is_valid_uuid(cid):
         existing = repo.get_complaint_by_id(cid)
         if existing:
             raise HTTPException(
                 status_code=409,
-                detail="Complaint already exists"
+                detail=f"Complaint with ID '{cid}' already exists"
             )
 
-    created = repo.create_complaint(data)
+    try:
+        created = repo.create_complaint(data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[INGEST COMPLAINT ERROR]: {type(e).__name__}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to ingest complaint into database: {type(e).__name__}: {str(e)}"
+        )
+
+    if not created or not created.get("complaint_id"):
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to persist complaint to Supabase"
+        )
+
     cid = created["complaint_id"]
+    ncrp_id = created.get("ncrp_id")
 
     # Trigger backend pipeline: prediction generation & alerts
     prediction = None
     try:
         prediction = run_pipeline(cid)
     except Exception as e:
-        print(f"Pipeline error for {cid}: {e}")
+        logger.error(f"[PIPELINE RUN ERROR] for complaint {cid}: {e}", exc_info=True)
 
     return {
         "status": "created",
         "complaint_id": cid,
+        "ncrp_id": ncrp_id,
+        "created_at": created.get("created_at"),
         "complaint": created,
         "prediction": prediction
     }
