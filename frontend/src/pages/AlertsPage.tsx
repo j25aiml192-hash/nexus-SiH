@@ -233,19 +233,19 @@ export const AlertsPage: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 6px 18px rgba(37, 99, 235, 0.35)',
+              boxShadow: '0 6px 18px rgba(0, 0, 0, 0.35)',
               opacity: isSimulating ? 0.7 : 1,
               transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
               if (!isSimulating) {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 10px 24px rgba(37, 99, 235, 0.45)';
+                e.currentTarget.style.boxShadow = '0 10px 24px rgba(0, 0, 0, 0.45)';
               }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 6px 18px rgba(37, 99, 235, 0.35)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(0, 0, 0, 0.35)';
             }}
           >
             {isSimulating ? (
@@ -300,7 +300,7 @@ export const AlertsPage: React.FC = () => {
               {totalAlertsCount}
             </div>
           </div>
-          <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)' }}>
+          <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)' }}>
             <Bell size={20} />
           </div>
         </div>
@@ -530,7 +530,7 @@ export const AlertsPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  boxShadow: isActive ? '0 4px 12px rgba(37, 99, 235, 0.25)' : '0 1px 3px rgba(0, 0, 0, 0.03)',
+                  boxShadow: isActive ? '0 4px 12px rgba(0, 0, 0, 0.25)' : '0 1px 3px rgba(0, 0, 0, 0.03)',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -559,7 +559,7 @@ export const AlertsPage: React.FC = () => {
             let activeBg = '#2563EB';
             let activeBorder = '#2563EB';
             let activeColor = '#FFFFFF';
-            let activeShadow = 'rgba(37, 99, 235, 0.25)';
+            let activeShadow = 'rgba(0, 0, 0, 0.25)';
 
             if (rf === 'critical') {
               activeBg = '#DC2626';
@@ -908,7 +908,7 @@ export const AlertsPage: React.FC = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
-                      boxShadow: '0 2px 6px rgba(37, 99, 235, 0.1)',
+                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
                       transition: 'all 0.15s ease'
                     }}
                     onMouseEnter={(e) => {
@@ -1027,7 +1027,7 @@ export const AlertsPage: React.FC = () => {
             {/* Modal Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ padding: '12px', borderRadius: '16px', backgroundColor: '#EFF6FF', color: '#2563EB', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.18)' }}>
+                <div style={{ padding: '12px', borderRadius: '16px', backgroundColor: '#EFF6FF', color: '#2563EB', boxShadow: '0 4px 14px rgba(0, 0, 0, 0.18)' }}>
                   <Shield size={24} />
                 </div>
                 <div>
@@ -1105,7 +1105,7 @@ export const AlertsPage: React.FC = () => {
                       borderRadius: '14px',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      boxShadow: isSelected ? '0 4px 14px rgba(37, 99, 235, 0.12)' : '0 2px 6px rgba(0, 0, 0, 0.02)',
+                      boxShadow: isSelected ? '0 4px 14px rgba(0, 0, 0, 0.12)' : '0 2px 6px rgba(0, 0, 0, 0.02)',
                       transition: 'all 0.15s ease'
                     }}
                   >

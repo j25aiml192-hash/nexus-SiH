@@ -247,7 +247,7 @@ export const SaiFloatingButton: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)'
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)'
                   }}
                 >
                   <img src="/nexus_logo.png" alt="NEXUS AI" style={{ height: '18px', width: 'auto', filter: 'brightness(0) invert(1)' }} />
@@ -321,7 +321,7 @@ export const SaiFloatingButton: React.FC = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       marginBottom: '12px',
-                      boxShadow: '0 8px 20px rgba(37, 99, 235, 0.35)'
+                      boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)'
                     }}
                   >
                     <img src="/nexus_logo.png" alt="NEXUS AI Logo" style={{ height: '30px', width: 'auto', filter: 'brightness(0) invert(1)' }} />
@@ -485,7 +485,7 @@ export const SaiFloatingButton: React.FC = () => {
           backgroundImage: 'linear-gradient(135deg, #4F46E5 0%, #2563EB 100%)',
           color: '#FFFFFF',
           border: 'none',
-          boxShadow: '0 8px 24px rgba(37, 99, 235, 0.45)',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -494,11 +494,11 @@ export const SaiFloatingButton: React.FC = () => {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.08)';
-          e.currentTarget.style.boxShadow = '0 12px 32px rgba(37, 99, 235, 0.6)';
+          e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.45)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(37, 99, 235, 0.45)';
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.35)';
         }}
       >
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

@@ -122,16 +122,16 @@ export const DashboardPage: React.FC = () => {
             fontWeight: 700,
             border: 'none',
             cursor: 'pointer',
-            boxShadow: '0 6px 18px rgba(79, 70, 229, 0.35)',
+            boxShadow: '0 6px 18px rgba(0, 0, 0, 0.35)',
             transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 10px 24px rgba(79, 70, 229, 0.45)';
+            e.currentTarget.style.boxShadow = '0 10px 24px rgba(0, 0, 0, 0.45)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 6px 18px rgba(79, 70, 229, 0.35)';
+            e.currentTarget.style.boxShadow = '0 6px 18px rgba(0, 0, 0, 0.35)';
           }}
         >
           <Plus size={16} />
@@ -683,16 +683,16 @@ export const DashboardPage: React.FC = () => {
                   fontWeight: 700,
                   border: 'none',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 18px rgba(79, 70, 229, 0.35)';
+                  e.currentTarget.style.boxShadow = '0 8px 18px rgba(0, 0, 0, 0.35)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.25)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.25)';
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

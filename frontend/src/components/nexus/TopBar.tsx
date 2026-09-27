@@ -224,7 +224,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
               transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               backgroundColor: roleMode === 'Analyst' ? '#2563EB' : 'transparent',
               color: roleMode === 'Analyst' ? '#FFFFFF' : '#94A3B8',
-              boxShadow: roleMode === 'Analyst' ? '0 2px 8px rgba(37, 99, 235, 0.45)' : 'none'
+              boxShadow: roleMode === 'Analyst' ? '0 2px 8px rgba(0, 0, 0, 0.35)' : 'none'
             }}
             onMouseEnter={(e) => {
               if (roleMode !== 'Analyst') {
@@ -258,7 +258,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
               transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               backgroundColor: roleMode === 'Officer' ? '#2563EB' : 'transparent',
               color: roleMode === 'Officer' ? '#FFFFFF' : '#94A3B8',
-              boxShadow: roleMode === 'Officer' ? '0 2px 8px rgba(37, 99, 235, 0.45)' : 'none'
+              boxShadow: roleMode === 'Officer' ? '0 2px 8px rgba(0, 0, 0, 0.35)' : 'none'
             }}
             onMouseEnter={(e) => {
               if (roleMode !== 'Officer') {

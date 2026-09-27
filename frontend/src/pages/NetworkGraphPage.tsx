@@ -437,7 +437,7 @@ export function NetworkGraphPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)'
             }}>
               <Network size={18} />
             </div>
@@ -523,16 +523,16 @@ export function NetworkGraphPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 6px 18px rgba(37, 99, 235, 0.35)',
+              boxShadow: '0 6px 18px rgba(0, 0, 0, 0.35)',
               transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 10px 24px rgba(37, 99, 235, 0.45)';
+              e.currentTarget.style.boxShadow = '0 10px 24px rgba(0, 0, 0, 0.45)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 6px 18px rgba(37, 99, 235, 0.35)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(0, 0, 0, 0.35)';
             }}
           >
             <Zap size={15} className="text-yellow-300" />

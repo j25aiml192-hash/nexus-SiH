@@ -5461,7 +5461,7 @@ body {
 .nexus-topbar-search-input:focus {
   background-color: #071929 !important;
   border-color: #6366F1 !important;
-  box-shadow: 0 0 0 3.5px rgba(99, 102, 241, 0.35), 0 8px 24px rgba(7, 25, 41, 0.5) !important;
+  box-shadow: 0 0 0 3.5px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(7, 25, 41, 0.5) !important;
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
 }
@@ -5606,7 +5606,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .nexus-user-details {
@@ -6188,7 +6188,7 @@ body {
 .nexus-kpi-grid>div:hover {
   animation-play-state: paused;
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px -8px rgba(37, 99, 235, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.15), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
   border-color: rgba(37, 99, 235, 0.3);
 }
 
@@ -6864,7 +6864,7 @@ body {
 
   50% {
     transform: translateY(-5px);
-    box-shadow: 0 18px 36px -6px rgba(15, 23, 42, 0.11), 0 8px 14px -4px rgba(79, 70, 229, 0.08), 0 0 0 1px rgba(94, 106, 210, 0.15);
+    box-shadow: 0 18px 36px -6px rgba(15, 23, 42, 0.11), 0 8px 14px -4px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(94, 106, 210, 0.15);
   }
 
   100% {

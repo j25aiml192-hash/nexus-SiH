@@ -205,7 +205,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.2)'
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)'
             }}>
               <PlusCircle size={24} />
             </div>
@@ -575,7 +575,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 6px 18px rgba(37, 99, 235, 0.35)',
+                boxShadow: '0 6px 18px rgba(0, 0, 0, 0.35)',
                 opacity: isSubmitting ? 0.7 : 1
               }}
             >
