@@ -1009,7 +1009,6 @@ def get_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
 
 def save_supabase_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
     from db.supabase_client import supabase
-    import h3
 
     cid = pred["complaint_id"]
     pid = pred.get("prediction_id") or str(uuid.uuid4())
@@ -1017,6 +1016,7 @@ def save_supabase_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
     lon = float(pred.get("predicted_lon") or pred.get("predicted_lng") or 86.6936)
 
     try:
+        import h3
         h3_cell = h3.latlng_to_cell(lat, lon, 8) if hasattr(h3, 'latlng_to_cell') else h3.geo_to_h3(lat, lon, 8)
     except Exception:
         h3_cell = "883cad6f2bfffff"
