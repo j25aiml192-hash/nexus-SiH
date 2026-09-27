@@ -1,0 +1,212 @@
+.carousel-marquee-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Left & Right Edge Soft Vignette Fades */
+.carousel-marquee-fade-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 120px;
+  background: linear-gradient(to right, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.carousel-marquee-fade-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 120px;
+  background: linear-gradient(to left, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Continuous Horizontal Track */
+.carousel-marquee-track {
+  display: flex;
+  gap: 24px;
+  width: max-content;
+  padding: 24px 0;
+  overflow-x: auto;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+  -ms-overflow-style: none; /* Hide scrollbar in IE/Edge */
+}
+
+.carousel-marquee-track::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Chrome/Safari */
+}
+
+.carousel-marquee-track.is-animating {
+  animation: marquee-infinite-loop 30s linear infinite;
+}
+
+@keyframes marquee-infinite-loop {
+  0% {
+    transform: translateX(-33.3333%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Single Marquee Card - Premium Neutral Grey Theme (#5c5d5f / Swatch Grey) */
+.carousel-marquee-card {
+  height: 380px;
+  background-color: #5c5d5f;
+  border: 1px solid #747578;
+  border-radius: 24px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.35s ease, box-shadow 0.35s ease, background-color 0.35s ease;
+  cursor: pointer;
+}
+
+.carousel-marquee-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: #9e9fa3;
+  background-color: #68696c;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.22), 0 0 25px rgba(255, 255, 255, 0.15);
+}
+
+.carousel-card-body {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  padding: 30px 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.carousel-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.carousel-card-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-transform: uppercase;
+}
+
+.carousel-marquee-card:hover .carousel-card-tag {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+.carousel-card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.carousel-marquee-card:hover .carousel-card-icon {
+  background-color: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+}
+
+.carousel-card-content {
+  margin-top: 16px;
+}
+
+.carousel-card-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 10px 0;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.carousel-card-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.carousel-card-stat {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.carousel-card-stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e2e8f0;
+  text-transform: uppercase;
+}
+
+.carousel-card-stat-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* Controls */
+.carousel-marquee-controls {
+  position: relative;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.carousel-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #5c5d5f;
+  border: 1px solid #747578;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.25s ease, transform 0.2s ease, border-color 0.25s ease;
+}
+
+.carousel-btn:hover {
+  background-color: #68696c;
+  border-color: #9e9fa3;
+  transform: scale(1.08);
+}

@@ -2,6 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronRight } from 'lucide-react';
 import GlitchText from './GlitchText';
+import ScrollExpand from './ScrollExpand';
+import FolderFloat from './FolderFloat';
+import AccordionGallery from './AccordionGallery';
+import Stack from './Stack';
+import Carousel from './Carousel';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +24,7 @@ export const LandingPage: React.FC = () => {
     <div className="nexus-landing-page" style={{
       width: '100%',
       minHeight: '100vh',
-      backgroundColor: 'transparent',
+      backgroundColor: '#FFFFFF',
       color: '#0B1226',
       fontFamily: "'Inter', -apple-system, sans-serif",
       boxSizing: 'border-box',
@@ -90,12 +95,12 @@ export const LandingPage: React.FC = () => {
                 cursor: 'pointer',
                 padding: '9px 18px',
                 borderRadius: '9999px',
-                backgroundColor: '#2E3FE8',
+                backgroundColor: '#02041cff',
                 color: '#FFFFFF',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 14px rgba(46, 63, 232, 0.35)',
+                boxShadow: '0 4px 14px rgba(2, 4, 28, 0.45)',
                 transition: 'transform 0.15s ease'
               }}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
@@ -250,245 +255,128 @@ export const LandingPage: React.FC = () => {
         }} />
       </header>
 
-      {/* 3. PROBLEM & METRICS SECTION - EDITORIAL BENTO LAYOUT */}
-      <section id="problem" style={{ padding: '80px 28px' }}>
-        <div style={{
-          maxWidth: '1240px',
-          margin: '0 auto',
-          backgroundColor: '#F8FAFC',
-          borderRadius: '24px',
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 8px 32px rgba(11, 18, 38, 0.04)',
-          overflow: 'hidden'
-        }}>
-          {/* Top Hero Editorial Area */}
+      {/* 3. PROBLEM & METRICS SECTION - WRAPPED IN SCROLLEXPAND MOTION */}
+      <section id="problem" style={{ padding: '60px 28px 40px 28px', backgroundColor: '#06070B' }}>
+        <ScrollExpand containerBg="#0F1117" useWindowScroll>
           <div style={{
-            padding: '48px 48px 36px 48px',
+            padding: '48px',
             display: 'grid',
-            gridTemplateColumns: '1.25fr 0.75fr',
-            gap: '40px',
-            alignItems: 'center'
+            gridTemplateColumns: '1.2fr 0.8fr',
+            gap: '48px',
+            alignItems: 'start'
           }}>
+            {/* Left Content Area */}
             <div>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#00B6C4', marginBottom: '10px', fontWeight: 700, letterSpacing: '0.06em' }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#71717A', marginBottom: '14px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                 WHY WE BUILT THIS
               </div>
               <h2 style={{
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 700,
-                fontSize: 'clamp(30px, 3.8vw, 42px)',
-                letterSpacing: '-0.02em',
-                margin: '0 0 16px 0',
+                fontSize: 'clamp(32px, 3.8vw, 44px)',
+                letterSpacing: '-0.03em',
+                margin: '0 0 20px 0',
                 lineHeight: 1.1,
-                color: '#0B1226'
+                color: '#FFFFFF'
               }}>
-                The complaint is filed.<br />The money is already gone.
+                The complaint is filed. The money is already gone.
               </h2>
-              <p style={{ lineHeight: 1.6, color: '#4A5568', margin: '0 0 18px 0', fontSize: '15px', maxWidth: '58ch' }}>
-                By the time a fraud victim complains, funds have typically passed through five accounts. NEXUS reads the whole network at once, treating every account as a node to answer where funds stay within reach of a human — and when.
+              <p style={{ lineHeight: 1.6, color: '#A1A1AA', margin: '0 0 24px 0', fontSize: '15px' }}>
+                By the time a fraud victim complains, funds have typically passed through five accounts. Traditional fraud detection checks each transaction against a threshold, one at a time — when investigators finally spot the pattern, the trail has gone cold.
               </p>
 
-              {/* Compact Hopping Pipeline Badge */}
+              {/* Mule Hop Terminal Box */}
               <div style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: '13px',
-                color: '#0B1226',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #DDE4EE',
-                borderRadius: '10px',
-                padding: '12px 18px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 2px 8px rgba(11, 18, 38, 0.03)'
+                fontSize: '13.5px',
+                backgroundColor: '#06070B',
+                border: '1px solid #27272A',
+                borderRadius: '12px',
+                padding: '18px 20px',
+                marginBottom: '24px'
               }}>
-                <span>victim</span>
-                <span style={{ color: '#CBD5E1' }}>→</span>
-                <b style={{ color: '#D63E3E' }}>mule 1</b>
-                <span style={{ color: '#CBD5E1' }}>→</span>
-                <b style={{ color: '#D63E3E' }}>mule 2</b>
-                <span style={{ color: '#CBD5E1' }}>→</span>
-                <b style={{ color: '#D63E3E' }}>mule 3</b>
-                <span style={{ color: '#CBD5E1' }}>→</span>
-                <b style={{ color: '#D63E3E' }}>cash-out</b>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFFFFF', fontWeight: 600, flexWrap: 'wrap' }}>
+                  <span>victim</span>
+                  <span style={{ color: '#52525B' }}>→</span>
+                  <u style={{ textDecorationColor: '#71717A' }}>mule 1</u>
+                  <span style={{ color: '#52525B' }}>→</span>
+                  <u style={{ textDecorationColor: '#71717A' }}>mule 2</u>
+                  <span style={{ color: '#52525B' }}>→</span>
+                  <b style={{ color: '#FFFFFF', textDecoration: 'underline' }}>cash-out</b>
+                </div>
+                <div style={{ marginTop: '10px', color: '#71717A', fontSize: '12px' }}>
+                  // each hop designed to look ordinary on its own
+                </div>
               </div>
+
+              <p style={{ lineHeight: 1.6, color: '#A1A1AA', margin: 0, fontSize: '15px' }}>
+                NEXUS reads the whole network at once. It treats every account as a node, looks for the connection pattern rather than a single transaction, and answers the question fraud tools have never asked: where does this account stay within reach of a human — and when.
+              </p>
             </div>
 
-            {/* Right Giant Stat Callout */}
+            {/* Right Column - Interactive FolderFloat Emitting Metric Cards */}
             <div style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '20px',
-              border: '1px solid #E2E8F0',
-              padding: '36px 32px',
-              textAlign: 'left',
-              boxShadow: '0 6px 20px rgba(11, 18, 38, 0.03)'
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              alignSelf: 'stretch',
+              minHeight: '480px',
+              position: 'relative'
             }}>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#4A5568', fontWeight: 600, letterSpacing: '0.04em' }}>
-                CRITICAL CASH-OUT WINDOW
-              </div>
-              <div style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 'clamp(48px, 6vw, 76px)',
-                fontWeight: 800,
-                letterSpacing: '-0.04em',
-                color: '#0B1226',
-                lineHeight: 1,
-                margin: '8px 0 6px 0'
-              }}>
-                4–12h
-              </div>
-              <div style={{ fontSize: '13.5px', color: '#4A5568', lineHeight: 1.5 }}>
-                Typical time interval before mule funds are physically withdrawn at targeted ATMs.
-              </div>
+              <FolderFloat
+                label="CRITICAL METRICS & SCALE"
+                sublabel="3 core intelligence signals"
+                trigger="hover"
+                openOnScroll={true}
+                folderColor="#0B0D14"
+                frontColor="#141722"
+                paperColor="#06070B"
+                labelColor="#FFFFFF"
+                width="100%"
+                height={200}
+                radius={20}
+                lift={100}
+                tilt={3}
+                spread={180}
+                flapAngle={45}
+                restAngle={12}
+                openDuration={550}
+                stagger={70}
+                bounce={0.35}
+                items={[
+                  {
+                    title: '40 Signals',
+                    description: 'Pre-cash-out features spanning transaction, graph topology, mule behaviour, banking and KYC/spatial signals',
+                    backgroundColor: '#0A0C14'
+                  },
+                  {
+                    title: '1,000+ Complaints',
+                    description: 'Complaints modelled across 2,975 cash-out events to build the geographic intelligence layer',
+                    backgroundColor: '#090B12'
+                  },
+                  {
+                    title: '4–12 Hours',
+                    description: "Typical gap between mule transfer and physical cash withdrawal — the window current freezes can't reliably exploit",
+                    backgroundColor: '#06070B'
+                  }
+                ]}
+              />
             </div>
           </div>
-
-          {/* Bottom Portion - 4 Editorial Bar Columns (Matching Dstudio.agency design!) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            borderTop: '1px solid #E2E8F0',
-            backgroundColor: '#FFFFFF'
-          }}>
-            {/* Column 1 */}
-            <div style={{
-              position: 'relative',
-              height: '240px',
-              borderRight: '1px solid #E2E8F0',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              overflow: 'hidden'
-            }}>
-              <div style={{ padding: '16px 20px', position: 'relative', zIndex: 2 }}>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#64748B', fontWeight: 600 }}>01 / RESPONSE</div>
-                <div style={{ fontSize: '13.5px', color: '#0B1226', fontWeight: 700, marginTop: '2px' }}>Mule Hop Velocity</div>
-              </div>
-              {/* Bottom Filled Area (~35% height fill) */}
-              <div style={{
-                height: '35%',
-                backgroundColor: '#FEE2E2',
-                borderTop: '2px solid #FF5D5D',
-                padding: '12px 20px',
-                display: 'flex',
-                alignItems: 'flex-end',
-                position: 'relative',
-                zIndex: 2
-              }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '22px', fontWeight: 800, color: '#991B1B' }}>
-                  4–12 Hours
-                </span>
-              </div>
-            </div>
-
-            {/* Column 2 */}
-            <div style={{
-              position: 'relative',
-              height: '240px',
-              borderRight: '1px solid #E2E8F0',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              overflow: 'hidden'
-            }}>
-              <div style={{ padding: '16px 20px', position: 'relative', zIndex: 2 }}>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#64748B', fontWeight: 600 }}>02 / SCALE</div>
-                <div style={{ fontSize: '13.5px', color: '#0B1226', fontWeight: 700, marginTop: '2px' }}>Complaints Modelled</div>
-              </div>
-              {/* Bottom Filled Area (~55% height fill) */}
-              <div style={{
-                height: '55%',
-                backgroundColor: '#E0E7FF',
-                borderTop: '2px solid #2E3FE8',
-                padding: '12px 20px',
-                display: 'flex',
-                alignItems: 'flex-end',
-                position: 'relative',
-                zIndex: 2
-              }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '24px', fontWeight: 800, color: '#1E1B4B' }}>
-                  1,000+
-                </span>
-              </div>
-            </div>
-
-            {/* Column 3 */}
-            <div style={{
-              position: 'relative',
-              height: '240px',
-              borderRight: '1px solid #E2E8F0',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              overflow: 'hidden'
-            }}>
-              <div style={{ padding: '16px 20px', position: 'relative', zIndex: 2 }}>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#64748B', fontWeight: 600 }}>03 / FEATURES</div>
-                <div style={{ fontSize: '13.5px', color: '#0B1226', fontWeight: 700, marginTop: '2px' }}>Pre-Cashout Signals</div>
-              </div>
-              {/* Bottom Filled Area (~75% height fill) */}
-              <div style={{
-                height: '75%',
-                backgroundColor: '#E0F2FE',
-                borderTop: '2px solid #00B6C4',
-                padding: '12px 20px',
-                display: 'flex',
-                alignItems: 'flex-end',
-                position: 'relative',
-                zIndex: 2
-              }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '24px', fontWeight: 800, color: '#075985' }}>
-                  40 Signals
-                </span>
-              </div>
-            </div>
-
-            {/* Column 4 */}
-            <div style={{
-              position: 'relative',
-              height: '240px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              overflow: 'hidden'
-            }}>
-              <div style={{ padding: '16px 20px', position: 'relative', zIndex: 2 }}>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#64748B', fontWeight: 600 }}>04 / PRECISION</div>
-                <div style={{ fontSize: '13.5px', color: '#0B1226', fontWeight: 700, marginTop: '2px' }}>Median Error Radius</div>
-              </div>
-              {/* Bottom Filled Area (~90% height fill) */}
-              <div style={{
-                height: '90%',
-                backgroundColor: '#FEF3C7',
-                borderTop: '2px solid #F6A609',
-                padding: '12px 20px',
-                display: 'flex',
-                alignItems: 'flex-end',
-                position: 'relative',
-                zIndex: 2
-              }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '24px', fontWeight: 800, color: '#78350F' }}>
-                  165.6 km
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </ScrollExpand>
       </section>
 
-      {/* 4. ARCHITECTURE SECTION - FULL-BLEED BACKGROUND WITH CONCISE CARDS */}
+      {/* 4. ARCHITECTURE SECTION - WHITE BACKGROUND WITH BRIGHT ACCORDION CARDS */}
       <section id="architecture" style={{
         width: '100%',
         position: 'relative',
         overflow: 'hidden',
         padding: '80px 0',
-        backgroundImage: `linear-gradient(180deg, rgba(11, 18, 38, 0.85) 0%, rgba(15, 23, 42, 0.94) 100%), url(/rainy_city_bokeh.jpg)`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        color: '#FFFFFF'
+        backgroundColor: '#FFFFFF',
+        color: '#0B1226'
       }}>
         <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '0 28px', position: 'relative', zIndex: 2 }}>
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#00B6C4', marginBottom: '10px', fontWeight: 700, letterSpacing: '0.06em' }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#00808C', marginBottom: '10px', fontWeight: 700, letterSpacing: '0.06em' }}>
             BUILT FOR HOW INVESTIGATIONS ACTUALLY WORK
           </div>
           <h2 style={{
@@ -498,213 +386,251 @@ export const LandingPage: React.FC = () => {
             letterSpacing: '-0.02em',
             margin: '0 0 14px 0',
             lineHeight: 1.15,
-            color: '#FFFFFF'
+            color: '#0B1226'
           }}>
             Four layers turn a complaint into a ranked list of ATMs
           </h2>
-          <p style={{ fontSize: '15.5px', lineHeight: 1.6, color: '#CBD5E1', maxWidth: '64ch', margin: '0 0 40px 0' }}>
+          <p style={{ fontSize: '15.5px', lineHeight: 1.6, color: '#4A5568', maxWidth: '64ch', margin: '0 0 40px 0' }}>
             Network context, temporal filtering, and dual-regressor geospatial ML convert complaint signals into a predicted coordinate and ranked ATM candidates.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-            {/* Card 1 */}
-            <div style={{
-              padding: '24px 20px',
-              borderRadius: '16px',
-              backgroundColor: 'rgba(255, 255, 255, 0.07)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)'
-            }}>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#00B6C4', marginBottom: '8px', fontWeight: 700 }}>01 / DATA &amp; GRAPH</div>
-              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '18px', fontWeight: 700, margin: '0 0 8px 0', color: '#FFFFFF' }}>Map the network</h3>
-              <p style={{ fontSize: '13.5px', color: '#CBD5E1', margin: 0, lineHeight: 1.55 }}>
-                Directed graph tracking victim → mule → cash-out across velocity, depth, and shared device signals.
-              </p>
-            </div>
-
-            {/* Card 2 */}
-            <div style={{
-              padding: '24px 20px',
-              borderRadius: '16px',
-              backgroundColor: 'rgba(255, 255, 255, 0.07)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)'
-            }}>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#00B6C4', marginBottom: '8px', fontWeight: 700 }}>02 / FRAUD RISK</div>
-              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '18px', fontWeight: 700, margin: '0 0 8px 0', color: '#FFFFFF' }}>Score the account</h3>
-              <p style={{ fontSize: '13.5px', color: '#CBD5E1', margin: 0, lineHeight: 1.55 }}>
-                XGBoost classifier outputting risk score, alert level, and SHAP feature explanations.
-              </p>
-            </div>
-
-            {/* Card 3 */}
-            <div style={{
-              padding: '24px 20px',
-              borderRadius: '16px',
-              backgroundColor: 'rgba(255, 255, 255, 0.07)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)'
-            }}>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#00B6C4', marginBottom: '8px', fontWeight: 700 }}>03 / GEOGRAPHY</div>
-              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '18px', fontWeight: 700, margin: '0 0 8px 0', color: '#FFFFFF' }}>Predict location</h3>
-              <p style={{ fontSize: '13.5px', color: '#CBD5E1', margin: 0, lineHeight: 1.55 }}>
-                Dual LightGBM regressors predicting cash-out latitude and longitude without target leakage.
-              </p>
-            </div>
-
-            {/* Card 4 */}
-            <div style={{
-              padding: '24px 20px',
-              borderRadius: '16px',
-              backgroundColor: 'rgba(255, 255, 255, 0.07)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)'
-            }}>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#00B6C4', marginBottom: '8px', fontWeight: 700 }}>04 / OPERATIONS</div>
-              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '18px', fontWeight: 700, margin: '0 0 8px 0', color: '#FFFFFF' }}>Rank the ATMs</h3>
-              <p style={{ fontSize: '13.5px', color: '#CBD5E1', margin: 0, lineHeight: 1.55 }}>
-                Haversine distance ranking nearby ATM candidates pushed live to field response teams.
-              </p>
-            </div>
-          </div>
+          <AccordionGallery
+            defaultIndex={null}
+            expandRatio={0.52}
+            trigger="hover"
+            items={[
+              {
+                tag: '01 / DATA & GRAPH',
+                title: 'Map the network',
+                description: 'Directed graph tracking victim → mule → cash-out across velocity, depth, and shared device signals.',
+                image: '/hacker_laptop_gloves.jpg',
+                backgroundColor: '#5c5d5fff',
+                textColor: '#ffffffff',
+                accentColor: '#2a292eff'
+              },
+              {
+                tag: '02 / FRAUD RISK',
+                title: 'Score the account',
+                description: 'XGBoost classifier outputting risk score, alert level, and SHAP feature explanations.',
+                image: '/fraud_risk_score_graph.jpg',
+                backgroundColor: '#5c5d5fff',
+                textColor: '#ffffffff',
+                accentColor: 'rgba(88, 87, 88, 1)'
+              },
+              {
+                tag: '03 / GEOGRAPHY',
+                title: 'Predict location',
+                description: 'Dual LightGBM regressors predicting cash-out latitude and longitude without target leakage.',
+                image: '/map_pin_location.jpg',
+                backgroundColor: '#5c5d5fff',
+                textColor: '#ffffffff',
+                accentColor: '#575f5dff'
+              },
+              {
+                tag: '04 / OPERATIONS',
+                title: 'Rank the ATMs',
+                description: 'Haversine distance ranking nearby ATM candidates pushed live to field response teams.',
+                image: '/tactical_map_notes.jpg',
+                backgroundColor: '#5c5d5fff',
+                textColor: '#ffffffff',
+                accentColor: '#7c7671ff'
+              }
+            ]}
+          />
         </div>
       </section>
 
-      {/* 5. METRICS SECTION - FULL-BLEED SLEEK LIGHT MINT BAND WITH ELEVATED DASHBOARD */}
+      {/* 5. METRICS SECTION - SLEEK BLACK & WHITE THEME WITH PIXELSWAP DASHBOARD */}
       <section id="metrics" style={{
         width: '100%',
-        backgroundColor: '#F0F6F5',
-        borderTop: '1px solid #E2E8F0',
-        borderBottom: '1px solid #E2E8F0',
-        padding: '80px 0',
-        boxSizing: 'border-box'
+        backgroundColor: '#000000',
+        borderTop: '1px solid #27272A',
+        borderBottom: '1px solid #27272A',
+        padding: '90px 0',
+        boxSizing: 'border-box',
+        color: '#FFFFFF'
       }}>
         <div style={{
           maxWidth: '1240px',
           margin: '0 auto',
           padding: '0 28px',
           display: 'grid',
-          gridTemplateColumns: '0.95fr 1.05fr',
-          gap: '44px',
+          gridTemplateColumns: '0.9fr 1.1fr',
+          gap: '48px',
           alignItems: 'center'
         }}>
           {/* Left Column - Text & Key Highlights */}
           <div>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#0D9488', marginBottom: '8px', fontWeight: 700, letterSpacing: '0.06em' }}>
+            <div style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '12px',
+              color: '#A1A1AA',
+              marginBottom: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ width: '16px', height: '2px', backgroundColor: '#FFFFFF' }}></span>
               FEASIBILITY, REPORTED HONESTLY
             </div>
-            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 'clamp(30px, 3.8vw, 42px)', letterSpacing: '-0.03em', margin: '0 0 16px 0', lineHeight: 1.1, color: '#0B1226' }}>
+            <h2 style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 700,
+              fontSize: 'clamp(32px, 3.8vw, 44px)',
+              letterSpacing: '-0.03em',
+              margin: '0 0 16px 0',
+              lineHeight: 1.1,
+              color: '#FFFFFF'
+            }}>
               Validated accuracy<br />against baselines
             </h2>
-            <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#4A5568', margin: '0 0 28px 0', maxWidth: '44ch' }}>
+            <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#A1A1AA', margin: '0 0 32px 0', maxWidth: '44ch' }}>
               NEXUS V3 narrows the cash-out search radius significantly across 436 held-out test events, delivering an actionable regional localization signal.
             </p>
 
             {/* Stat Callout Highlights */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              <div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#0D9488', fontWeight: 700 }}>MEDIAN ERROR</div>
-                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '32px', fontWeight: 800, color: '#0B1226', marginTop: '4px' }}>165.6 km</div>
-                <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>Haversine Distance</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '18px' }}>
+              <div style={{ backgroundColor: '#09090B', border: '1px solid #27272A', borderRadius: '16px', padding: '20px 22px' }}>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#A1A1AA', fontWeight: 700, letterSpacing: '0.05em' }}>MEDIAN ERROR</div>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '34px', fontWeight: 800, color: '#FFFFFF', marginTop: '6px' }}>165.6 km</div>
+                <div style={{ fontSize: '12px', color: '#71717A', marginTop: '4px' }}>Haversine Distance</div>
               </div>
 
-              <div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#2563EB', fontWeight: 700 }}>MEAN ERROR</div>
-                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '32px', fontWeight: 800, color: '#0B1226', marginTop: '4px' }}>422.3 km</div>
-                <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>Haversine Distance</div>
+              <div style={{ backgroundColor: '#09090B', border: '1px solid #27272A', borderRadius: '16px', padding: '20px 22px' }}>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#A1A1AA', fontWeight: 700, letterSpacing: '0.05em' }}>MEAN ERROR</div>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '34px', fontWeight: 800, color: '#FFFFFF', marginTop: '6px' }}>422.3 km</div>
+                <div style={{ fontSize: '12px', color: '#71717A', marginTop: '4px' }}>Haversine Distance</div>
               </div>
             </div>
           </div>
 
-          {/* Right Column - Elevated Pure White Card Dashboard Visualization (Matching Image 2!) */}
+          {/* Right Column - Interactive Stack Component (Dark Baseline Graph <-> Bright NEXUS V3 Graph) */}
           <div style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: '20px',
-            padding: '28px 32px',
-            boxShadow: '0 12px 36px rgba(15, 23, 42, 0.05), 0 2px 8px rgba(15, 23, 42, 0.02)',
-            border: '1px solid #E2E8F0'
+            width: '100%',
+            height: '420px',
+            position: 'relative'
           }}>
-            {/* Header inside elevated white card */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div>
-                <div style={{ fontSize: '12px', color: '#64748B', fontFamily: "'JetBrains Mono', monospace" }}>Summary / Median Precision</div>
-                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '28px', fontWeight: 800, color: '#0B1226', marginTop: '2px' }}>
-                  165.6 km <span style={{ fontSize: '13px', fontWeight: 700, color: '#0D9488' }}>↓ 61% Error Reduction</span>
+            <Stack
+              randomRotation={true}
+              sensitivity={180}
+              sendToBackOnClick={true}
+              resetOnMouseLeave={true}
+              cards={[
+                // Card 1: Dark Theme Graph Card (Unselected State)
+                <div style={{
+                  backgroundColor: '#09090B',
+                  borderRadius: '24px',
+                  padding: '32px 36px',
+                  height: '100%',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  color: '#FFFFFF',
+                  border: '1px solid #27272A',
+                  boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)'
+                }}>
+                  {/* Card Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#71717A', fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Baseline Evaluation / Search Radius
+                      </div>
+                      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '28px', fontWeight: 800, color: '#FFFFFF', marginTop: '4px' }}>
+                        422.3 km <span style={{ fontSize: '13px', fontWeight: 600, color: '#71717A' }}>(KYC-Chain Baseline)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Monochrome Baseline Line Chart */}
+                  <svg viewBox="0 0 460 150" width="100%" height="150" role="img" aria-label="Baseline search radius chart">
+                    <path d="M 30,30 L 120,55 L 210,35 L 300,70 L 390,120" fill="none" stroke="#3F3F46" strokeWidth="2.5" strokeDasharray="6 6" />
+                    <circle cx="30" cy="30" r="5" fill="#A1A1AA" />
+                    <circle cx="120" cy="55" r="5" fill="#A1A1AA" />
+                    <circle cx="210" cy="35" r="5" fill="#A1A1AA" />
+                    <circle cx="300" cy="70" r="5" fill="#A1A1AA" />
+                    <circle cx="390" cy="120" r="5" fill="#71717A" />
+
+                    <text x="30" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fill="#71717A">Global</text>
+                    <text x="120" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fill="#71717A">Last KYC</text>
+                    <text x="210" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fill="#71717A">First KYC</text>
+                    <text x="300" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fill="#A1A1AA">KYC-chain</text>
+                    <text x="390" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fontWeight="700" fill="#FFFFFF">NEXUS V3</text>
+                  </svg>
+
+                </div>,
+
+                // Card 2: Bright Theme Graph Card (Selected / Hovered State)
+                <div style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '24px',
+                  padding: '32px 36px',
+                  height: '100%',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  color: '#0B1226',
+                  boxShadow: '0 16px 40px rgba(15, 23, 42, 0.12)',
+                  border: '1px solid #E2E8F0'
+                }}>
+                  {/* Card Header inside elevated white card */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#64748B', fontFamily: "'JetBrains Mono', monospace" }}>Summary / Median Precision</div>
+                      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '28px', fontWeight: 800, color: '#0B1226', marginTop: '2px' }}>
+                        165.6 km <span style={{ fontSize: '13px', fontWeight: 700, color: '#0D9488' }}>↓ 61% Error Reduction</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Smooth Teal Area Line Graph */}
+                  <svg viewBox="0 0 460 150" width="100%" height="150" role="img" aria-label="Line graph showing error reduction down to NEXUS V3">
+                    <defs>
+                      <linearGradient id="mintAreaGradBrightStack" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#00B6C4" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#00B6C4" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+
+                    <polygon points="30,30 120,55 210,35 300,70 390,120 390,135 30,135" fill="url(#mintAreaGradBrightStack)" />
+                    <path d="M 30,30 Q 80,45 120,55 T 210,35 T 300,70 T 390,120" fill="none" stroke="#00B6C4" strokeWidth="2.5" strokeLinecap="round" />
+
+                    <circle cx="30" cy="30" r="4" fill="#94A3B8" />
+                    <circle cx="120" cy="55" r="4" fill="#94A3B8" />
+                    <circle cx="210" cy="35" r="4" fill="#94A3B8" />
+                    <circle cx="300" cy="70" r="4" fill="#94A3B8" />
+
+                    <circle cx="390" cy="120" r="6" fill="#00B6C4" />
+                    <circle cx="390" cy="120" r="10" fill="none" stroke="#00B6C4" strokeWidth="1.5" opacity="0.5" />
+
+                    <text x="30" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill="#94A3B8">Global</text>
+                    <text x="120" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill="#94A3B8">Last KYC</text>
+                    <text x="210" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill="#94A3B8">First KYC</text>
+                    <text x="300" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill="#94A3B8">KYC-chain</text>
+                    <text x="390" y="145" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fontWeight="700" fill="#0B1226">NEXUS V3</text>
+                  </svg>
+
+                  {/* Threshold Progress Pills below chart */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '14px' }}>
+                    <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #F1F5F9', borderRadius: '10px', padding: '8px 10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '11px', color: '#64748B', fontFamily: "'JetBrains Mono', monospace" }}>≤ 50 km</div>
+                      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '15px', fontWeight: 800, color: '#0D9488' }}>25.0%</div>
+                    </div>
+                    <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #F1F5F9', borderRadius: '10px', padding: '8px 10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '11px', color: '#64748B', fontFamily: "'JetBrains Mono', monospace" }}>≤ 100 km</div>
+                      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '15px', fontWeight: 800, color: '#2563EB' }}>42.2%</div>
+                    </div>
+                    <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #F1F5F9', borderRadius: '10px', padding: '8px 10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '11px', color: '#64748B', fontFamily: "'JetBrains Mono', monospace" }}>≤ 250 km</div>
+                      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '15px', fontWeight: 800, color: '#475569' }}>54.6%</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                borderRadius: '20px',
-                padding: '6px 14px',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#4A5568',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <span>436 Held-Out Events</span>
-                <span style={{ fontSize: '10px' }}>▾</span>
-              </div>
-            </div>
-
-            {/* Smooth Teal Area Line Graph (Exact layout as Image 2!) */}
-            <svg viewBox="0 0 460 160" width="100%" height="160" role="img" aria-label="Line graph showing error reduction down to NEXUS V3">
-              <defs>
-                <linearGradient id="mintAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#00B6C4" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#00B6C4" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-
-              {/* Area fill */}
-              <polygon points="30,30 120,55 210,35 300,70 390,120 390,140 30,140" fill="url(#mintAreaGrad)" />
-
-              {/* Smooth Trend Line */}
-              <path d="M 30,30 Q 80,45 120,55 T 210,35 T 300,70 T 390,120" fill="none" stroke="#00B6C4" strokeWidth="2.5" strokeLinecap="round" />
-
-              {/* Baseline Points */}
-              <circle cx="30" cy="30" r="4" fill="#94A3B8" />
-              <circle cx="120" cy="55" r="4" fill="#94A3B8" />
-              <circle cx="210" cy="35" r="4" fill="#94A3B8" />
-              <circle cx="300" cy="70" r="4" fill="#94A3B8" />
-
-              {/* NEXUS V3 Highlight Point */}
-              <circle cx="390" cy="120" r="6" fill="#00B6C4" />
-              <circle cx="390" cy="120" r="10" fill="none" stroke="#00B6C4" strokeWidth="1.5" opacity="0.5" />
-
-              {/* Baseline Labels */}
-              <text x="30" y="154" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill="#94A3B8">Global</text>
-              <text x="120" y="154" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill="#94A3B8">Last KYC</text>
-              <text x="210" y="154" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill="#94A3B8">First KYC</text>
-              <text x="300" y="154" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill="#94A3B8">KYC-chain</text>
-              <text x="390" y="154" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fontWeight="700" fill="#0B1226">NEXUS V3</text>
-            </svg>
-
-            {/* Threshold Progress Pills below chart */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '14px' }}>
-              <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #F1F5F9', borderRadius: '10px', padding: '8px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#64748B', fontFamily: "'JetBrains Mono', monospace" }}>≤ 50 km</div>
-                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '15px', fontWeight: 800, color: '#0D9488' }}>25.0%</div>
-              </div>
-              <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #F1F5F9', borderRadius: '10px', padding: '8px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#64748B', fontFamily: "'JetBrains Mono', monospace" }}>≤ 100 km</div>
-                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '15px', fontWeight: 800, color: '#2563EB' }}>42.2%</div>
-              </div>
-              <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #F1F5F9', borderRadius: '10px', padding: '8px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: '#64748B', fontFamily: "'JetBrains Mono', monospace" }}>≤ 250 km</div>
-                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '15px', fontWeight: 800, color: '#475569' }}>54.6%</div>
-              </div>
-            </div>
+              ]}
+            />
           </div>
         </div>
       </section>
@@ -748,7 +674,7 @@ export const LandingPage: React.FC = () => {
             margin: '0 0 10px 0',
             color: '#0B1226'
           }}>
-            Four seats in the response chain
+           Seats in the response chain-
           </h2>
           <p style={{
             fontFamily: "'Inter', sans-serif",
@@ -761,419 +687,25 @@ export const LandingPage: React.FC = () => {
           </p>
         </div>
 
-        {/* FULL-BLEED GOLDEN RATIO WAVE CONTAINER (Leftmost x=0 to Rightmost x=100%) */}
+        {/* Full-Bleed Edge-to-Edge Carousel Container (Leftmost x=0 to Rightmost x=100vw) */}
         <div style={{
           position: 'relative',
           width: '100vw',
           marginLeft: 'calc(-50vw + 50%)',
           marginRight: 'calc(-50vw + 50%)',
-          marginBottom: '64px',
-          padding: '10px 0'
+          marginBottom: '48px',
+          overflow: 'hidden'
         }}>
-          {/* SVG Animated Kinetic Beam Path (Edge to Edge M 0 ... 1000) */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '220px', pointerEvents: 'none', zIndex: 1 }}>
-            <svg viewBox="0 0 1000 200" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-              <defs>
-                <linearGradient id="goldenBeamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#6366F1" stopOpacity="0.2" />
-                  <stop offset="38%" stopColor="#0EA5E9" stopOpacity="0.8" />
-                  <stop offset="62%" stopColor="#10B981" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.3" />
-                </linearGradient>
-              </defs>
-
-              {/* Subtle Base Dashed Guide */}
-              <path
-                d="M 0 100 C 70 50, 90 50, 146 50 C 230 50, 290 150, 382 150 C 470 150, 530 45, 618 45 C 710 45, 770 145, 854 145 C 930 145, 960 100, 1000 100"
-                fill="none"
-                stroke="#E2E8F0"
-                strokeWidth="2.5"
-                strokeDasharray="6 6"
-              />
-
-              {/* Glowing Animated Motion Energy Beam */}
-              <path
-                d="M 0 100 C 70 50, 90 50, 146 50 C 230 50, 290 150, 382 150 C 470 150, 530 45, 618 45 C 710 45, 770 145, 854 145 C 930 145, 960 100, 1000 100"
-                fill="none"
-                stroke="url(#goldenBeamGrad)"
-                strokeWidth="3.5"
-                strokeDasharray="40 160"
-                className="flow-dash-beam"
-              />
-            </svg>
-          </div>
-
-          {/* 4 Golden Ratio Nodes Overlay (Golden ratio proportions: 14.6%, 38.2%, 61.8%, 85.4%) */}
-          <div style={{
-            maxWidth: '1240px',
-            margin: '0 auto',
-            padding: '0 28px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '16px',
-            position: 'relative',
-            zIndex: 2,
-            minHeight: '230px'
-          }}>
-            {/* Node 1: Investigators (Golden Ratio Peak y=50px) */}
-            <div className="node-float-1" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              paddingTop: '10px'
-            }}>
-              <div style={{
-                width: '68px',
-                height: '68px',
-                borderRadius: '50%',
-                backgroundColor: '#FFFFFF',
-                boxShadow: '0 12px 30px rgba(99, 102, 241, 0.22)',
-                border: '2px solid #6366F1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#6366F1',
-                cursor: 'pointer',
-                marginBottom: '16px',
-                transition: 'transform 0.25s ease'
-              }}>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-              </div>
-              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '16.5px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
-                1. Investigators
-              </h3>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#64748B', margin: 0, maxWidth: '22ch', lineHeight: 1.4 }}>
-                Prioritize mule-chain risk &amp; geo-forecasts.
-              </p>
-            </div>
-
-            {/* Node 2: Partner Banks (Golden Ratio Trough y=150px) */}
-            <div className="node-float-2" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              paddingTop: '80px'
-            }}>
-              <div style={{
-                width: '68px',
-                height: '68px',
-                borderRadius: '50%',
-                backgroundColor: '#FFFFFF',
-                boxShadow: '0 12px 30px rgba(14, 165, 233, 0.22)',
-                border: '2px solid #0EA5E9',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#0EA5E9',
-                cursor: 'pointer',
-                marginBottom: '16px',
-                transition: 'transform 0.25s ease'
-              }}>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="21" width="18" height="2"></rect>
-                  <rect x="3" y="10" width="18" height="2"></rect>
-                  <path d="M12 2L3 7v3h18V7l-9-5z"></path>
-                </svg>
-              </div>
-              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '16.5px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
-                2. Partner Banks
-              </h3>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#64748B', margin: 0, maxWidth: '22ch', lineHeight: 1.4 }}>
-                Coordinate branch &amp; ATM location checks.
-              </p>
-            </div>
-
-            {/* Node 3: Field Dispatch (Golden Ratio Peak y=45px) */}
-            <div className="node-float-1" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              paddingTop: '6px'
-            }}>
-              <div style={{
-                width: '68px',
-                height: '68px',
-                borderRadius: '50%',
-                backgroundColor: '#FFFFFF',
-                boxShadow: '0 12px 30px rgba(16, 185, 129, 0.22)',
-                border: '2px solid #10B981',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#10B981',
-                cursor: 'pointer',
-                marginBottom: '16px',
-                transition: 'transform 0.25s ease'
-              }}>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-              </div>
-              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '16.5px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
-                3. Field Dispatch
-              </h3>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#64748B', margin: 0, maxWidth: '22ch', lineHeight: 1.4 }}>
-                Target high-confidence ATM candidates.
-              </p>
-            </div>
-
-            {/* Node 4: Command Centers (Golden Ratio Trough y=145px) */}
-            <div className="node-float-2" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              paddingTop: '75px'
-            }}>
-              <div style={{
-                width: '68px',
-                height: '68px',
-                borderRadius: '50%',
-                backgroundColor: '#FFFFFF',
-                boxShadow: '0 12px 30px rgba(245, 158, 11, 0.22)',
-                border: '2px solid #F59E0B',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#F59E0B',
-                cursor: 'pointer',
-                marginBottom: '16px',
-                transition: 'transform 0.25s ease'
-              }}>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                </svg>
-              </div>
-              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '16.5px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
-                4. Command Centers
-              </h3>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#64748B', margin: 0, maxWidth: '22ch', lineHeight: 1.4 }}>
-                Real-time countdown &amp; hotspot monitoring.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Lower 3 Bento Cards Grid (Golden Ratio Minimalist Styling) */}
-        <div style={{
-          maxWidth: '1240px',
-          margin: '0 auto',
-          padding: '0 28px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '24px'
-        }}>
-          {/* Card 1 */}
-          <div style={{
-            backgroundColor: '#F8FAFC',
-            borderRadius: '20px',
-            border: '1px solid #E2E8F0',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <div style={{ height: '6px', background: 'linear-gradient(90deg, #FF5D5D 0%, #F6A609 100%)' }}></div>
-            <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11.5px', fontWeight: 700, color: '#64748B', letterSpacing: '0.05em', marginBottom: '12px' }}>
-                  WORKFLOW COMPARISON
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #F1F5F9', borderRadius: '12px', padding: '12px' }}>
-                    <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '12px', fontWeight: 700, color: '#DC2626', marginBottom: '6px' }}>● Reactive</div>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#64748B', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div>• Fraud occurs</div>
-                      <div>• Complaint filed</div>
-                      <div style={{ textDecoration: 'line-through', opacity: 0.6 }}>• Cash saved</div>
-                    </div>
-                  </div>
-                  <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #ECFDF5', borderRadius: '12px', padding: '12px' }}>
-                    <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '12px', fontWeight: 700, color: '#059669', marginBottom: '6px' }}>✓ Proactive</div>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#065F46', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div>✓ Complaint filed</div>
-                      <div>✓ Geo map prediction</div>
-                      <div style={{ fontWeight: 700, color: '#047857' }}>✓ Field alert sent</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-          <div style={{
-            backgroundColor: '#F8FAFC',
-            borderRadius: '20px',
-            border: '1px solid #E2E8F0',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <div style={{ height: '6px', background: 'linear-gradient(90deg, #00B6C4 0%, #2563EB 100%)' }}></div>
-            <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11.5px', fontWeight: 700, color: '#64748B', letterSpacing: '0.05em', marginBottom: '12px' }}>
-                  INTERVENTION TRIAGE
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                  <div style={{ backgroundColor: '#EF4444', color: '#FFFFFF', padding: '10px 6px', borderRadius: '10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '9px', fontFamily: "'JetBrains Mono', monospace", opacity: 0.9 }}>HIGH</div>
-                    <div style={{ fontSize: '13px', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>4h RED</div>
-                  </div>
-                  <div style={{ backgroundColor: '#F59E0B', color: '#FFFFFF', padding: '10px 6px', borderRadius: '10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '9px', fontFamily: "'JetBrains Mono', monospace", opacity: 0.9 }}>MODERATE</div>
-                    <div style={{ fontSize: '13px', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>8h AMBER</div>
-                  </div>
-                  <div style={{ backgroundColor: '#10B981', color: '#FFFFFF', padding: '10px 6px', borderRadius: '10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '9px', fontFamily: "'JetBrains Mono', monospace", opacity: 0.9 }}>STANDARD</div>
-                    <div style={{ fontSize: '13px', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>12h GREEN</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div style={{
-            backgroundColor: '#F8FAFC',
-            borderRadius: '20px',
-            border: '1px solid #E2E8F0',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <div style={{ height: '6px', background: 'linear-gradient(90deg, #8B5CF6 0%, #6366F1 100%)' }}></div>
-            <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11.5px', fontWeight: 700, color: '#64748B', letterSpacing: '0.05em', marginBottom: '12px' }}>
-                  SPATIAL ML STACK
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {['NetworkX', 'XGBoost', 'LightGBM ×2', 'SHAP', 'Uber H3', 'FastAPI', 'Supabase', 'React + Leaflet'].map((tag) => (
-                    <span key={tag} style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: '11px',
-                      padding: '4px 9px',
-                      borderRadius: '14px',
-                      backgroundColor: '#FFFFFF',
-                      color: '#334155',
-                      border: '1px solid #E2E8F0',
-                      fontWeight: 500
-                    }}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
+          <div style={{ height: '480px', position: 'relative' }}>
+            <Carousel
+              baseWidth={320}
+              autoplay={true}
+              pauseOnHover={false}
+              loop={true}
+            />
           </div>
         </div>
       </section>
-
-      {/* 8. CTA BAND */}
-      <section style={{ padding: '0 28px 60px 28px' }}>
-        <div style={{
-          maxWidth: '1240px',
-          margin: '0 auto',
-          backgroundColor: '#0B1226',
-          borderRadius: '24px',
-          padding: '64px 48px',
-          textAlign: 'center',
-          color: '#FFFFFF'
-        }}>
-          <h2 style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 'clamp(26px, 3.5vw, 36px)',
-            fontWeight: 700,
-            maxWidth: '22ch',
-            margin: '0 auto 16px auto',
-            color: '#FFFFFF'
-          }}>
-            See where the next withdrawal is likely to happen — before it does.
-          </h2>
-          <p style={{
-            fontSize: '15.5px',
-            color: '#A6B0C8',
-            maxWidth: '44ch',
-            margin: '0 auto 30px auto'
-          }}>
-            Repository, evaluation notebooks and full V3 pipeline artifacts are available for auditor review.
-          </p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontWeight: 600,
-              fontSize: '14px',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '13px 26px',
-              borderRadius: '8px',
-              backgroundColor: '#FF5D5D',
-              color: '#FFFFFF',
-              boxShadow: '0 6px 20px rgba(255, 93, 93, 0.4)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <span>Launch Command Console</span>
-            <ArrowRight size={16} />
-          </button>
-        </div>
-      </section>
-
-      {/* 9. ANIMATED MOVING NEXUS MARQUEE BANNER AT THE BOTTOM */}
-      <section style={{
-        width: '100%',
-        overflow: 'hidden',
-        backgroundColor: '#0B1226',
-        borderTop: '1px solid #1E293B',
-        borderBottom: '1px solid #1E293B',
-        padding: '20px 0',
-        position: 'relative',
-        userSelect: 'none'
-      }}>
-        <div className="nexus-marquee-track">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '36px', paddingRight: '36px', whiteSpace: 'nowrap' }}>
-              <GlitchText speed={0.8} enableShadows={true} enableOnHover={true} className="nexus-glitch-hero">
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '34px', fontWeight: 900, letterSpacing: '0.08em', color: '#FFFFFF' }}>
-                  NEXUS
-                </span>
-              </GlitchText>
-              <span style={{ color: '#FF5D5D', fontSize: '20px' }}>✦</span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '15px', color: '#00B6C4', fontWeight: 700, letterSpacing: '0.06em' }}>
-                PREDICTIVE CASH-OUT INTERCEPTION
-              </span>
-              <span style={{ color: '#2E3FE8', fontSize: '20px' }}>✦</span>
-              <span style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: '32px',
-                fontWeight: 900,
-                letterSpacing: '0.08em',
-                WebkitTextStroke: '1px #94A3B8',
-                color: 'transparent'
-              }}>
-                NEXUS
-              </span>
-              <span style={{ color: '#F6A609', fontSize: '20px' }}>✦</span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '15px', color: '#94A3B8', fontWeight: 600 }}>
-                SIH26184 · TEAM PYTORCHERERS
-              </span>
-              <span style={{ color: '#FF5D5D', fontSize: '20px' }}>✦</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* 10. FOOTER */}
       <footer style={{
         padding: '40px 28px 60px 28px',
