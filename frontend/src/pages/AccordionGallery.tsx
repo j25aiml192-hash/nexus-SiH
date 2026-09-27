@@ -77,7 +77,9 @@ export const AccordionGallery: React.FC<AccordionGalleryProps> = ({
               boxShadow: isActive
                 ? '0 20px 40px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(0,0,0,0.06)'
                 : '0 4px 12px rgba(15, 23, 42, 0.04)',
-              transition: 'flex 0.45s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s ease, box-shadow 0.3s ease',
+              transition: 'flex 0.48s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease',
+              transform: isActive ? 'scale(1.01) translateZ(0)' : 'scale(1) translateZ(0)',
+              willChange: 'flex, transform, opacity',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',

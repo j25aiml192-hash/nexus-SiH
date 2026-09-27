@@ -97,8 +97,9 @@ export const Stack: React.FC<StackProps> = ({
               width: '100%',
               height: '100%',
               zIndex: stackOrder.length - position,
-              transform: `translateY(${translateY}px) scale(${scale}) rotate(${isTop ? 0 : rot}deg)`,
-              transition: 'transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s ease',
+              transform: `translate3d(0, ${translateY}px, 0) scale(${scale}) rotate(${isTop ? 0 : rot}deg)`,
+              transition: 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+              willChange: 'transform, opacity',
               cursor: isTop ? 'pointer' : 'default',
               ...cardDimensions
             }}

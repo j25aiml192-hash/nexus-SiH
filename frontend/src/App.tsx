@@ -13,6 +13,7 @@ import { IncidentDetailPage } from './pages/IncidentDetailPage';
 import { NetworkGraphPage } from './pages/NetworkGraphPage';
 import { SaiFloatingButton } from './components/nexus/SaiFloatingButton';
 import { useNexusStore } from './store/useNexusStore';
+import { PageTransition } from './components/ui/PageTransition';
 
 export function App() {
   const isSidebarCollapsed = useNexusStore((state) => state.isSidebarCollapsed);
@@ -32,7 +33,11 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
   const isMapPage = location.pathname === '/map';
 
   if (isLandingPage) {
-    return <LandingPage />;
+    return (
+      <PageTransition>
+        <LandingPage />
+      </PageTransition>
+    );
   }
 
   return (
@@ -41,21 +46,23 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
       <div className={`nexus-main-wrapper ${isSidebarCollapsed ? 'collapsed-sidebar' : ''}`}>
         <TopBar />
         <main className={`nexus-main-content ${isMapPage ? 'is-map-page' : ''}`}>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/complaints" element={<ComplaintsPage />} />
-            <Route path="/complaints/:complaintId" element={<ComplaintDetailPage />} />
-            <Route path="/complaints/:complaintId/network" element={<NetworkGraphPage />} />
-            <Route path="/network" element={<Navigate to="/complaints" replace />} />
-            <Route path="/prediction/:complaintId" element={<PredictionResultsPage />} />
-            <Route path="/prediction" element={<Navigate to="/complaints" replace />} />
-            <Route path="/map" element={<MapPage />} />
-            <Route path="/alerts" element={<AlertsPage />} />
-            <Route path="/incidents" element={<IncidentsPage />} />
-            <Route path="/incidents/:id" element={<IncidentDetailPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <PageTransition>
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/complaints" element={<ComplaintsPage />} />
+              <Route path="/complaints/:complaintId" element={<ComplaintDetailPage />} />
+              <Route path="/complaints/:complaintId/network" element={<NetworkGraphPage />} />
+              <Route path="/network" element={<Navigate to="/complaints" replace />} />
+              <Route path="/prediction/:complaintId" element={<PredictionResultsPage />} />
+              <Route path="/prediction" element={<Navigate to="/complaints" replace />} />
+              <Route path="/map" element={<MapPage />} />
+              <Route path="/alerts" element={<AlertsPage />} />
+              <Route path="/incidents" element={<IncidentsPage />} />
+              <Route path="/incidents/:id" element={<IncidentDetailPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </PageTransition>
         </main>
       </div>
       {!isLandingPage && <SaiFloatingButton />}

@@ -90,7 +90,7 @@ export const ComplaintsPage: React.FC = () => {
   return (
     <div className="nexus-page-container">
       {/* Header Section */}
-      <div className="nexus-complaints-header flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="nexus-complaints-header flex flex-col items-start md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="nexus-page-title">Complaints</h1>
           <p className="nexus-page-subtitle">Review, investigate and track real reported cybercrime cases.</p>
@@ -98,7 +98,7 @@ export const ComplaintsPage: React.FC = () => {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="nexus-quick-btn-primary flex items-center gap-1.5 px-4 py-2"
+          className="nexus-quick-btn-primary flex items-center gap-1.5 px-4 py-2 self-start md:self-auto"
         >
           <Plus size={16} /> New Complaint
         </button>

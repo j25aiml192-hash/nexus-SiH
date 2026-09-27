@@ -23,29 +23,52 @@ export const ScrollExpand: React.FC<ScrollExpandProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const currentProgressRef = useRef(0);
+  const targetProgressRef = useRef(0);
+  const rafIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
+    const updateTargetProgress = () => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight;
 
-      // Calculate progress: 0 when top enters viewport, 1 when centered/scrolled into focus
       const startPoint = windowHeight * 0.95;
       const endPoint = windowHeight * 0.25;
       const currentPos = startPoint - rect.top;
       const totalRange = startPoint - endPoint;
 
-      const progress = Math.min(Math.max(currentPos / totalRange, 0), 1);
-      setScrollProgress(progress);
+      const rawProgress = Math.min(Math.max(currentPos / totalRange, 0), 1);
+      targetProgressRef.current = rawProgress;
+    };
+
+    const animate = () => {
+      const diff = targetProgressRef.current - currentProgressRef.current;
+      if (Math.abs(diff) > 0.0001) {
+        currentProgressRef.current += diff * 0.12;
+        setScrollProgress(currentProgressRef.current);
+      }
+      rafIdRef.current = requestAnimationFrame(animate);
+    };
+
+    const handleScroll = () => {
+      updateTargetProgress();
     };
 
     if (useWindowScroll) {
       window.addEventListener('scroll', handleScroll, { passive: true });
-      handleScroll();
-      return () => window.removeEventListener('scroll', handleScroll);
+      updateTargetProgress();
+      currentProgressRef.current = targetProgressRef.current;
+      setScrollProgress(targetProgressRef.current);
+      rafIdRef.current = requestAnimationFrame(animate);
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+        if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      };
     } else {
-      handleScroll();
+      updateTargetProgress();
+      setScrollProgress(targetProgressRef.current);
     }
   }, [useWindowScroll]);
 
@@ -81,9 +104,9 @@ export const ScrollExpand: React.FC<ScrollExpandProps> = ({
           backgroundColor: containerBg,
           border: '1px solid rgba(255, 255, 255, 0.12)',
           boxShadow: `0 ${10 + scrollProgress * 30}px ${30 + scrollProgress * 50}px rgba(0, 0, 0, ${0.4 + scrollProgress * 0.4})`,
-          transform: `scale(${scale}) translateY(${translateY}px)`,
+          transform: `translate3d(0, ${translateY}px, 0) scale(${scale})`,
           opacity: opacity,
-          transition: 'width 0.1s ease-out, transform 0.1s ease-out, opacity 0.1s ease-out, border-radius 0.1s ease-out',
+          transition: 'width 0.15s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.15s ease-out',
           willChange: 'transform, width, opacity'
         }}
       >
@@ -98,9 +121,10 @@ export const ScrollExpand: React.FC<ScrollExpandProps> = ({
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                transform: `scale(${1 + (mediaZoom - 1) * scrollProgress})`,
-                transition: 'transform 0.1s ease-out',
-                filter: 'brightness(0.55) contrast(1.1)'
+                transform: `scale(${1 + (mediaZoom - 1) * scrollProgress}) translateZ(0)`,
+                transition: 'transform 0.15s ease-out',
+                filter: 'brightness(0.55) contrast(1.1)',
+                willChange: 'transform'
               }}
               onError={(e) => {
                 (e.target as HTMLElement).style.display = 'none';

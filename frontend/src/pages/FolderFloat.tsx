@@ -63,7 +63,7 @@ export const FolderFloat: React.FC<FolderFloatProps> = ({
   restAngle = 14,
   openDuration = 520,
   stagger = 60,
-  bounce = 0.35
+  bounce: _bounce = 0.35
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCardIndex, setActiveCardIndex] = useState<number | null>(null);
@@ -122,8 +122,8 @@ export const FolderFloat: React.FC<FolderFloatProps> = ({
   };
 
   const easing = physics
-    ? `cubic-bezier(0.34, ${1 + (bounce || 0.35)}, 0.64, 1)`
-    : 'ease-out';
+    ? `cubic-bezier(0.16, 1, 0.3, 1)`
+    : 'cubic-bezier(0.25, 1, 0.5, 1)';
 
   const widthStyle = typeof width === 'number' ? `${width}px` : width;
 
@@ -157,7 +157,9 @@ export const FolderFloat: React.FC<FolderFloatProps> = ({
           boxShadow: isOpen
             ? '0 25px 50px rgba(0,0,0,0.8), 0 0 30px rgba(255,255,255,0.05)'
             : '0 8px 24px rgba(0,0,0,0.4)',
-          transition: `all ${openDuration}ms ${easing}`
+          transition: `transform ${openDuration}ms ${easing}, box-shadow ${openDuration}ms ${easing}`,
+          transform: 'translateZ(0)',
+          willChange: 'transform, box-shadow'
         }}
       >
         {/* Top Folder Tab */}
@@ -235,12 +237,12 @@ export const FolderFloat: React.FC<FolderFloatProps> = ({
                     ? '0 12px 32px rgba(0,0,0,0.7), 0 2px 6px rgba(0,0,0,0.4)'
                     : '0 4px 12px rgba(0,0,0,0.3)'),
                 transformOrigin: 'bottom center',
-                transform: `translateY(${yLift}px) translateX(${xDrift}px) rotate(${isFront ? 0 : angle}deg) scale(${isFront ? 1.05 : (isOpen ? 1 : 0.96 - index * 0.02)})`,
+                transform: `translate3d(${xDrift}px, ${yLift}px, 0) rotate(${isFront ? 0 : angle}deg) scale(${isFront ? 1.05 : (isOpen ? 1 : 0.96 - index * 0.02)})`,
                 opacity: isOpen ? 1 : 0.9 - index * 0.25,
-                transition: `all ${openDuration}ms ${easing} ${delay * 0.5}ms`,
+                transition: `transform ${openDuration}ms ${easing} ${delay * 0.5}ms, opacity ${openDuration}ms ${easing} ${delay * 0.5}ms, box-shadow ${openDuration}ms ${easing}`,
                 cursor: 'pointer',
                 border: isFront ? '1px solid #d8d9daff' : '1px solid rgba(255,255,255,0.15)',
-                willChange: 'transform, opacity, z-index'
+                willChange: 'transform, opacity'
               }}
             >
               <div
