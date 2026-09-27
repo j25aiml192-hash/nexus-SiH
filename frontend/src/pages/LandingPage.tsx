@@ -7,6 +7,7 @@ import FolderFloat from './FolderFloat';
 import AccordionGallery from './AccordionGallery';
 import Stack from './Stack';
 import Carousel from './Carousel';
+import { CinematicFooter } from '../components/ui/motion-footer';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -519,7 +520,7 @@ export const LandingPage: React.FC = () => {
               resetOnMouseLeave={true}
               cards={[
                 // Card 1: Dark Theme Graph Card (Unselected State)
-                <div style={{
+                <div key="stack-card-1" style={{
                   backgroundColor: '#09090B',
                   borderRadius: '24px',
                   padding: '32px 36px',
@@ -563,7 +564,7 @@ export const LandingPage: React.FC = () => {
                 </div>,
 
                 // Card 2: Bright Theme Graph Card (Selected / Hovered State)
-                <div style={{
+                <div key="stack-card-2" style={{
                   backgroundColor: '#FFFFFF',
                   borderRadius: '24px',
                   padding: '32px 36px',
@@ -706,22 +707,8 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
-      {/* 10. FOOTER */}
-      <footer style={{
-        padding: '40px 28px 60px 28px',
-        textAlign: 'center',
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: '13px',
-        color: '#4A5568',
-        borderTop: '1px solid #DDE4EE'
-      }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          <GlitchText speed={0.5} enableShadows={false} enableOnHover={true}>
-            <span style={{ fontWeight: 800, color: '#0B1226' }}>NEXUS</span>
-          </GlitchText>
-          <span>— SIH26184 · Team PYTORCHERERS · Predictive Cash-Out Interception for Cybercrime Complaints</span>
-        </div>
-      </footer>
+      {/* 10. CINEMATIC FOOTER */}
+      <CinematicFooter />
     </div>
   );
 };
