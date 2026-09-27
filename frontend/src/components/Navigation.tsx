@@ -147,9 +147,9 @@ export const Navigation: React.FC = () => {
               gap: '10px',
               padding: '8px 10px',
               borderRadius: '14px',
-              background: 'linear-gradient(135deg, #0B2238 0%, #102F4A 100%)',
+              background: '#000000',
               border: '1px solid rgba(255, 255, 255, 0.12)',
-              boxShadow: '0 4px 14px rgba(11, 34, 56, 0.25)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
               cursor: 'pointer',
               width: '100%',
               boxSizing: 'border-box',
@@ -163,9 +163,7 @@ export const Navigation: React.FC = () => {
                 height: '34px',
                 minWidth: '34px',
                 borderRadius: '10px',
-                background: roleMode === 'Analyst' 
-                  ? 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)'
-                  : 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                background: '#000000',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -287,9 +285,7 @@ export const Navigation: React.FC = () => {
               width: '36px',
               height: '36px',
               borderRadius: '10px',
-              background: roleMode === 'Analyst'
-                ? 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)'
-                : 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+              background: '#000000',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

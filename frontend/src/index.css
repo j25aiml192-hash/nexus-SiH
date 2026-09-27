@@ -29,9 +29,9 @@
   --card-foreground: #fafafa;
   --popover: #09090b;
   --popover-foreground: #fafafa;
-  --primary: #3b82f6;
+  --primary: #000000;
   --primary-foreground: #ffffff;
-  --secondary: #8b5cf6;
+  --secondary: #000000;
   --secondary-foreground: #ffffff;
   --muted: #27272a;
   --muted-foreground: #a1a1aa;
@@ -41,7 +41,7 @@
   --destructive-foreground: #fafafa;
   --border: #27272a;
   --input: #27272a;
-  --ring: #3b82f6;
+  --ring: #000000;
   --radius: 0.5rem;
 }
 
@@ -61,10 +61,10 @@ section {
      ========================================================================== */
 
   /* Brand & Accent */
-  --colors-primary: #5e6ad2;
-  --colors-primary-hover: #4f56c6;
-  --colors-primary-focus: #5e69d1;
-  --colors-brand-secure: #5b64b0;
+  --colors-primary: #000000;
+  --colors-primary-hover: #000000;
+  --colors-primary-focus: #000000;
+  --colors-brand-secure: #050508;
 
   /* Surfaces (4-step Surface Ladder on Light Canvas Floor) */
   --colors-canvas: #ffffff;
@@ -2536,7 +2536,7 @@ body {
   font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: -0.4px;
-  color: #0F172A;
+  color: #000000;
   line-height: 1.1;
 }
 
@@ -2594,12 +2594,12 @@ body {
 }
 
 .nexus-nav-item:hover {
-  color: #0F172A;
+  color: #000000;
   background-color: #F8FAFC;
 }
 
 .nexus-nav-item.active {
-  color: #4F46E5 !important;
+  color: #000000 !important;
   background-color: #EEF2FF !important;
   font-weight: 600;
 }
@@ -2611,7 +2611,7 @@ body {
   top: 6px;
   bottom: 6px;
   width: 3.5px;
-  background-color: #4F46E5;
+  background-color: #000000;
   border-radius: 0 4px 4px 0;
 }
 
@@ -2626,7 +2626,7 @@ body {
 }
 
 .nexus-nav-item.active .nexus-nav-icon {
-  color: #4F46E5;
+  color: #000000;
 }
 
 .nexus-nav-text {
@@ -2638,7 +2638,7 @@ body {
   font-weight: 700;
   font-family: var(--font-mono);
   background-color: #EEF2FF;
-  color: #4F46E5;
+  color: #030307;
   padding: 1px 6px;
   border-radius: 9999px;
 }
@@ -2709,7 +2709,7 @@ body {
 .nexus-promo-download-btn {
   width: 100%;
   padding: 5px 12px;
-  background-color: #4F46E5;
+  background-color: #000000;
   color: #ffffff;
   font-size: 11px;
   font-weight: 600;
@@ -2720,7 +2720,7 @@ body {
 }
 
 .nexus-promo-download-btn:hover {
-  background-color: #4338CA;
+  background-color: #000000;
 }
 
 /* TopBar V2 Component */
@@ -2787,7 +2787,7 @@ body {
   outline: none;
   background: transparent;
   font-size: 13px;
-  color: #102A2A;
+  color: #000000;
   width: 100%;
   font-family: var(--font-sans);
 }
@@ -5379,10 +5379,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(180deg, #0B2238 0%, #102F4A 100%);
+  background: #000000 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 50;
-  box-shadow: 0 4px 20px rgba(11, 34, 56, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   box-sizing: border-box;
   transition: padding-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -5421,7 +5421,7 @@ body {
   left: 18px !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
-  color: #818CF8 !important;
+  color: #94A3B8 !important;
   pointer-events: none !important;
   z-index: 5 !important;
   transition: all 0.2s ease !important;
@@ -5431,17 +5431,17 @@ body {
   width: 100% !important;
   height: 40px !important;
   padding: 0 46px 0 46px !important;
-  background-color: rgba(11, 34, 56, 0.75) !important;
+  background-color: #000000 !important;
   backdrop-filter: blur(16px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
   border-radius: 20px !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
   outline: none !important;
-  box-shadow: 0 4px 16px rgba(7, 25, 41, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
@@ -5453,15 +5453,15 @@ body {
 }
 
 .nexus-topbar-search-input:hover {
-  background-color: rgba(15, 45, 74, 0.90) !important;
-  border-color: rgba(129, 140, 248, 0.45) !important;
-  box-shadow: 0 6px 20px rgba(7, 25, 41, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  background-color: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
 }
 
 .nexus-topbar-search-input:focus {
-  background-color: #071929 !important;
-  border-color: #6366F1 !important;
-  box-shadow: 0 0 0 3.5px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(7, 25, 41, 0.5) !important;
+  background-color: #000000 !important;
+  border-color: #FFFFFF !important;
+  box-shadow: 0 0 0 3.5px rgba(255, 255, 255, 0.25), 0 8px 24px rgba(0, 0, 0, 0.6) !important;
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
 }
@@ -7077,4 +7077,4 @@ a.btn:active,
 .animate-fade-in-up {
   animation: nexusModalFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
-}
+}

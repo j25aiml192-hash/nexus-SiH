@@ -70,7 +70,7 @@ export const DashboardPage: React.FC = () => {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.03em' }}>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: '#000000ff', letterSpacing: '-0.03em' }}>
               Cybercrime Intelligence Dashboard
             </h1>
             <span style={{
@@ -115,8 +115,8 @@ export const DashboardPage: React.FC = () => {
             gap: '8px',
             padding: '10px 20px',
             borderRadius: '10px',
-            backgroundColor: '#0B2238',
-            backgroundImage: 'linear-gradient(135deg, #0B2238 0%, #102F4A 100%)',
+            backgroundColor: '#000000ff',
+            backgroundImage: 'linear-gradient(135deg, #0B2238 0%, #000000ff 100%)',
             color: '#FFFFFF',
             fontSize: '13px',
             fontWeight: 700,

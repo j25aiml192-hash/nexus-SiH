@@ -201,7 +201,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
           padding: '3px',
           height: '36px',
           borderRadius: '10px',
-          backgroundColor: '#071929',
+          backgroundColor: '#000000',
           border: '1px solid rgba(255, 255, 255, 0.14)',
           boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.4)',
           boxSizing: 'border-box'
@@ -222,7 +222,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-              backgroundColor: roleMode === 'Analyst' ? '#2563EB' : 'transparent',
+              backgroundColor: roleMode === 'Analyst' ? '#000000' : 'transparent',
               color: roleMode === 'Analyst' ? '#FFFFFF' : '#94A3B8',
               boxShadow: roleMode === 'Analyst' ? '0 2px 8px rgba(0, 0, 0, 0.35)' : 'none'
             }}
@@ -256,7 +256,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-              backgroundColor: roleMode === 'Officer' ? '#2563EB' : 'transparent',
+              backgroundColor: roleMode === 'Officer' ? '#000000' : 'transparent',
               color: roleMode === 'Officer' ? '#FFFFFF' : '#94A3B8',
               boxShadow: roleMode === 'Officer' ? '0 2px 8px rgba(0, 0, 0, 0.35)' : 'none'
             }}
@@ -322,7 +322,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 0 2px #0B2238'
+              boxShadow: '0 0 0 2px #000000'
             }}
           >
             5
