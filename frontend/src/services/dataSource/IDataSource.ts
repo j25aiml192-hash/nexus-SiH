@@ -138,4 +138,11 @@ export interface IDataSource {
   getPotentialSyndicateById(clusterId: string): Promise<import('../../types/syndicate').PotentialClusterDetail>;
   getCaseSyndicates(complaintId: string): Promise<import('../../types/syndicate').CaseSyndicatesResponse>;
   expandCaseSyndicateNetwork(complaintId: string, depth?: number, maxNodes?: number): Promise<import('../../types/syndicate').GraphExpansionResponse>;
+
+  // Evidence Intelligence (Phase 4A)
+  getEvidenceCases(limit?: number): Promise<import('../../types/evidence').EvidenceCaseSummary[]>;
+  getCaseEvidence(complaintId: string, depth?: number, maxNodes?: number): Promise<import('../../types/evidence').EvidenceGraphResponse>;
+  getCaseEvidenceTimeline(complaintId: string): Promise<import('../../types/evidence').EvidenceTimelineEvent[]>;
+  getEvidenceRelation(relationId: string): Promise<import('../../types/evidence').EvidenceRelationDetail>;
+  getEvidenceEntity(entityId: string): Promise<any>;
 }

@@ -643,5 +643,35 @@ export class ApiDataSource implements IDataSource {
       `/autonomy/syndicates/case/${encodeURIComponent(complaintId)}/expand?depth=${encodeURIComponent(depth)}&max_nodes=${encodeURIComponent(maxNodes)}`
     );
   }
+
+  // Evidence Intelligence (Phase 4A)
+  async getEvidenceCases(limit: number = 50): Promise<import('../../types/evidence').EvidenceCaseSummary[]> {
+    return await this.request<import('../../types/evidence').EvidenceCaseSummary[]>(`/autonomy/evidence/cases?limit=${encodeURIComponent(limit)}`);
+  }
+
+  async getCaseEvidence(
+    complaintId: string,
+    depth: number = 1,
+    maxNodes: number = 60
+  ): Promise<import('../../types/evidence').EvidenceGraphResponse> {
+    return await this.request<import('../../types/evidence').EvidenceGraphResponse>(
+      `/autonomy/evidence/case/${encodeURIComponent(complaintId)}?depth=${encodeURIComponent(depth)}&max_nodes=${encodeURIComponent(maxNodes)}`
+    );
+  }
+
+  async getCaseEvidenceTimeline(complaintId: string): Promise<import('../../types/evidence').EvidenceTimelineEvent[]> {
+    const res = await this.request<{ complaint_id: string; timeline: import('../../types/evidence').EvidenceTimelineEvent[] }>(
+      `/autonomy/evidence/case/${encodeURIComponent(complaintId)}/timeline`
+    );
+    return res?.timeline || [];
+  }
+
+  async getEvidenceRelation(relationId: string): Promise<import('../../types/evidence').EvidenceRelationDetail> {
+    return await this.request<import('../../types/evidence').EvidenceRelationDetail>(`/autonomy/evidence/relation/${encodeURIComponent(relationId)}`);
+  }
+
+  async getEvidenceEntity(entityId: string): Promise<any> {
+    return await this.request<any>(`/autonomy/evidence/entity/${encodeURIComponent(entityId)}`);
+  }
 }
 

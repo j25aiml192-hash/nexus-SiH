@@ -126,3 +126,75 @@ def get_syndicate_cluster_details(cluster_id: str):
     return cluster
 
 
+# -----------------------------------------------------------------------------
+# EVIDENCE INTELLIGENCE / TRUTH GRAPH ENDPOINTS (PHASE 4A)
+# -----------------------------------------------------------------------------
+
+@router.get("/evidence/cases")
+def list_evidence_cases(limit: int = Query(50, ge=1, le=100)):
+    """
+    Returns list of complaints with active Truth Graph evidence.
+    Populates case selector and search on /evidence workspace.
+    """
+    from core.autonomy.evidence_service import evidence_service
+    return evidence_service.get_evidence_cases_list(limit=limit)
+
+
+@router.get("/evidence/case/{complaint_id}")
+def get_case_evidence(
+    complaint_id: str,
+    depth: int = Query(1, ge=1, le=2, description="Evidence graph expansion depth"),
+    max_nodes: int = Query(60, ge=5, le=100, description="Max graph nodes"),
+):
+    """
+    Returns the unified Evidence Graph, semantic-level breakdown, and deterministic
+    consistency analysis for a given complaint.
+    """
+    from core.autonomy.evidence_service import evidence_service
+    return evidence_service.get_case_evidence_graph(
+        complaint_id=complaint_id,
+        depth=depth,
+        max_nodes=max_nodes,
+    )
+
+
+@router.get("/evidence/case/{complaint_id}/timeline")
+def get_case_evidence_timeline(complaint_id: str):
+    """
+    Returns chronological timeline of evidence events, observations, and derived states.
+    """
+    from core.autonomy.evidence_service import evidence_service
+    return {
+        "complaint_id": complaint_id,
+        "timeline": evidence_service.get_case_evidence_timeline(complaint_id),
+    }
+
+
+@router.get("/evidence/relation/{relation_id}")
+def get_evidence_relation_details(relation_id: str):
+    """
+    Returns full provenance trace and entity links for a specific evidence relationship.
+    """
+    from core.autonomy.evidence_service import evidence_service
+    rel = evidence_service.get_relation_provenance(relation_id)
+    if not rel:
+        raise HTTPException(status_code=404, detail=f"Evidence relation '{relation_id}' not found")
+    return rel
+
+
+@router.get("/evidence/entity/{entity_id}")
+def get_evidence_entity_details(entity_id: str):
+    """
+    Returns entity details and cross-case linkages for a specific Truth Graph entity.
+    """
+    ent = repo.get_truth_entity_by_id(entity_id)
+    if not ent:
+        raise HTTPException(status_code=404, detail=f"Evidence entity '{entity_id}' not found")
+    cross = repo.get_entity_cross_case_links(entity_id)
+    return {
+        "entity": ent,
+        "cross_case_links": cross,
+    }
+
+
+

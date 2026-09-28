@@ -227,4 +227,59 @@ export class MockDataSource implements IDataSource {
   async expandCaseSyndicateNetwork(complaintId: string, depth: number = 1): Promise<import('../../types/syndicate').GraphExpansionResponse> {
     return { root_complaint_id: complaintId, depth, total_nodes: 0, total_edges: 0, total_cases: 0, nodes: [], edges: [] };
   }
+
+  // Evidence Intelligence (Phase 4A)
+  async getEvidenceCases(_limit?: number): Promise<import('../../types/evidence').EvidenceCaseSummary[]> {
+    return [];
+  }
+
+  async getCaseEvidence(complaintId: string, depth: number = 1): Promise<import('../../types/evidence').EvidenceGraphResponse> {
+    return {
+      complaint_id: complaintId,
+      complaint: null,
+      depth,
+      nodes: [],
+      edges: [],
+      summary: {
+        total_nodes: 0,
+        total_edges: 0,
+        semantic_breakdown: { DIRECT_OBSERVED: 0, DERIVED: 0, INFERRED: 0, MODEL_SIGNAL: 0 },
+        entity_types: {},
+      },
+      consistency: {
+        status: 'CONSISTENT',
+        checks_passed: 4,
+        total_checks: 4,
+        checks: [],
+        discrepancies: [],
+      },
+    };
+  }
+
+  async getCaseEvidenceTimeline(_complaintId: string): Promise<import('../../types/evidence').EvidenceTimelineEvent[]> {
+    return [];
+  }
+
+  async getEvidenceRelation(relationId: string): Promise<import('../../types/evidence').EvidenceRelationDetail> {
+    return {
+      relation_id: relationId,
+      relation_type: 'APPEARED_IN_COMPLAINT',
+      semantic_level: 'DIRECT_OBSERVED',
+      confidence: 1.0,
+      complaint_id: null,
+      source_entity: null,
+      target_entity: null,
+      provenance: {
+        source_record_type: 'complaints',
+        source_record_id: 'UNKNOWN',
+        derivation_explanation: 'Directly recorded from intake.',
+        is_provenance_verified: false,
+      },
+      evidence_metadata: {},
+    };
+  }
+
+  async getEvidenceEntity(_entityId: string): Promise<any> {
+    return null;
+  }
 }

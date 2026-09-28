@@ -8,6 +8,7 @@ import {
   MapPin,
   Settings,
   Network,
+  FileCheck2,
 } from 'lucide-react';
 import { useNexusStore } from '../store/useNexusStore';
 
@@ -103,6 +104,18 @@ export const Navigation: React.FC = () => {
             <Network size={18} />
           </div>
           <span className="nexus-floating-label">Syndicate Intelligence</span>
+        </NavLink>
+
+        <NavLink
+          to="/evidence"
+          className={({ isActive }) =>
+            `nexus-floating-item ${isActive ? 'active' : ''}`
+          }
+        >
+          <div className="nexus-squircle-box">
+            <FileCheck2 size={18} />
+          </div>
+          <span className="nexus-floating-label">Evidence Intelligence</span>
         </NavLink>
 
         <NavLink
