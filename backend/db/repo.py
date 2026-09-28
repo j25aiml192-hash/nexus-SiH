@@ -25,6 +25,8 @@ def init_db():
     c.executescript("""
     CREATE TABLE IF NOT EXISTS complaints (
         complaint_id TEXT PRIMARY KEY,
+        ncrp_id TEXT,
+        cfcfrms_ticket_id TEXT,
         fraud_type TEXT NOT NULL,
         amount_inr REAL NOT NULL,
         status TEXT NOT NULL DEFAULT 'flagged',
@@ -317,6 +319,16 @@ def init_db():
     for uid, name, email, pass_hash, role, badge, agency, status in default_users:
         c.execute("INSERT OR IGNORE INTO users (id, name, email, password_hash, role, badge_id, agency, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                   (uid, name, email, pass_hash, role, badge, agency, status, now_str))
+
+    # Migration checks for additive complaint reference columns
+    try:
+        c.execute("ALTER TABLE complaints ADD COLUMN ncrp_id TEXT")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE complaints ADD COLUMN cfcfrms_ticket_id TEXT")
+    except Exception:
+        pass
 
     conn.commit()
     conn.close()
@@ -917,24 +929,24 @@ def get_complaints(
 
 def get_supabase_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
     from db.supabase_client import supabase
+    clean_id = str(complaint_id).strip()
     try:
-        if is_valid_uuid(complaint_id):
-            res = supabase.table("complaints").select("*").eq("complaint_id", complaint_id).execute()
+        if is_valid_uuid(clean_id):
+            res = supabase.table("complaints").select("*").eq("complaint_id", clean_id).execute()
             if res.data:
                 return res.data[0]
-        res = supabase.table("complaints").select("*").eq("ncrp_id", complaint_id).execute()
-        if res.data:
-            return res.data[0]
-        return None
+        res = supabase.table("complaints").select("*").or_(f"ncrp_id.eq.{clean_id},cfcfrms_ticket_id.eq.{clean_id}").execute()
+        return res.data[0] if res.data else None
     except Exception as e:
-        logger.error(f"[SUPABASE COMPLAINT GET ERROR] Failed to fetch complaint {complaint_id}: {e}")
+        logger.error(f"[SUPABASE COMPLAINT GET ERROR] Failed to fetch complaint {clean_id}: {e}")
         return None
 
 
 def get_sqlite_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
+    clean_id = str(complaint_id).strip()
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT * FROM complaints WHERE complaint_id = ? OR ncrp_id = ?", (complaint_id, complaint_id))
+    c.execute("SELECT * FROM complaints WHERE complaint_id = ? OR ncrp_id = ? OR cfcfrms_ticket_id = ?", (clean_id, clean_id, clean_id))
     row = c.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -1110,11 +1122,13 @@ def create_sqlite_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
     bank = complaint.get("accused_bank") or "Paytm Payments Bank"
     channel = complaint.get("channel") or "UPI"
     status = complaint.get("status") or "active"
+    ncrp_id = complaint.get("ncrp_id") or (cid if not is_valid_uuid(cid) else f"NCRP-2026-{random.randint(100000, 999999)}")
+    cfcfrms_ticket = complaint.get("cfcfrms_ticket_id") or f"CFCFRMS-2026-{random.randint(100000, 999999)}"
 
     c.execute("""
-    INSERT INTO complaints (complaint_id, fraud_type, amount_inr, status, created_at, filed_at, victim_state, victim_district, accused_phone_prefix, accused_bank, channel)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (cid, fraud_type, amount, status, now, now, victim_state, victim_district, phone, bank, channel))
+    INSERT INTO complaints (complaint_id, ncrp_id, cfcfrms_ticket_id, fraud_type, amount_inr, status, created_at, filed_at, victim_state, victim_district, accused_phone_prefix, accused_bank, channel)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (cid, ncrp_id, cfcfrms_ticket, fraud_type, amount, status, now, now, victim_state, victim_district, phone, bank, channel))
 
     # Create dummy initial mule node so prediction & graph have targets
     mule_acc = f"ACC-{cid[:8]}-1"
@@ -1177,10 +1191,15 @@ def create_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
 
 def get_supabase_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
     from db.supabase_client import supabase
-    if not is_valid_uuid(complaint_id):
-        return None
+    clean_id = str(complaint_id).strip()
+    if not is_valid_uuid(clean_id):
+        comp = get_supabase_complaint_by_id(clean_id)
+        if comp and is_valid_uuid(comp.get("complaint_id")):
+            clean_id = str(comp["complaint_id"])
+        else:
+            return None
     try:
-        res = supabase.table("predictions").select("*").eq("complaint_id", complaint_id).order("created_at", desc=True).limit(1).execute()
+        res = supabase.table("predictions").select("*").eq("complaint_id", clean_id).order("created_at", desc=True).limit(1).execute()
         if not res.data:
             return None
         row = res.data[0]
@@ -1191,15 +1210,22 @@ def get_supabase_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str
                 pass
         return row
     except Exception as e:
-        logger.error(f"[SUPABASE PREDICTION BY COMPLAINT ERROR] {complaint_id}: {e}", exc_info=True)
+        logger.error(f"[SUPABASE PREDICTION BY COMPLAINT ERROR] {clean_id}: {e}", exc_info=True)
         raise
 
 
 def get_sqlite_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
+    clean_id = str(complaint_id).strip()
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT * FROM predictions WHERE complaint_id = ?", (complaint_id,))
+    c.execute("SELECT * FROM predictions WHERE complaint_id = ?", (clean_id,))
     row = c.fetchone()
+    if not row:
+        c.execute("SELECT complaint_id FROM complaints WHERE ncrp_id = ? OR cfcfrms_ticket_id = ?", (clean_id, clean_id))
+        comp_row = c.fetchone()
+        if comp_row:
+            c.execute("SELECT * FROM predictions WHERE complaint_id = ?", (comp_row["complaint_id"],))
+            row = c.fetchone()
     conn.close()
     if not row:
         return None
@@ -1228,7 +1254,18 @@ get_prediction = get_prediction_by_complaint
 def save_supabase_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
     from db.supabase_client import supabase
 
-    cid = pred["complaint_id"]
+    raw_cid = str(pred["complaint_id"]).strip()
+    if not is_valid_uuid(raw_cid):
+        comp = get_complaint_by_id(raw_cid)
+        if comp and is_valid_uuid(comp.get("complaint_id")):
+            cid = str(comp["complaint_id"])
+            pred["complaint_id"] = cid
+        else:
+            logger.error(f"[SUPABASE SAVE PREDICTION ERROR] Cannot save prediction: complaint_id '{raw_cid}' is not a valid UUID and could not be resolved.")
+            return pred
+    else:
+        cid = raw_cid
+
     raw_pid = pred.get("prediction_id")
     if raw_pid and is_valid_uuid(raw_pid):
         pid = raw_pid
@@ -1428,9 +1465,17 @@ def get_all_active_predictions() -> List[Dict[str, Any]]:
 
 def get_supabase_mule_chain(complaint_id: str) -> Dict[str, Any]:
     from db.supabase_client import supabase
+    clean_id = str(complaint_id).strip()
     try:
-        complaint = get_supabase_complaint_by_id(complaint_id)
-        nodes_res = supabase.table("mule_chain_nodes").select("*").eq("complaint_id", complaint_id).order("hop_position").execute()
+        complaint = get_supabase_complaint_by_id(clean_id)
+        if complaint and complaint.get("complaint_id") and is_valid_uuid(complaint.get("complaint_id")):
+            canonical_cid = str(complaint["complaint_id"])
+        elif is_valid_uuid(clean_id):
+            canonical_cid = clean_id
+        else:
+            return {"complaint": None, "mule_nodes": [], "transactions": []}
+
+        nodes_res = supabase.table("mule_chain_nodes").select("*").eq("complaint_id", canonical_cid).order("hop_position").execute()
         nodes = nodes_res.data or []
         acc_ids = [n["account_id"] for n in nodes if n.get("account_id")]
         accs_by_id = {}
@@ -1445,7 +1490,7 @@ def get_supabase_mule_chain(complaint_id: str) -> Dict[str, Any]:
             merged = {**acc_data, **n}
             mules.append(merged)
 
-        txns_res = supabase.table("transactions").select("*").eq("complaint_id", complaint_id).order("created_at").execute()
+        txns_res = supabase.table("transactions").select("*").eq("complaint_id", canonical_cid).order("created_at").execute()
         txns = txns_res.data or []
 
         return {
@@ -1454,16 +1499,18 @@ def get_supabase_mule_chain(complaint_id: str) -> Dict[str, Any]:
             "transactions": txns
         }
     except Exception as e:
-        logger.error(f"[SUPABASE MULE CHAIN ERROR] {complaint_id}: {e}", exc_info=True)
+        logger.error(f"[SUPABASE MULE CHAIN ERROR] {clean_id}: {e}", exc_info=True)
         return {"complaint": None, "mule_nodes": [], "transactions": []}
 
 
 def get_sqlite_mule_chain(complaint_id: str) -> Dict[str, Any]:
+    clean_id = str(complaint_id).strip()
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT * FROM complaints WHERE complaint_id = ?", (complaint_id,))
+    c.execute("SELECT * FROM complaints WHERE complaint_id = ? OR ncrp_id = ? OR cfcfrms_ticket_id = ?", (clean_id, clean_id, clean_id))
     comp_row = c.fetchone()
     complaint = dict(comp_row) if comp_row else None
+    actual_cid = complaint["complaint_id"] if complaint else clean_id
 
     c.execute("""
     SELECT n.hop_position, n.parent_account_id, a.*
@@ -1471,10 +1518,10 @@ def get_sqlite_mule_chain(complaint_id: str) -> Dict[str, Any]:
     JOIN mule_accounts a ON n.account_id = a.account_id
     WHERE n.complaint_id = ?
     ORDER BY n.hop_position ASC
-    """, (complaint_id,))
+    """, (actual_cid,))
     mules = [dict(r) for r in c.fetchall()]
 
-    c.execute("SELECT * FROM transactions WHERE complaint_id = ? ORDER BY created_at ASC", (complaint_id,))
+    c.execute("SELECT * FROM transactions WHERE complaint_id = ? ORDER BY created_at ASC", (actual_cid,))
     txns = [dict(r) for r in c.fetchall()]
 
     conn.close()

@@ -5,7 +5,7 @@ from db import repo
 
 def build_graph(complaint_id: str):
     complaint = repo.get_complaint_by_id(complaint_id)
-    if not complaint:
+    if not complaint and repo.is_valid_uuid(complaint_id):
         try:
             complaints_res = supabase.table("complaints").select("*").eq("complaint_id", complaint_id).single().execute()
             complaint = complaints_res.data
@@ -16,11 +16,13 @@ def build_graph(complaint_id: str):
         print(f"complaint with id {complaint_id} not found")
         return None
 
-    chain_info = repo.get_mule_chain(complaint_id)
+    canonical_cid = str(complaint.get("complaint_id") or complaint_id)
+
+    chain_info = repo.get_mule_chain(canonical_cid)
     mule_data = chain_info.get("mule_nodes") or []
-    if not mule_data:
+    if not mule_data and repo.is_valid_uuid(canonical_cid):
         try:
-            mule_res = supabase.table("mule_chain_nodes").select("*").eq("complaint_id", complaint_id).execute()
+            mule_res = supabase.table("mule_chain_nodes").select("*").eq("complaint_id", canonical_cid).execute()
             mule_data = mule_res.data or []
         except Exception:
             mule_data = []

@@ -78,7 +78,7 @@ def extract_features(complaint, graph_data):
 
 def predict(complaint_id: str, graph_data):
     complaint = repo.get_complaint_by_id(complaint_id)
-    if not complaint:
+    if not complaint and repo.is_valid_uuid(complaint_id):
         try:
             complaints_res = supabase.table("complaints").select("*").eq("complaint_id", complaint_id).single().execute()
             complaint = complaints_res.data

@@ -65,6 +65,9 @@ class SyndicateDNAEngine:
                 "status": "complaint_not_found",
             }
 
+        # Ensure canonical UUID is used for all graph expansion and cluster operations
+        cid = str(case_a.get("complaint_id") or cid)
+
         # 1. Fetch Truth Graph for Case A
         tg_a = repo.get_truth_graph_for_complaint(cid)
         entities_a = tg_a.get("entities", []) if tg_a else []
@@ -100,8 +103,9 @@ class SyndicateDNAEngine:
         clusters_updated: List[str] = []
         correlations: List[Dict[str, Any]] = []
 
-        # 3. Evaluate Structural Similarity for Each Candidate Pair
-        for cand_cid in sorted(list(candidate_case_ids)):
+        # 3. Evaluate Structural Similarity for Each Candidate Pair (bounded to 50 candidates)
+        candidates_to_evaluate = sorted(list(candidate_case_ids))[:50]
+        for cand_cid in candidates_to_evaluate:
             case_b = repo.get_complaint_by_id(cand_cid)
             if not case_b:
                 continue

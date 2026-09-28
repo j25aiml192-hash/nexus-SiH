@@ -56,17 +56,31 @@ class CaseWatcher:
             return 0
 
         processed_in_cycle = 0
+        cycle_start = time.time()
 
-        for event in claimed_events:
+        for idx, event in enumerate(claimed_events):
+            # Enforce cycle duration budget (3.5s) to guarantee the watcher finishes
+            # cleanly before the next 5s scheduler tick, preventing instance overlaps.
+            if idx > 0 and (time.time() - cycle_start) > 3.5:
+                for unhandled in claimed_events[idx:]:
+                    repo.update_autonomy_event_status(unhandled["event_id"], "pending")
+                logger.info(
+                    f"[Autonomy Watcher] Cycle duration budget reached ({round(time.time() - cycle_start, 2)}s). "
+                    f"Released {len(claimed_events) - idx} events back to pending for next tick."
+                )
+                break
+
             event_id = event.get("event_id")
             event_type = event.get("event_type")
             cid = event.get("complaint_id") or "unspecified"
             start_time = time.time()
+            start_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
             logger.info(
-                f"[Autonomy] event claimed: {event_id} | "
+                f"[Autonomy Watcher] event claimed: {event_id} | "
                 f"type: {event_type} | "
-                f"complaint: {cid}"
+                f"complaint: {cid} | "
+                f"start_time: {start_iso}"
             )
 
             try:
@@ -76,6 +90,7 @@ class CaseWatcher:
                 # Mark as successfully processed
                 repo.update_autonomy_event_status(event_id, "processed")
 
+                end_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
                 duration_ms = round((time.time() - start_time) * 1000, 2)
                 self.events_processed_count += 1
                 processed_in_cycle += 1
@@ -85,31 +100,36 @@ class CaseWatcher:
                     "complaint_id": cid,
                     "action_type": result.get("action_type"),
                     "duration_ms": duration_ms,
-                    "processed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    "start_time": start_iso,
+                    "end_time": end_iso,
+                    "processed_at": end_iso,
                 }
 
                 logger.info(
-                    f"[Autonomy] event processed: {event_id} | "
+                    f"[Autonomy Watcher] event completed: {event_id} | "
                     f"type: {event_type} | "
                     f"complaint: {cid} | "
-                    f"reaction: {result.get('action_type')} | "
-                    f"result: processed | "
+                    f"handler: {result.get('action_type')} | "
+                    f"start_time: {start_iso} | "
+                    f"end_time: {end_iso} | "
                     f"duration: {duration_ms}ms"
                 )
 
             except Exception as e:
                 # Complete Error Isolation: Mark failed and proceed to next event
+                end_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
                 duration_ms = round((time.time() - start_time) * 1000, 2)
                 self.events_failed_count += 1
                 repo.update_autonomy_event_status(event_id, "failed", error_message=str(e))
 
                 logger.error(
-                    f"[Autonomy] event failed: {event_id} | "
+                    f"[Autonomy Watcher] event failed: {event_id} | "
                     f"type: {event_type} | "
                     f"complaint: {cid} | "
-                    f"result: failed | "
+                    f"start_time: {start_iso} | "
+                    f"end_time: {end_iso} | "
                     f"duration: {duration_ms}ms | "
-                    f"error: {e}",
+                    f"failing_error: {e}",
                     exc_info=True,
                 )
 

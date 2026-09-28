@@ -61,6 +61,9 @@ class CaseAttentionEngine:
                 "policy_version": self.policy_version,
             }
 
+        # Ensure canonical UUID is used for all downstream evaluation and persistence
+        cid = str(complaint.get("complaint_id") or cid)
+
         # Fetch Prediction
         prediction = None
         try:

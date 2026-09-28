@@ -4,6 +4,12 @@ from core.graph_builder import build_graph
 from core.predictor import predict
 
 def run_pipeline(complaint_id, force_refresh=False):
+    # Resolve canonical UUID if an NCRP identifier or ticket was provided
+    if not repo.is_valid_uuid(complaint_id):
+        comp = repo.get_complaint_by_id(complaint_id)
+        if comp and repo.is_valid_uuid(comp.get("complaint_id")):
+            complaint_id = str(comp["complaint_id"])
+
     # 1. Check for existing active prediction in repo
     if not force_refresh:
         existing = repo.get_prediction_by_complaint(complaint_id)

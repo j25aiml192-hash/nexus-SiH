@@ -181,7 +181,7 @@ class TestSyndicateDNA(unittest.TestCase):
         c2 = self._create_test_case()
         cid1, cid2 = c1["complaint_id"], c2["complaint_id"]
 
-        raw_phone = "+919876543210"
+        raw_phone = f"+9198{uuid.uuid4().int % 100000000:08d}"
         ent = repo.create_or_get_truth_entity("phone", raw_phone)
         self._link_entity_to_case(ent, cid1)
         self._link_entity_to_case(ent, cid2)
@@ -316,7 +316,7 @@ class TestSyndicateDNA(unittest.TestCase):
     def test_13_masking_privacy_rules_intact(self):
         """13. Verify raw sensitive numbers are not leaked in graph expansion or cluster details."""
         c1 = self._create_test_case()
-        raw_phone = "+919988776655"
+        raw_phone = f"+9199{uuid.uuid4().int % 100000000:08d}"
         ent = repo.create_or_get_truth_entity("phone", raw_phone)
         repo.create_truth_relation(ent["entity_id"], ent["entity_id"], "APPEARED_IN", complaint_id=c1["complaint_id"])
 
@@ -403,6 +403,91 @@ class TestSyndicateDNA(unittest.TestCase):
             res = self.engine.correlate_case(c1["complaint_id"])
             self.assertEqual(res["correlated_cases_count"], 0)
 
+    def test_20_geo_time_candidate_discovery_audit(self):
+        """20. Audit candidate discovery & similarity evaluation for cases with zero shared entities but strong geo/time proximity.
+        
+        Verifies:
+        - Operational candidate discovery is entity-first (O(K)) to prevent false clustering and O(N^2) scans.
+        - Direct similarity evaluation computes geo and temporal overlap with exact evidence records.
+        - Safety clamping holds similarity to WEAK (<=0.20) in the absence of shared criminal infrastructure.
+        """
+        cid_a = str(uuid.uuid4())
+        cid_b = str(uuid.uuid4())
+        now = datetime.datetime.now(datetime.timezone.utc)
+        time_a = now.isoformat()
+        time_b = (now + datetime.timedelta(hours=2)).isoformat()
+
+        # Case A: Mumbai, Bandra coordinates
+        case_a = repo.create_complaint({
+            "complaint_id": cid_a,
+            "ncrp_id": f"NCRP-{cid_a[:8].upper()}",
+            "fraud_type": "UPI_FRAUD",
+            "amount_inr": 150000.0,
+            "victim_state": "Maharashtra",
+            "victim_district": "Mumbai Suburban",
+            "channel": "UPI",
+            "latitude": 19.0596,
+            "longitude": 72.8295,
+            "created_at": time_a,
+            "status": "active",
+        })
+
+        # Case B: Mumbai, 3km away, 2 hours later, completely distinct entities
+        case_b = repo.create_complaint({
+            "complaint_id": cid_b,
+            "ncrp_id": f"NCRP-{cid_b[:8].upper()}",
+            "fraud_type": "UPI_FRAUD",
+            "amount_inr": 160000.0,
+            "victim_state": "Maharashtra",
+            "victim_district": "Mumbai Suburban",
+            "channel": "UPI",
+            "latitude": 19.0760,
+            "longitude": 72.8400,
+            "created_at": time_b,
+            "status": "active",
+        })
+
+        # Link distinct entities so neither shares any entity
+        ent_a = repo.create_or_get_truth_entity("bank_account", f"SBI-A-{uuid.uuid4().hex[:6]}")
+        ent_b = repo.create_or_get_truth_entity("bank_account", f"HDFC-B-{uuid.uuid4().hex[:6]}")
+        self._link_entity_to_case(ent_a, cid_a)
+        self._link_entity_to_case(ent_b, cid_b)
+
+        # 1. Operational candidate discovery check
+        # Engine must not cluster Case B into Case A's candidate pool since no criminal infrastructure is shared
+        res = self.engine.correlate_case(cid_a)
+        self.assertEqual(res["correlated_cases_count"], 0)
+        self.assertIn(res["status"], ("processed", "no_candidates_found"))
+
+        # 2. Direct similarity factor evaluation check
+        # Evaluate how the policy scores Case A and Case B when compared directly
+        pred_a = {"predicted_lat": 19.0596, "predicted_lon": 72.8295}
+        pred_b = {"predicted_lat": 19.0760, "predicted_lon": 72.8400}
+        sim = compute_structural_similarity(
+            case_a=case_a,
+            case_b=case_b,
+            entities_a=[ent_a],
+            entities_b=[ent_b],
+            shared_entities=[],
+            prediction_a=pred_a,
+            prediction_b=pred_b,
+        )
+
+        # Confirm geo & temporal proximity ARE evaluated
+        self.assertGreater(sim["similarity_contributions"]["geographic_overlap"], 0.0)
+        self.assertGreater(sim["similarity_contributions"]["temporal_overlap"], 0.0)
+        self.assertEqual(sim["similarity_contributions"]["shared_entities"], 0.0)
+
+        # Confirm evidence items contain GEOGRAPHIC_PROXIMITY and TEMPORAL_OVERLAP
+        evidence_types = [e["type"] for e in sim["evidence"]]
+        self.assertIn("GEOGRAPHIC_PROXIMITY", evidence_types)
+        self.assertIn("TEMPORAL_OVERLAP", evidence_types)
+
+        # Confirm safety clamping: without shared infrastructure, score is capped at <= 0.20 (WEAK)
+        self.assertLessEqual(sim["structural_similarity"], 0.20)
+        self.assertEqual(sim["relationship_strength"], "WEAK")
+
 
 if __name__ == "__main__":
     unittest.main()
+

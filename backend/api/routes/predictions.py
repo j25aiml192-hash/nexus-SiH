@@ -49,7 +49,7 @@ def get_prediction(
     complaint_id: str,
     force_refresh: bool = False
 ):
-    # Verify complaint exists
+    # Verify complaint exists (supports UUID or NCRP/Ticket ID)
     complaint = repo.get_complaint_by_id(complaint_id)
     if not complaint:
         raise HTTPException(
@@ -57,13 +57,16 @@ def get_prediction(
             detail=f"Complaint '{complaint_id}' not found"
         )
 
+    # Always use canonical UUID for all internal prediction operations
+    canonical_cid = str(complaint.get("complaint_id") or complaint_id)
+
     # Check existing or run pipeline
     pred = None
     if not force_refresh:
-        pred = repo.get_prediction_by_complaint(complaint_id)
+        pred = repo.get_prediction_by_complaint(canonical_cid)
     
     if not pred or force_refresh:
-        pred = run_pipeline(complaint_id, force_refresh=force_refresh)
+        pred = run_pipeline(canonical_cid, force_refresh=force_refresh)
 
     if not pred:
         raise HTTPException(

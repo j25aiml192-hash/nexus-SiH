@@ -21,7 +21,7 @@ logger = logging.getLogger("nexus.autonomy.reconciler")
 class AutonomyReconciler:
     """Detects and recovers dropped or missing autonomy events."""
 
-    def __init__(self, check_limit: int = 50):
+    def __init__(self, check_limit: int = 10):
         self.check_limit = check_limit
 
     def run_reconciliation_cycle(self) -> Dict[str, int]:

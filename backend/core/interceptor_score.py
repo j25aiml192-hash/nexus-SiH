@@ -25,12 +25,13 @@ def update_recovery_scores() -> None:
                 rate = decay_map.get(prediction.get("alert_level", "AMBER"), 1.1)
                 recovery_score = round(max(0, min(100, base_score / rate)), 1)
 
+                pred_id = prediction.get("prediction_id") or prediction.get("id")
                 if recovery_score == 0:
                     new_status = "expired"
                 elif recovery_score < 20 and prediction.get("status") == "active":
                     new_status = "escalated"
                     supabase.table("alerts").insert({
-                        "prediction_id": prediction["id"],
+                        "prediction_id": pred_id,
                         "complaint_id": prediction.get("complaint_id"),
                         "alert_type": "dashboard",
                         "recipient_role": "i4c_national",
@@ -45,13 +46,15 @@ def update_recovery_scores() -> None:
                 else:
                     new_status = prediction.get("status", "active")
 
-                supabase.table("predictions").update({
-                    "recovery_score": recovery_score,
-                    "status": new_status
-                }).eq("id", prediction["id"]).execute()
+                if pred_id:
+                    supabase.table("predictions").update({
+                        "recovery_score": recovery_score,
+                        "status": new_status
+                    }).eq("prediction_id", pred_id).execute()
 
             except Exception as e:
-                print(f"Interceptor error on {prediction.get('id')}: {e}")
+                pred_label = prediction.get("prediction_id") or prediction.get("id")
+                print(f"Interceptor error on {pred_label}: {e}")
 
     except Exception as e:
         print(f"Interceptor score update failed: {e}")

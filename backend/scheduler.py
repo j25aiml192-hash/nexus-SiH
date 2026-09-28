@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from core import autosim, interceptor_score, cluster_detector, sentinel
@@ -22,7 +23,7 @@ def safe_autonomy_watcher_job():
     """Isolated runner for the Phase 2A Autonomous Case Watcher."""
     try:
         from core.autonomy.case_watcher import case_watcher
-        case_watcher.run_cycle(batch_size=10)
+        case_watcher.run_cycle(batch_size=1)
     except Exception as e:
         logger.error(f"[AUTONOMY WATCHER ERROR]: {e}", exc_info=True)
 
@@ -37,6 +38,9 @@ def safe_autonomy_reconciler_job():
 
 
 def start_scheduler():
+    if os.getenv("TESTING") == "true" or os.getenv("DISABLE_SCHEDULER") == "1" or "unittest" in sys.modules:
+        logger.info("APScheduler background scheduler disabled in test environment.")
+        return None
     scheduler = BackgroundScheduler()
 
     # 1. AUTONOMY EVENT ROUTER & CASE WATCHER (Phase 2A Core)
