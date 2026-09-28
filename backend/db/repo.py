@@ -143,6 +143,7 @@ def init_db():
         created_at TEXT NOT NULL
     );
 
+<<<<<<< Updated upstream
     CREATE TABLE IF NOT EXISTS truth_graph_entities (
         entity_id TEXT PRIMARY KEY,
         entity_type TEXT NOT NULL,
@@ -269,9 +270,33 @@ def init_db():
         time_correct_window INTEGER,
         evaluation_status TEXT NOT NULL DEFAULT 'pending',
         evaluated_at TEXT,
+=======
+    CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'Officer',
+        badge_id TEXT NOT NULL,
+        agency TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'approved',
+>>>>>>> Stashed changes
         created_at TEXT NOT NULL
     );
     """)
+    
+    # Pre-seed initial default approved accounts if not present
+    default_users = [
+        ("usr_analyst_01", "Senior Analyst", "analyst@nexus.gov.in", "Analyst@123", "Analyst", "NEX-8821-AN", "I4C Cybercrime Predictive Cell", "approved"),
+        ("usr_officer_02", "Field Dispatch Officer", "officer@nexus.gov.in", "Officer@123", "Officer", "NEX-4409-OF", "State Police Interception Wing", "approved"),
+        ("usr_admin_01", "NEXUS Admin Director", "admin@nexus.gov.in", "Admin@123", "Admin", "NEX-0001-AD", "I4C National Command", "approved"),
+        ("usr_admin_02", "System Administrator", "h90519495@gmail.com", "Admin@123", "Admin", "NEX-0002-AD", "I4C National Command", "approved"),
+    ]
+    now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    for uid, name, email, pass_hash, role, badge, agency, status in default_users:
+        c.execute("INSERT OR IGNORE INTO users (id, name, email, password_hash, role, badge_id, agency, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                  (uid, name, email, pass_hash, role, badge, agency, status, now_str))
+
     conn.commit()
     conn.close()
 
@@ -1851,6 +1876,7 @@ def get_dashboard_stats(timeframe: str = "24h") -> Dict[str, Any]:
         return get_supabase_dashboard_stats(timeframe)
     return get_sqlite_dashboard_stats(timeframe)
 
+<<<<<<< Updated upstream
 
 # =============================================================================
 # PHASE 1: TRUTH GRAPH & AUTONOMY DATA FOUNDATION UTILITIES & REPOSITORY
@@ -2044,10 +2070,17 @@ def get_truth_entity_by_id(entity_id: str) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM truth_graph_entities WHERE entity_id = ?", (entity_id,))
+=======
+def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email.strip(),))
+>>>>>>> Stashed changes
     row = c.fetchone()
     conn.close()
     if not row:
         return None
+<<<<<<< Updated upstream
     d = dict(row)
     if isinstance(d.get("metadata"), str):
         try:
@@ -2954,6 +2987,45 @@ def get_model_evaluations_for_complaint(complaint_id: str) -> List[Dict[str, Any
     conn.close()
     return rows
 
+
+def register_user(name: str, email: str, password_hash: str, role: str, badge_id: str, agency: str, status: str = "pending_approval") -> Dict[str, Any]:
+    conn = get_connection()
+    c = conn.cursor()
+    user_id = f"usr_{int(datetime.datetime.now().timestamp())}"
+    now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    c.execute(
+        "INSERT INTO users (id, name, email, password_hash, role, badge_id, agency, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (user_id, name.strip(), email.strip().lower(), password_hash.strip(), role.strip(), badge_id.strip(), agency.strip(), status, now_str)
+    )
+    conn.commit()
+    conn.close()
+    return {
+        "id": user_id,
+        "name": name.strip(),
+        "email": email.strip().lower(),
+        "role": role.strip(),
+        "badgeId": badge_id.strip(),
+        "agency": agency.strip(),
+        "status": status,
+        "created_at": now_str
+    }
+
+def get_pending_users() -> List[Dict[str, Any]]:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT id, name, email, role, badge_id as badgeId, agency, status, created_at FROM users WHERE status = 'pending_approval' ORDER BY created_at DESC")
+    rows = c.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def update_user_status(target: str, status: str) -> bool:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE users SET status = ? WHERE id = ? OR LOWER(email) = LOWER(?)", (status, target, target.strip()))
+    affected = c.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
 
 # Initialize SQLite only if in development and explicitly enabled
 if os.getenv("NEXUS_ENV", "").lower() != "production" and os.getenv("USE_LOCAL_SQLITE", "").lower() == "true":

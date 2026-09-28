@@ -11,7 +11,40 @@ import type {
   MapFocusTarget,
 } from '../types/nexus';
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: 'Analyst' | 'Officer' | 'Admin';
+  badgeId: string;
+  agency: string;
+}
+
+const getInitialAuth = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('nexus_auth') === 'true';
+};
+
+const getInitialUser = (): UserProfile | null => {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem('nexus_user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
 interface NexusState {
+  // Authentication State
+  isAuthenticated: boolean;
+  user: UserProfile | null;
+  activeRoleMode: 'Analyst' | 'Officer';
+  setActiveRoleMode: (mode: 'Analyst' | 'Officer') => void;
+  login: (user: UserProfile) => void;
+  logout: () => void;
+
   // Selected complaint that drives the entire application context
   selectedComplaintId: string | null;
   setSelectedComplaintId: (id: string | null) => void;
@@ -60,7 +93,33 @@ interface NexusState {
   getComplaintById: (complaintId: string) => Complaint | undefined;
 }
 
+const initialUser = getInitialUser();
+
 export const useNexusStore = create<NexusState>((set, get) => ({
+  // Auth state & functions
+  isAuthenticated: getInitialAuth(),
+  user: initialUser,
+  activeRoleMode: initialUser?.role === 'Officer' ? 'Officer' : 'Analyst',
+  setActiveRoleMode: (mode) => set({ activeRoleMode: mode }),
+  login: (userProfile: UserProfile) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nexus_auth', 'true');
+      localStorage.setItem('nexus_user', JSON.stringify(userProfile));
+    }
+    set({
+      isAuthenticated: true,
+      user: userProfile,
+      activeRoleMode: userProfile.role === 'Officer' ? 'Officer' : 'Analyst'
+    });
+  },
+  logout: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('nexus_auth');
+      localStorage.removeItem('nexus_user');
+    }
+    set({ isAuthenticated: false, user: null, activeRoleMode: 'Analyst' });
+  },
+
   selectedComplaintId: null,
   setSelectedComplaintId: (id) => set({ selectedComplaintId: id }),
 

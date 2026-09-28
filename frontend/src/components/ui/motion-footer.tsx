@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useNexusStore } from "../../store/useNexusStore";
 import { ArrowRight } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -260,6 +261,7 @@ const MarqueeItem = () => (
 
 export function CinematicFooter() {
   const navigate = useNavigate();
+  const isAuthenticated = useNexusStore((state) => state.isAuthenticated);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const giantTextRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
@@ -364,7 +366,7 @@ export function CinematicFooter() {
               <div ref={linksRef} className="inline-flex items-center">
                 <MagneticButton
                   as="button"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}
                   className="simple-white-start-button px-10 py-4.5 md:px-14 md:py-5.5 rounded-full font-black text-2xl md:text-4xl flex items-center gap-4 group cursor-pointer hover:scale-105 transition-all whitespace-nowrap border-0 border-none outline-none z-10"
                 >
                   <span className="text-black font-extrabold tracking-tight">Start</span>

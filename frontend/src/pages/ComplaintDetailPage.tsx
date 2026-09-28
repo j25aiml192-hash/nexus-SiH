@@ -21,6 +21,7 @@ export const ComplaintDetailPage: React.FC = () => {
   const { complaintId } = useParams<{ complaintId: string }>();
   const navigate = useNavigate();
   const setSelectedComplaintId = useNexusStore((state: any) => state.setSelectedComplaintId);
+  const user = useNexusStore((state: any) => state.user);
 
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +31,7 @@ export const ComplaintDetailPage: React.FC = () => {
   const [notes, setNotes] = useState<Array<{ id: string; author: string; timestamp: string; text: string }>>([
     {
       id: 'note-init',
-      author: 'Demo Analyst',
+      author: user?.name || 'Lead Analyst (I4C Cell)',
       timestamp: '10:30 AM',
       text: 'Case received via portal. Automated mule chain extraction initiated.',
     },
@@ -84,7 +85,7 @@ export const ComplaintDetailPage: React.FC = () => {
     if (!newNoteText.trim()) return;
     const note = {
       id: `note-${Date.now()}`,
-      author: 'Demo Analyst',
+      author: user?.name || 'Authorized Officer',
       timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       text: newNoteText.trim(),
     };

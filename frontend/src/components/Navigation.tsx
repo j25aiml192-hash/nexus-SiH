@@ -9,7 +9,7 @@ import {
   Settings,
   Shield,
   ChevronDown,
-  Check,
+  LogOut,
 } from 'lucide-react';
 import { useNexusStore } from '../store/useNexusStore';
 
@@ -20,8 +20,10 @@ export const Navigation: React.FC = () => {
   const isSidebarCollapsed = useNexusStore((state) => state.isSidebarCollapsed);
   const isSidebarHovered = useNexusStore((state) => state.isSidebarHovered);
   const setIsSidebarHovered = useNexusStore((state) => state.setIsSidebarHovered);
+  const user = useNexusStore((state) => state.user);
+  const logout = useNexusStore((state) => state.logout);
 
-  const [roleMode, setRoleMode] = useState<'Analyst' | 'Officer'>('Analyst');
+  const roleMode = useNexusStore((state) => state.activeRoleMode);
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   const openIncidentsCount = incidents.filter((i) => i.status === 'open').length;
@@ -167,7 +169,7 @@ export const Navigation: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#FFFFFF',
+                color: '#38BDF8',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
                 flexShrink: 0
               }}
@@ -176,11 +178,11 @@ export const Navigation: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', lineHeight: 1.2, letterSpacing: '-0.2px' }}>
-                Demo {roleMode}
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', lineHeight: 1.2, letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user?.name ? user.name.replace(/\s*\(NEXUS Command\)/gi, '') : `Demo ${roleMode}`}
               </span>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: '#94A3B8', lineHeight: 1.2, marginTop: '2px' }}>
-                {roleMode} Mode
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#38BDF8', lineHeight: 1.2, marginTop: '2px', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user?.badgeId ? `Officer ID: ${user.badgeId}` : `${roleMode} Mode`}
               </span>
             </div>
 
@@ -195,83 +197,128 @@ export const Navigation: React.FC = () => {
             />
           </div>
 
-          {/* Dropdown Menu for Role Switcher */}
+          {/* Detailed Popover Menu for Logged-In Officer */}
           {isRoleDropdownOpen && (
             <div
               style={{
                 position: 'absolute',
-                bottom: 'calc(100% + 6px)',
+                bottom: 'calc(100% + 8px)',
                 left: 0,
                 right: 0,
-                backgroundColor: '#0F2740',
+                backgroundColor: '#0F172A',
                 border: '1px solid rgba(255, 255, 255, 0.16)',
-                borderRadius: '12px',
-                padding: '4px',
-                boxShadow: '0 12px 28px rgba(0,0,0,0.4)',
-                backdropFilter: 'blur(16px)',
+                borderRadius: '16px',
+                padding: '14px',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
                 zIndex: 110,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '2px'
+                gap: '12px'
               }}
             >
-              <button
-                type="button"
-                onClick={() => {
-                  setRoleMode('Analyst');
-                  setIsRoleDropdownOpen(false);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%',
-                  padding: '8px 10px',
-                  borderRadius: '8px',
-                  backgroundColor: roleMode === 'Analyst' ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
-                  color: roleMode === 'Analyst' ? '#FFFFFF' : '#CBD5E1',
-                  fontSize: '12px',
-                  fontWeight: roleMode === 'Analyst' ? 700 : 500,
-                  border: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-              >
-                <span>Analyst Mode</span>
-                {roleMode === 'Analyst' && <Check size={13} style={{ color: '#818CF8' }} />}
-              </button>
+              {/* Header Info */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    backgroundColor: '#1E293B',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#38BDF8',
+                    flexShrink: 0
+                  }}
+                >
+                  <Shield size={18} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {user?.name || 'Authorized Officer'}
+                  </div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: '#38BDF8', fontWeight: 700 }}>
+                    ID: {user?.badgeId || 'NEX-8821'}
+                  </div>
+                </div>
+              </div>
 
+              <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.1)' }} />
+
+              {/* Metadata details */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8' }}>
+                  <span>Agency:</span>
+                  <span style={{ color: '#E2E8F0', fontWeight: 600, textAlign: 'right', maxWidth: '140px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {user?.agency || 'I4C Command Center'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8' }}>
+                  <span>Role:</span>
+                  <span style={{ color: '#34D399', fontWeight: 700 }}>
+                    {user?.role || roleMode}
+                  </span>
+                </div>
+
+                {user?.email && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8' }}>
+                    <span>Email:</span>
+                    <span style={{ color: '#CBD5E1', fontWeight: 500, fontSize: '10.5px', maxWidth: '140px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user.email}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.1)' }} />
+
+              {/* Sign Out Action */}
               <button
                 type="button"
                 onClick={() => {
-                  setRoleMode('Officer');
                   setIsRoleDropdownOpen(false);
+                  logout();
+                  window.location.href = '/';
                 }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
+                  justifyContent: 'center',
+                  gap: '6px',
                   width: '100%',
-                  padding: '8px 10px',
-                  borderRadius: '8px',
-                  backgroundColor: roleMode === 'Officer' ? 'rgba(37, 99, 235, 0.25)' : 'transparent',
-                  color: roleMode === 'Officer' ? '#FFFFFF' : '#CBD5E1',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.14)',
+                  border: '1px solid rgba(239, 68, 68, 0.28)',
+                  color: '#F87171',
                   fontSize: '12px',
-                  fontWeight: roleMode === 'Officer' ? 700 : 500,
-                  border: 'none',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  textAlign: 'left'
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#EF4444';
+                  e.currentTarget.style.color = '#FFFFFF';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.14)';
+                  e.currentTarget.style.color = '#F87171';
                 }}
               >
-                <span>Officer Mode</span>
-                {roleMode === 'Officer' && <Check size={13} style={{ color: '#60A5FA' }} />}
+                <LogOut size={14} />
+                <span>Sign Out</span>
               </button>
             </div>
           )}
         </div>
       ) : (
         <div
-          title={`Demo ${roleMode} (${roleMode} Mode)`}
+          title={`${user?.name || 'Officer'} (${user?.badgeId || 'NEX-8821'})`}
+          onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
           style={{
             marginTop: 'auto',
             paddingTop: '12px',
@@ -289,7 +336,7 @@ export const Navigation: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#FFFFFF',
+              color: '#38BDF8',
               boxShadow: '0 4px 12px rgba(11, 34, 56, 0.3)',
               cursor: 'pointer'
             }}

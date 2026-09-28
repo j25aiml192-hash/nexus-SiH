@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronRight, Shield } from 'lucide-react';
+import { useNexusStore } from '../store/useNexusStore';
 import GlitchText from './GlitchText';
 import ScrollExpand from './ScrollExpand';
 import FolderFloat from './FolderFloat';
@@ -13,6 +14,8 @@ import { ShapeGrid } from '../components/ui/ShapeGrid';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const isAuthenticated = useNexusStore((state) => state.isAuthenticated);
+  const user = useNexusStore((state) => state.user);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -119,38 +122,78 @@ export const LandingPage: React.FC = () => {
               })}
             </div>
 
-            {/* CTA */}
-            <button
-              onClick={() => navigate('/dashboard')}
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: 600,
-                fontSize: '13.5px',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '9px 18px',
-                borderRadius: '9999px',
-                backgroundColor: '#02041cff',
-                color: '#FFFFFF',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(2, 4, 28, 0.45)',
-                transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), boxShadow 0.25s ease',
-                willChange: 'transform'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translate3d(0, -2px, 0) scale(1.02)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(2, 4, 28, 0.55)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translate3d(0, 0, 0) scale(1)';
-                e.currentTarget.style.boxShadow = '0 4px 14px rgba(2, 4, 28, 0.45)';
-              }}
-            >
-              <span>Launch Console</span>
-              <ArrowRight size={14} />
-            </button>
+            {/* Dynamic Auth / Officer ID CTA */}
+            {isAuthenticated ? (
+              <button
+                onClick={() => navigate('/dashboard')}
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  cursor: 'pointer',
+                  padding: '6px 14px',
+                  borderRadius: '9999px',
+                  backgroundColor: '#000000',
+                  color: '#FFFFFF',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  willChange: 'transform'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translate3d(0, -1px, 0) scale(1.01)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translate3d(0, 0, 0) scale(1)';
+                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.35)';
+                }}
+                title="Go to Intelligence Console"
+              >
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block', boxShadow: '0 0 6px #10B981' }} />
+                <Shield size={13} style={{ color: '#38BDF8' }} />
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '12px', color: '#FFFFFF' }}>
+                  {user?.name ? user.name.replace(/\s*\(NEXUS Command\)/gi, '') : 'Senior Analyst'}
+                </span>
+                <ArrowRight size={13} style={{ color: '#94A3B8' }} />
+              </button>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => navigate('/login')}
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontWeight: 600,
+                    fontSize: '13.5px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '9px 18px',
+                    borderRadius: '9999px',
+                    backgroundColor: '#02041c',
+                    color: '#FFFFFF',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(2, 4, 28, 0.45)',
+                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translate3d(0, -2px, 0) scale(1.02)';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(2, 4, 28, 0.55)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translate3d(0, 0, 0) scale(1)';
+                    e.currentTarget.style.boxShadow = '0 4px 14px rgba(2, 4, 28, 0.45)';
+                  }}
+                >
+                  <span>Sign Up / Register</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </nav>
       </div>
@@ -256,7 +299,7 @@ export const LandingPage: React.FC = () => {
             <ScrollReveal variant="slide-up" delay={380} duration={800}>
               <div style={{ display: 'flex', gap: '14px', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
                 <button
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}
                   style={{
                     fontFamily: "'Inter', sans-serif",
                     fontWeight: 700,

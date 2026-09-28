@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Navigation } from './components/Navigation';
 import { TopBar } from './components/nexus/TopBar';
 import { LandingPage } from './pages/LandingPage';
+import { LoginPage } from './pages/LoginPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { DashboardPage } from './pages/DashboardPage';
 import { ComplaintsPage } from './pages/ComplaintsPage';
 import { ComplaintDetailPage } from './pages/ComplaintDetailPage';
@@ -30,7 +32,19 @@ export function App() {
 function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
   const location = useLocation();
   const isLandingPage = location.pathname === '/';
+  const isLoginPage = location.pathname === '/login';
   const isMapPage = location.pathname === '/map';
+
+  // Public routes (Landing Page & Login Page) do not require authentication guard.
+  // Private application routes are guarded by ProtectedRoute inside Routes.
+
+  if (isLoginPage) {
+    return (
+      <PageTransition>
+        <LoginPage />
+      </PageTransition>
+    );
+  }
 
   if (isLandingPage) {
     return (
@@ -49,23 +63,29 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
           <PageTransition>
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<LandingPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/complaints" element={<ComplaintsPage />} />
-              <Route path="/complaints/:complaintId" element={<ComplaintDetailPage />} />
-              <Route path="/complaints/:complaintId/network" element={<NetworkGraphPage />} />
-              <Route path="/network" element={<Navigate to="/complaints" replace />} />
-              <Route path="/prediction/:complaintId" element={<PredictionResultsPage />} />
-              <Route path="/prediction" element={<Navigate to="/complaints" replace />} />
-              <Route path="/map" element={<MapPage />} />
-              <Route path="/alerts" element={<AlertsPage />} />
-              <Route path="/incidents" element={<IncidentsPage />} />
-              <Route path="/incidents/:id" element={<IncidentDetailPage />} />
+              <Route path="/login" element={<LoginPage />} />
+
+              {/* Protected Application Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/complaints" element={<ComplaintsPage />} />
+                <Route path="/complaints/:complaintId" element={<ComplaintDetailPage />} />
+                <Route path="/complaints/:complaintId/network" element={<NetworkGraphPage />} />
+                <Route path="/network" element={<Navigate to="/complaints" replace />} />
+                <Route path="/prediction/:complaintId" element={<PredictionResultsPage />} />
+                <Route path="/prediction" element={<Navigate to="/complaints" replace />} />
+                <Route path="/map" element={<MapPage />} />
+                <Route path="/alerts" element={<AlertsPage />} />
+                <Route path="/incidents" element={<IncidentsPage />} />
+                <Route path="/incidents/:id" element={<IncidentDetailPage />} />
+              </Route>
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </PageTransition>
         </main>
       </div>
-      {!isLandingPage && <SaiFloatingButton />}
+      {!isLandingPage && !isLoginPage && <SaiFloatingButton />}
     </div>
   );
 }

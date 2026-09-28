@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, ChevronDown, Calendar, Check, X } from 'lucide-react';
+import { Search, Bell, ChevronDown, Calendar, Check, X, LogOut, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNexusStore } from '../../store/useNexusStore';
 
@@ -10,10 +10,11 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
-  const [roleMode, setRoleMode] = useState<'Analyst' | 'Officer'>('Analyst');
   
   const timeframe = useNexusStore((state) => state.selectedTimeframe);
   const setTimeframe = useNexusStore((state) => state.setSelectedTimeframe);
+  const user = useNexusStore((state) => state.user);
+  const logout = useNexusStore((state) => state.logout);
 
   const [isTimeframeOpen, setIsTimeframeOpen] = useState(false);
   const timeframeRef = useRef<HTMLDivElement>(null);
@@ -194,86 +195,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
           )}
         </div>
 
-        {/* Role Mode Segmented Switcher */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '3px',
-          height: '36px',
-          borderRadius: '10px',
-          backgroundColor: '#000000',
-          border: '1px solid rgba(255, 255, 255, 0.14)',
-          boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.4)',
-          boxSizing: 'border-box'
-        }}>
-          <button
-            type="button"
-            onClick={() => setRoleMode('Analyst')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '0 12px',
-              height: '28px',
-              borderRadius: '7px',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              letterSpacing: '0.02em',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-              backgroundColor: roleMode === 'Analyst' ? '#000000' : 'transparent',
-              color: roleMode === 'Analyst' ? '#FFFFFF' : '#94A3B8',
-              boxShadow: roleMode === 'Analyst' ? '0 2px 8px rgba(0, 0, 0, 0.35)' : 'none'
-            }}
-            onMouseEnter={(e) => {
-              if (roleMode !== 'Analyst') {
-                e.currentTarget.style.color = '#FFFFFF';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (roleMode !== 'Analyst') {
-                e.currentTarget.style.color = '#94A3B8';
-              }
-            }}
-          >
-            <span>Analyst</span>
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => setRoleMode('Officer')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '0 12px',
-              height: '28px',
-              borderRadius: '7px',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              letterSpacing: '0.02em',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-              backgroundColor: roleMode === 'Officer' ? '#000000' : 'transparent',
-              color: roleMode === 'Officer' ? '#FFFFFF' : '#94A3B8',
-              boxShadow: roleMode === 'Officer' ? '0 2px 8px rgba(0, 0, 0, 0.35)' : 'none'
-            }}
-            onMouseEnter={(e) => {
-              if (roleMode !== 'Officer') {
-                e.currentTarget.style.color = '#FFFFFF';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (roleMode !== 'Officer') {
-                e.currentTarget.style.color = '#94A3B8';
-              }
-            }}
-          >
-            <span>Officer</span>
-          </button>
-        </div>
+
 
         {/* Notifications Button */}
         <button
@@ -328,6 +250,65 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
             5
           </span>
         </button>
+
+        {/* User Profile & Sign Out Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '6px' }}>
+          <div
+            style={{
+              padding: '4px 12px',
+              height: '36px',
+              borderRadius: '10px',
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.16)',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              color: '#E2E8F0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxSizing: 'border-box'
+            }}
+          >
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+            <Shield size={13} style={{ color: '#38BDF8' }} />
+            <span style={{ fontWeight: 700, color: '#FFFFFF' }}>
+              {user?.name ? user.name.replace(/\s*\(NEXUS Command\)/gi, '') : 'Senior Analyst'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            title="Sign Out"
+            onClick={() => {
+              logout();
+              window.location.href = '/';
+            }}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              color: '#F87171',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#EF4444';
+              e.currentTarget.style.color = '#FFFFFF';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.12)';
+              e.currentTarget.style.color = '#F87171';
+            }}
+          >
+            <LogOut size={15} />
+          </button>
+        </div>
 
 
 
