@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   FileText,
   ShieldAlert,
-  BarChart3,
   MapPin,
   Settings,
   Network,
@@ -16,7 +15,6 @@ import { useNexusStore } from '../store/useNexusStore';
 export const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const incidents = useNexusStore((state) => state.incidents);
-  const selectedComplaintId = useNexusStore((state) => state.selectedComplaintId);
   const isSidebarCollapsed = useNexusStore((state) => state.isSidebarCollapsed);
   const isSidebarHovered = useNexusStore((state) => state.isSidebarHovered);
   const setIsSidebarHovered = useNexusStore((state) => state.setIsSidebarHovered);
@@ -129,18 +127,6 @@ export const Navigation: React.FC = () => {
             <Zap size={18} />
           </div>
           <span className="nexus-floating-label">Action Center</span>
-        </NavLink>
-
-        <NavLink
-          to={selectedComplaintId ? `/prediction/${selectedComplaintId}` : "/complaints"}
-          className={({ isActive }) =>
-            `nexus-floating-item ${isActive ? 'active' : ''}`
-          }
-        >
-          <div className="nexus-squircle-box">
-            <BarChart3 size={18} />
-          </div>
-          <span className="nexus-floating-label">Analytics</span>
         </NavLink>
 
         <NavLink

@@ -28,7 +28,7 @@ export interface CreateAlertParams {
 
 export interface MuleChainResult {
   complaint_id: string;
-  complaint: Complaint;
+  complaint?: Complaint | null;
   mule_nodes: Array<{
     id: string;
     account_id: string;

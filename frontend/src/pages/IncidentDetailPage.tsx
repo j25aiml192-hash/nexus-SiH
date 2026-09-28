@@ -66,18 +66,18 @@ export const IncidentDetailPage: React.FC = () => {
   };
 
   const isAlreadyAuthorized =
-    incident.status === 'authorized' || incident.status === 'closed';
+    incident?.status === 'authorized' || incident?.status === 'closed';
 
   // Construct combined chronological audit trail
   const auditEvents = [
     {
       type: 'creation',
       title: 'Incident Record Initialized',
-      desc: `Created from Alert ${incident.alertId} dispatch protocol.`,
-      timestamp: incident.createdAt || '2026-09-05 13:12:00 UTC',
+      desc: `Created from Alert ${incident?.alertId || incident?.alert_id || 'ALT-LINKED'} dispatch protocol.`,
+      timestamp: incident?.createdAt || '2026-09-05 13:12:00 UTC',
       status: 'complete',
     },
-    ...incident.officerActions.map((action, idx) => ({
+    ...(incident?.officerActions || []).map((action, idx) => ({
       type: 'officer_note',
       title: `Tactical Officer Log #${idx + 1}`,
       desc: action.note,
@@ -90,18 +90,18 @@ export const IncidentDetailPage: React.FC = () => {
             type: 'authorized',
             title: 'Section 102 CrPC Lien Enforcement Authorized',
             desc: 'Digital warrant executed. Physical ATM cash dispensers locked and merchant node frozen.',
-            timestamp: incident.updatedAt || '2026-09-05 13:45:00 UTC',
+            timestamp: incident?.updatedAt || '2026-09-05 13:45:00 UTC',
             status: 'complete',
           },
         ]
       : []),
-    ...(incident.status === 'closed'
+    ...(incident?.status === 'closed'
       ? [
           {
             type: 'resolved',
             title: 'Case Dossier Closed & Complaint Resolved',
             desc: `Complaint ${complaint?.id || 'CMP-9081'} marked as resolved. Asset recovery preserved.`,
-            timestamp: incident.updatedAt || '2026-09-05 13:47:00 UTC',
+            timestamp: incident?.updatedAt || '2026-09-05 13:47:00 UTC',
             status: 'complete',
           },
         ]
@@ -123,14 +123,14 @@ export const IncidentDetailPage: React.FC = () => {
           <span className="text-xs font-mono text-slate-400">STATUS:</span>
           <span
             className={`status-chip ${
-              incident.status === 'open'
+              incident?.status === 'open'
                 ? 'chip-new'
-                : incident.status === 'authorized'
+                : incident?.status === 'authorized'
                 ? 'chip-assigned'
                 : 'chip-actioned'
             }`}
           >
-            {incident.status.toUpperCase()}
+            {(incident?.status || 'OPEN').toUpperCase()}
           </span>
         </div>
       </div>
@@ -145,7 +145,7 @@ export const IncidentDetailPage: React.FC = () => {
               <div>
                 <span className="text-xs font-mono text-slate-400">INCIDENT ID</span>
                 <h1 className="text-2xl font-mono font-bold text-slate-900 tracking-wide">
-                  {incident.id}
+                  {incident?.id || id}
                 </h1>
               </div>
               <div className="text-right">
@@ -168,17 +168,17 @@ export const IncidentDetailPage: React.FC = () => {
                 <div className="relation-node">
                   <div className="relation-tag">1. COMPLAINT</div>
                   <div className="font-mono text-slate-900 text-xs font-bold">
-                    {complaint?.id || 'CMP-2024-9081'}
+                    {complaint?.id || incident?.complaint_id || 'CMP-2024-9081'}
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    Victim: {complaint?.victimInfo.name} ({complaint?.victimInfo.contact})
+                    Victim: {complaint?.victimInfo?.name || 'Citizen Complainant'} ({complaint?.victimInfo?.contact || '+91-XXXXXXXXXX'})
                   </div>
                   <div className="text-[11px] text-amber-500 font-mono font-bold">
-                    Loss: ₹{complaint?.amount.toLocaleString()}
+                    Loss: ₹{complaint?.amount ? complaint.amount.toLocaleString() : '1,50,000'}
                   </div>
                   <div className="mt-1">
                     <span className="nexus-badge-tech text-[10px]">
-                      STATUS: {complaint?.status.toUpperCase()}
+                      STATUS: {(complaint?.status || 'FLAGGED').toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -197,10 +197,10 @@ export const IncidentDetailPage: React.FC = () => {
                     Mule Node Risk: {account?.riskScore || 94}/100
                   </div>
                   <div className="text-[11px] font-mono text-slate-400">
-                    Txn Links: {account?.txnHistory.length || 4} transfers
+                    Txn Links: {account?.txnHistory?.length || 4} transfers
                   </div>
                   <Link
-                    to={`/prediction/${incident.complaint_id || complaint?.complaint_id || complaint?.id || ''}`}
+                    to={`/prediction/${incident?.complaint_id || complaint?.complaint_id || complaint?.id || ''}`}
                     className="text-[10px] text-cyan-700 hover:underline flex items-center gap-0.5 mt-1 font-semibold"
                   >
                     View Predictive Cashout Dossier <ExternalLink size={10} />
@@ -215,10 +215,10 @@ export const IncidentDetailPage: React.FC = () => {
                 <div className="relation-node">
                   <div className="relation-tag">3. CASHOUT ALERT</div>
                   <div className="font-mono text-red-600 text-xs font-bold">
-                    {alert?.id || alert?.alert_id || incident.alert_id || 'DISPATCHED'}
+                    {alert?.id || alert?.alert_id || incident?.alert_id || 'DISPATCHED'}
                   </div>
                   <div className="text-[11px] text-slate-600 font-mono">
-                    Target ATM: {data.atms?.[0]?.name || 'Local Extraction Node'}
+                    Target ATM: {data?.atms?.[0]?.name || 'Local Extraction Node'}
                   </div>
                   <div className="mt-1">
                     <span className="risk-badge-pill risk-crit text-[10px]">
@@ -261,7 +261,7 @@ export const IncidentDetailPage: React.FC = () => {
               threshold={80}
             />
 
-            {incident.status === 'closed' && (
+            {incident?.status === 'closed' && (
               <div className="mt-3 p-2.5 rounded bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-2 text-xs text-emerald-300">
                 <CheckCircle2 size={16} className="text-emerald-400" />
                 <span>
@@ -276,7 +276,7 @@ export const IncidentDetailPage: React.FC = () => {
             <div className="nexus-card-header">
               <span className="nexus-card-title">OFFICER LOG & TACTICAL NOTES</span>
               <span className="text-xs font-mono text-slate-400">
-                {incident.officerActions.length} ENTRIES
+                {(incident?.officerActions || []).length} ENTRIES
               </span>
             </div>
 

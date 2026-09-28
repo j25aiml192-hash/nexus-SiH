@@ -16,6 +16,7 @@ import { InspectorPanel } from "../components/network/InspectorPanel";
 import { dataSource } from "../services/dataSource";
 import { useNexusStore } from "../store/useNexusStore";
 import type { NetworkNode, NetworkEdge } from "../lib/network-data";
+import type { Complaint } from "../types/nexus";
 
 const DEFAULT_FILTERS: GraphFilters = {
   types: ["account", "upi", "phone", "device", "merchant"],
@@ -61,7 +62,7 @@ export function NetworkGraphPage() {
 
     dataSource.getMuleChain(complaintId)
       .then((chain) => {
-        const comp = chain.complaint || {};
+        const comp: Partial<Complaint> | null = chain.complaint || null;
         setComplaintData(comp);
 
         const nodes: NetworkNode[] = [];
@@ -69,12 +70,12 @@ export function NetworkGraphPage() {
 
         // 1. Victim node
         const victimId = `VICTIM-${complaintId}`;
-        const victimAmount = Number(comp.amount_inr || comp.amount || 150000);
+        const victimAmount = Number(comp?.amount_inr || comp?.amount || 150000);
         nodes.push({
           id: victimId,
           type: "account",
-          label: `Victim Account (${comp.victim_district || 'Victim'})`,
-          institution: comp.accused_bank ? `Reported via ${comp.channel || 'Portal'}` : "Primary Complainant",
+          label: `Victim Account (${comp?.victim_district || 'Victim'})`,
+          institution: comp?.accused_bank ? `Reported via ${comp?.channel || 'Portal'}` : "Primary Complainant",
           isSource: true,
           riskLevel: "low",
           riskScore: 12,
@@ -83,7 +84,7 @@ export function NetworkGraphPage() {
           incoming: 0,
           outgoing: victimAmount,
           transactions: 1,
-          lastActivity: comp.created_at || "Recent",
+          lastActivity: comp?.created_at || "Recent",
         });
 
         // 2. Mule nodes
@@ -105,7 +106,7 @@ export function NetworkGraphPage() {
             incoming: victimAmount,
             outgoing: victimAmount * 0.9,
             transactions: m.transaction_velocity || 3,
-            lastActivity: comp.created_at || "Recent",
+            lastActivity: comp?.created_at || "Recent",
           });
 
           // Edge from previous node
@@ -114,7 +115,7 @@ export function NetworkGraphPage() {
             source: previousId,
             target: mId,
             amount: victimAmount,
-            timestamp: comp.created_at || new Date().toISOString(),
+            timestamp: comp?.created_at || new Date().toISOString(),
             suspicious: true,
             relation: "transaction",
             note: idx === 0 ? "Initial Fraud Exfiltration" : `Inter-Bank Mule Hop ${idx + 1}`,
@@ -128,7 +129,7 @@ export function NetworkGraphPage() {
         nodes.push({
           id: cashoutId,
           type: "merchant",
-          label: `ATM / Cashout Terminal (${comp.victim_district || 'Corridor'})`,
+          label: `ATM / Cashout Terminal (${comp?.victim_district || 'Corridor'})`,
           institution: "ATM Dispenser & Cashout Nexus",
           riskLevel: "critical",
           riskScore: 95,
@@ -145,7 +146,7 @@ export function NetworkGraphPage() {
           source: previousId,
           target: cashoutId,
           amount: victimAmount * 0.9,
-          timestamp: comp.created_at || new Date().toISOString(),
+          timestamp: comp?.created_at || new Date().toISOString(),
           suspicious: true,
           relation: "transaction",
           note: "Predicted Physical Cashout Extraction",

@@ -104,22 +104,8 @@ export class ApiDataSource implements IDataSource {
     try {
       c = await this.request<any>(`/complaints/${encodeURIComponent(id)}`);
     } catch (err) {
-      console.warn(`[NEXUS COMPLAINT] Synthesizing complaint telemetry fallback for ${id}:`, err);
-      c = {
-        id: id,
-        complaint_id: id,
-        ncrp_id: id,
-        amount: 150000,
-        amount_inr: 150000,
-        status: 'flagged',
-        fraud_type: 'INVESTMENT_SCAM',
-        victim_district: 'Deoghar',
-        victim_state: 'Jharkhand',
-        accused_bank: 'HDFC Bank',
-        accused_phone_prefix: '9811',
-        channel: 'National Cyber Crime Reporting Portal',
-        created_at: new Date().toISOString(),
-      };
+      console.warn(`[NEXUS COMPLAINT] Complaint ${id} not found in backend:`, err);
+      return null;
     }
 
     if (!c) return null;
@@ -208,35 +194,13 @@ export class ApiDataSource implements IDataSource {
   async getMuleChain(complaintId: string): Promise<MuleChainResult> {
     try {
       const res = await this.request<any>(`/mule/${encodeURIComponent(complaintId)}`);
-      if (res && (res.mule_nodes?.length || res.nodes?.length)) {
-        return res;
-      }
       return res;
     } catch (err: any) {
-      console.warn(`[NEXUS MULE MESH] Synthesizing graph telemetry fallback for ${complaintId}:`, err);
-      const comp = await this.getComplaintById(complaintId).catch(() => null);
+      console.warn(`[NEXUS MULE MESH] Complaint ${complaintId} mule chain query failed:`, err);
       return {
         complaint_id: complaintId,
-        complaint: comp || {
-          id: complaintId,
-          complaint_id: complaintId,
-          ncrp_id: complaintId,
-          amount: 150000,
-          status: 'flagged',
-          fraud_type: 'INVESTMENT_SCAM',
-          victim_district: 'Cyber Cell',
-          accused_bank: 'HDFC Bank',
-          victimInfo: {
-            name: 'Citizen Complainant',
-            contact: '+91-9811XXXXXX',
-          },
-          linkedAccountId: 'ACC-PRIMARY',
-        },
-        mule_nodes: [
-          { id: `MULE-${complaintId.slice(-4)}-01`, account_id: `MULE-${complaintId.slice(-4)}-01`, bank_name: 'HDFC Bank', risk_score: 0.95, hop_position: 1, transaction_velocity: 8 },
-          { id: `MULE-${complaintId.slice(-4)}-02`, account_id: `MULE-${complaintId.slice(-4)}-02`, bank_name: 'ICICI Bank', risk_score: 0.88, hop_position: 2, transaction_velocity: 12 },
-          { id: `MULE-${complaintId.slice(-4)}-03`, account_id: `MULE-${complaintId.slice(-4)}-03`, bank_name: 'SBI Bank', risk_score: 0.82, hop_position: 3, transaction_velocity: 6 }
-        ],
+        complaint: null,
+        mule_nodes: [],
         transactions: []
       };
     }
@@ -258,22 +222,8 @@ export class ApiDataSource implements IDataSource {
     try {
       p = await this.request<any>(`/predictions/${encodeURIComponent(complaintId)}`);
     } catch (err) {
-      console.warn(`[NEXUS PREDICTION MESH] Synthesizing prediction telemetry fallback for ${complaintId}:`, err);
-      p = {
-        prediction_id: `PRED-${complaintId}`,
-        complaint_id: complaintId,
-        risk_score: 0.88,
-        risk_level: 'RED',
-        predicted_lat: 24.4853,
-        predicted_lon: 86.6936,
-        cashout_window_hours: 8,
-        created_at: new Date().toISOString(),
-        nearest_atms: [
-          { atm_id: 'ATM-01', name: 'HDFC Bank ATM (Deoghar Hub)', latitude: 24.4821, longitude: 86.6982, bank_name: 'HDFC Bank', address: 'Station Road, Deoghar' },
-          { atm_id: 'ATM-02', name: 'SBI ATM Dispenser', latitude: 24.4890, longitude: 86.6910, bank_name: 'SBI Bank', address: 'Tower Chowk Corridor' },
-          { atm_id: 'ATM-03', name: 'ICICI Bank ATM Terminal', latitude: 24.4795, longitude: 86.7015, bank_name: 'ICICI Bank', address: 'Commercial Plaza' }
-        ]
-      };
+      console.warn(`[NEXUS PREDICTION MESH] Prediction telemetry for ${complaintId} not found in backend:`, err);
+      return null;
     }
     if (!p) return null;
 
@@ -492,38 +442,53 @@ export class ApiDataSource implements IDataSource {
   }
 
   async getIncidents(): Promise<Incident[]> {
-    const raw = await this.request<any[]>('/incidents/list');
-    return (raw || []).map((inc: any) => {
-      const actions: { note: string; timestamp: string }[] = [];
-      if (inc.notes) {
-        inc.notes.split('\n').filter(Boolean).forEach((line: string) => {
-          actions.push({ note: line, timestamp: inc.updated_at || inc.created_at });
+    try {
+      const raw = await this.request<any[]>('/incidents/list');
+      if (Array.isArray(raw)) {
+        return raw.map((inc: any) => {
+          const actions: { note: string; timestamp: string }[] = [];
+          if (inc.notes) {
+            inc.notes.split('\n').filter(Boolean).forEach((line: string) => {
+              actions.push({ note: line, timestamp: inc.updated_at || inc.created_at });
+            });
+          }
+          return {
+            id: inc.id || inc.incident_id,
+            incident_id: inc.incident_id || inc.id,
+            complaint_id: inc.complaint_id,
+            prediction_id: inc.prediction_id,
+            alertId: inc.alert_id,
+            alert_id: inc.alert_id,
+            status: inc.status || 'open',
+            suspect_apprehended: inc.suspect_apprehended,
+            action_taken: inc.action_taken,
+            notes: inc.notes,
+            officerActions: actions,
+            createdAt: inc.created_at,
+            created_at: inc.created_at,
+            updatedAt: inc.updated_at,
+            updated_at: inc.updated_at,
+            complaint: inc.complaint,
+            prediction: inc.prediction,
+          };
         });
       }
-      return {
-        id: inc.id || inc.incident_id,
-        incident_id: inc.incident_id || inc.id,
-        complaint_id: inc.complaint_id,
-        prediction_id: inc.prediction_id,
-        alertId: inc.alert_id || 'ALT-PRIMARY',
-        alert_id: inc.alert_id,
-        status: inc.status || 'open',
-        suspect_apprehended: inc.suspect_apprehended,
-        action_taken: inc.action_taken,
-        notes: inc.notes,
-        officerActions: actions,
-        createdAt: inc.created_at,
-        created_at: inc.created_at,
-        updatedAt: inc.updated_at,
-        updated_at: inc.updated_at,
-        complaint: inc.complaint,
-        prediction: inc.prediction,
-      };
-    });
+    } catch (err) {
+      console.warn('[NEXUS INCIDENTS MESH] Error fetching incident list from backend:', err);
+    }
+
+    return [];
   }
 
   async getIncidentById(incidentId: string): Promise<Incident | null> {
-    const res = await this.request<any>(`/incidents/${encodeURIComponent(incidentId)}`);
+    let res: any = null;
+    try {
+      res = await this.request<any>(`/incidents/${encodeURIComponent(incidentId)}`);
+    } catch (err) {
+      console.warn(`[NEXUS INCIDENT DETAIL] Incident ${incidentId} not found in backend API:`, err);
+      return null;
+    }
+
     if (!res) return null;
 
     const actions: { note: string; timestamp: string }[] = [];
@@ -538,7 +503,7 @@ export class ApiDataSource implements IDataSource {
       incident_id: res.incident_id || res.id || incidentId,
       complaint_id: res.complaint_id,
       prediction_id: res.prediction_id,
-      alertId: res.alert_id || 'ALT-PRIMARY',
+      alertId: res.alert_id,
       alert_id: res.alert_id,
       status: res.status || 'open',
       suspect_apprehended: res.suspect_apprehended,
@@ -566,18 +531,33 @@ export class ApiDataSource implements IDataSource {
     const inc = await this.getIncidentById(incidentId);
     if (!inc) return null;
 
+    let comp: Complaint | null = inc.complaint || null;
+    if (!comp && inc.complaint_id) {
+      comp = await this.getComplaintById(inc.complaint_id).catch(() => null);
+    }
+
+    let pred: Prediction | null = inc.prediction || null;
+    if (!pred && inc.complaint_id) {
+      pred = await this.getPredictionByComplaint(inc.complaint_id).catch(() => null);
+    }
+
     return {
       incident: inc,
       alert: {
-        id: inc.alertId || 'ALT-LINKED',
-        alert_id: inc.alertId || 'ALT-LINKED',
+        id: inc.alertId || inc.alert_id || 'ALT-LINKED',
+        alert_id: inc.alertId || inc.alert_id || 'ALT-LINKED',
         status: inc.status === 'closed' ? 'actioned' : 'assigned',
         message: `Field intervention docket for case ${inc.complaint_id || incidentId}`,
-        createdAt: inc.createdAt,
+        createdAt: inc.createdAt || inc.created_at || new Date().toISOString(),
       },
-      prediction: inc.prediction,
-      complaint: inc.complaint,
-      atms: inc.atms,
+      prediction: pred || undefined,
+      complaint: comp || undefined,
+      account: pred?.accountId || comp?.linkedAccountId ? {
+        id: pred?.accountId || comp?.linkedAccountId || '',
+        riskScore: pred?.riskScore || 90,
+        txnHistory: [],
+      } : undefined,
+      atms: inc.atms && inc.atms.length > 0 ? inc.atms : (pred?.nearest_atms || []),
     };
   }
 

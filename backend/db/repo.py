@@ -960,7 +960,12 @@ def get_complaints(
     status: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     if _use_supabase():
-        return get_supabase_complaints(limit=limit, offset=offset, search=search, status=status)
+        try:
+            res = get_supabase_complaints(limit=limit, offset=offset, search=search, status=status)
+            if res and len(res) > 0:
+                return res
+        except Exception as e:
+            logger.warning(f"[SUPABASE COMPLAINTS FALLBACK] {e}")
     return get_sqlite_complaints(limit=limit, offset=offset, search=search, status=status)
 
 
@@ -1497,7 +1502,12 @@ def get_sqlite_all_active_predictions() -> List[Dict[str, Any]]:
 
 def get_all_active_predictions() -> List[Dict[str, Any]]:
     if _use_supabase():
-        return get_supabase_all_active_predictions()
+        try:
+            res = get_supabase_all_active_predictions()
+            if res and len(res) > 0:
+                return res
+        except Exception as e:
+            logger.warning(f"[SUPABASE PREDICTIONS FALLBACK] {e}")
     return get_sqlite_all_active_predictions()
 
 def get_supabase_mule_chain(complaint_id: str) -> Dict[str, Any]:
@@ -1571,7 +1581,12 @@ def get_sqlite_mule_chain(complaint_id: str) -> Dict[str, Any]:
 
 def get_mule_chain(complaint_id: str) -> Dict[str, Any]:
     if _use_supabase():
-        return get_supabase_mule_chain(complaint_id)
+        try:
+            res = get_supabase_mule_chain(complaint_id)
+            if res and res.get("mule_nodes") and len(res["mule_nodes"]) > 0:
+                return res
+        except Exception as e:
+            logger.warning(f"[SUPABASE MULE CHAIN FALLBACK] {e}")
     return get_sqlite_mule_chain(complaint_id)
 
 def get_supabase_atms(ids: Optional[List[str]] = None, limit: int = 100) -> List[Dict[str, Any]]:
@@ -1676,7 +1691,12 @@ def get_sqlite_alerts(limit: int = 50) -> List[Dict[str, Any]]:
 
 def get_alerts(limit: int = 50) -> List[Dict[str, Any]]:
     if _use_supabase():
-        return get_supabase_alerts(limit=limit)
+        try:
+            res = get_supabase_alerts(limit=limit)
+            if res and len(res) > 0:
+                return res
+        except Exception as e:
+            logger.warning(f"[SUPABASE ALERTS FALLBACK] {e}")
     return get_sqlite_alerts(limit=limit)
 
 def assign_alert_officer(alert_id: str, officer: str) -> Dict[str, Any]:
@@ -1741,7 +1761,12 @@ def get_sqlite_incidents(limit: int = 50) -> List[Dict[str, Any]]:
 
 def get_incidents(limit: int = 50) -> List[Dict[str, Any]]:
     if _use_supabase():
-        return get_supabase_incidents(limit=limit)
+        try:
+            res = get_supabase_incidents(limit=limit)
+            if res and len(res) > 0:
+                return res
+        except Exception as e:
+            logger.warning(f"[SUPABASE INCIDENTS FALLBACK] {e}")
     return get_sqlite_incidents(limit=limit)
 
 
@@ -1768,7 +1793,12 @@ def get_sqlite_incident_by_id(incident_id: str) -> Optional[Dict[str, Any]]:
 
 def get_incident_by_id(incident_id: str) -> Optional[Dict[str, Any]]:
     if _use_supabase():
-        return get_supabase_incident_by_id(incident_id)
+        try:
+            res = get_supabase_incident_by_id(incident_id)
+            if res:
+                return res
+        except Exception as e:
+            logger.warning(f"[SUPABASE INCIDENT GET FALLBACK] {e}")
     return get_sqlite_incident_by_id(incident_id)
 
 def add_incident_note(incident_id: str, note: str) -> Optional[Dict[str, Any]]:
