@@ -8,6 +8,7 @@ import math
 import logging
 import hashlib
 import re
+import time
 from typing import List, Dict, Any, Optional, Tuple
 
 logger = logging.getLogger("nexus.repo")
@@ -1111,8 +1112,39 @@ def create_sqlite_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
 
 def create_complaint(complaint: Dict[str, Any]) -> Dict[str, Any]:
     if _use_supabase():
-        return create_supabase_complaint(complaint)
-    return create_sqlite_complaint(complaint)
+        created = create_supabase_complaint(complaint)
+    else:
+        created = create_sqlite_complaint(complaint)
+
+    # Autonomous Event Emission (Non-blocking guarantee)
+    if created and created.get("complaint_id"):
+        cid = str(created["complaint_id"])
+        ch = str(complaint.get("channel") or created.get("channel") or "").strip().upper()
+        is_voice = ch in ("VOICE", "VOICE_BOT", "VOICE BOT", "EXOTEL")
+        evt_type = "voice_complaint_submitted" if is_voice else "complaint_ingested"
+        idem_key = f"voice:{cid}:submitted" if is_voice else f"complaint:{cid}:created"
+
+        safe_emit_autonomy_event(
+            event_type=evt_type,
+            entity_type="complaint",
+            entity_id=cid,
+            complaint_id=cid,
+            payload={
+                "complaint_id": cid,
+                "ncrp_id": created.get("ncrp_id"),
+                "fraud_type": created.get("fraud_type"),
+                "amount_inr": created.get("amount_inr"),
+                "victim_state": created.get("victim_state"),
+                "victim_district": created.get("victim_district"),
+                "channel": ch or "UPI",
+                "accused_phone_prefix": created.get("accused_phone_prefix") or complaint.get("accused_phone_prefix"),
+                "accused_phone": complaint.get("accused_phone"),
+                "accused_bank": created.get("accused_bank") or complaint.get("accused_bank"),
+            },
+            idempotency_key=idem_key,
+        )
+
+    return created
 
 
 def get_supabase_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
@@ -1167,7 +1199,11 @@ def save_supabase_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
     from db.supabase_client import supabase
 
     cid = pred["complaint_id"]
-    pid = pred.get("prediction_id") or str(uuid.uuid4())
+    raw_pid = pred.get("prediction_id")
+    if raw_pid and is_valid_uuid(raw_pid):
+        pid = raw_pid
+    else:
+        pid = str(uuid.uuid4())
     lat = float(pred.get("predicted_lat") or 24.4853)
     lon = float(pred.get("predicted_lon") or pred.get("predicted_lng") or 86.6936)
 
@@ -1243,9 +1279,73 @@ def save_sqlite_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def save_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
+    cid = pred["complaint_id"]
+    prev_pred = None
+    try:
+        prev_pred = get_prediction_by_complaint(cid)
+    except Exception:
+        pass
+
     if _use_supabase():
-        return save_supabase_prediction(pred)
-    return save_sqlite_prediction(pred)
+        saved = save_supabase_prediction(pred)
+    else:
+        saved = save_sqlite_prediction(pred)
+
+    # Autonomous Event Emission (Non-blocking guarantee)
+    if saved and (saved.get("prediction_id") or pred.get("prediction_id")):
+        pid = str(saved.get("prediction_id") or pred.get("prediction_id"))
+        new_risk = float(saved.get("risk_score") or pred.get("risk_score") or 0.0)
+        new_level = str(saved.get("risk_level") or pred.get("risk_level") or "AMBER")
+        new_window = int(saved.get("cashout_window_hours") or pred.get("cashout_window_hours") or 8)
+
+        if prev_pred and prev_pred.get("prediction_id"):
+            old_risk = float(prev_pred.get("risk_score", 0.0))
+            old_level = str(prev_pred.get("risk_level", "AMBER"))
+            old_window = int(prev_pred.get("cashout_window_hours", 8))
+            delta_risk = abs(new_risk - old_risk)
+
+            # Determine whether shift is meaningful
+            if delta_risk >= 0.05 or old_level != new_level or old_window != new_window:
+                safe_emit_autonomy_event(
+                    event_type="prediction_updated",
+                    entity_type="prediction",
+                    entity_id=pid,
+                    complaint_id=cid,
+                    payload={
+                        "prediction_id": pid,
+                        "complaint_id": cid,
+                        "previous_risk_score": old_risk,
+                        "new_risk_score": new_risk,
+                        "previous_risk_level": old_level,
+                        "new_risk_level": new_level,
+                        "previous_cashout_window_hours": old_window,
+                        "cashout_window_hours": new_window,
+                        "delta_risk": round(delta_risk, 4),
+                        "predicted_lat": saved.get("predicted_lat"),
+                        "predicted_lon": saved.get("predicted_lon"),
+                    },
+                    idempotency_key=f"prediction:{pid}:updated:{int(time.time() // 60)}",
+                )
+        else:
+            safe_emit_autonomy_event(
+                event_type="prediction_generated",
+                entity_type="prediction",
+                entity_id=pid,
+                complaint_id=cid,
+                payload={
+                    "prediction_id": pid,
+                    "complaint_id": cid,
+                    "risk_score": new_risk,
+                    "risk_level": new_level,
+                    "cashout_window_hours": new_window,
+                    "predicted_lat": saved.get("predicted_lat"),
+                    "predicted_lon": saved.get("predicted_lon"),
+                    "shap_features": saved.get("shap_features"),
+                },
+                idempotency_key=f"prediction:{pid}:generated",
+            )
+
+    return saved
 
 def get_supabase_all_active_predictions() -> List[Dict[str, Any]]:
     from db.supabase_client import supabase
@@ -1488,6 +1588,22 @@ def assign_alert_officer(alert_id: str, officer: str) -> Dict[str, Any]:
 
     conn.commit()
     conn.close()
+
+    if alert:
+        safe_emit_autonomy_event(
+            event_type="alert_acknowledged",
+            entity_type="alert",
+            entity_id=str(alert_id),
+            complaint_id=alert.get("complaint_id"),
+            payload={
+                "alert_id": str(alert_id),
+                "complaint_id": alert.get("complaint_id"),
+                "assigned_officer": officer,
+                "status": "assigned",
+            },
+            idempotency_key=f"alert:{alert_id}:acknowledged",
+        )
+
     return alert
 
 def get_supabase_incidents(limit: int = 50) -> List[Dict[str, Any]]:
@@ -1569,6 +1685,72 @@ def authorize_incident(incident_id: str) -> Optional[Dict[str, Any]]:
     conn.commit()
     conn.close()
     return get_incident_by_id(incident_id)
+
+
+def resolve_incident(
+    incident_id: str,
+    action_taken: Optional[str] = None,
+    notes: Optional[str] = None,
+    suspect_apprehended: int = 0,
+    amount_recovered: float = 0.0,
+    outcome: str = "resolved",
+) -> Optional[Dict[str, Any]]:
+    """
+    Marks an operational incident as resolved and safely emits incident_resolved event.
+    """
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    existing = get_incident_by_id(incident_id)
+    cid = existing.get("complaint_id") if existing else None
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            upd = {
+                "status": outcome,
+                "suspect_apprehended": suspect_apprehended,
+            }
+            if action_taken:
+                upd["action_taken"] = action_taken
+            if notes:
+                upd["notes"] = notes
+            supabase.table("incidents").update(upd).eq("incident_id", incident_id).execute()
+        except Exception as e:
+            logger.error(f"[SUPABASE RESOLVE INCIDENT ERROR] {incident_id}: {e}", exc_info=True)
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE incidents
+        SET status = ?, suspect_apprehended = ?,
+            action_taken = COALESCE(?, action_taken),
+            notes = COALESCE(?, notes),
+            updated_at = ?
+        WHERE incident_id = ?
+    """, (outcome, suspect_apprehended, action_taken, notes, now, incident_id))
+    conn.commit()
+    conn.close()
+
+    updated = get_incident_by_id(incident_id)
+
+    # Safely emit incident_resolved autonomy event
+    safe_emit_autonomy_event(
+        event_type="incident_resolved",
+        entity_type="incident",
+        entity_id=str(incident_id),
+        complaint_id=cid,
+        payload={
+            "incident_id": str(incident_id),
+            "complaint_id": cid,
+            "status": outcome,
+            "action_taken": action_taken,
+            "suspect_apprehended": suspect_apprehended,
+            "amount_recovered": amount_recovered,
+        },
+        idempotency_key=f"incident:{incident_id}:resolved",
+    )
+
+    return updated
+
 
 def get_cutoff_iso(timeframe: str) -> Optional[str]:
     tf = (timeframe or "24h").lower()
@@ -1959,14 +2141,16 @@ def normalize_entity_identity(entity_type: str, raw_value: str) -> Tuple[str, st
 
 def create_or_get_truth_entity(
     entity_type: str,
-    raw_value: str,
+    raw_value: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    raw_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Creates or retrieves a deterministic Truth Graph entity.
     Resolves duplicates deterministically across complaints.
     """
-    canon_ref, fp_hash, masked = normalize_entity_identity(entity_type, raw_value)
+    val = raw_value if raw_value is not None else (raw_identifier or "")
+    canon_ref, fp_hash, masked = normalize_entity_identity(entity_type, val)
     now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
     meta = metadata or {}
 
@@ -2592,6 +2776,182 @@ def update_autonomy_event_status(
     return dict(row) if row else None
 
 
+def get_autonomy_event_by_id(event_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieves a single autonomy event by its UUID."""
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("autonomy_events").select("*").eq("event_id", event_id).execute()
+            if res.data:
+                row = res.data[0]
+                if isinstance(row.get("payload"), str):
+                    try:
+                        row["payload"] = json.loads(row["payload"])
+                    except Exception:
+                        row["payload"] = {}
+                return row
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM autonomy_events WHERE event_id = ?", (event_id,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    if isinstance(d.get("payload"), str):
+        try:
+            d["payload"] = json.loads(d["payload"])
+        except Exception:
+            d["payload"] = {}
+    return d
+
+
+def get_autonomy_event_by_idempotency_key(idempotency_key: str) -> Optional[Dict[str, Any]]:
+    """Retrieves a single autonomy event by its unique idempotency key."""
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("autonomy_events").select("*").eq("idempotency_key", idempotency_key).limit(1).execute()
+            if res.data:
+                row = res.data[0]
+                if isinstance(row.get("payload"), str):
+                    try:
+                        row["payload"] = json.loads(row["payload"])
+                    except Exception:
+                        row["payload"] = {}
+                return row
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM autonomy_events WHERE idempotency_key = ?", (idempotency_key,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    if isinstance(d.get("payload"), str):
+        try:
+            d["payload"] = json.loads(d["payload"])
+        except Exception:
+            d["payload"] = {}
+    return d
+
+
+
+
+def safe_emit_autonomy_event(
+    event_type: str,
+    entity_type: str,
+    entity_id: str,
+    complaint_id: Optional[str] = None,
+    payload: Optional[Dict[str, Any]] = None,
+    idempotency_key: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Non-blocking wrapper around create_autonomy_event.
+    Guarantees that an autonomy event failure NEVER disrupts primary business operations.
+    """
+    try:
+        return create_autonomy_event(
+            event_type=event_type,
+            entity_type=entity_type,
+            entity_id=str(entity_id),
+            complaint_id=complaint_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
+    except Exception as e:
+        logger.warning(f"[AUTONOMY EMISSION SAFE WARN] Failed to emit {event_type} for entity {entity_id}: {e}")
+        return None
+
+
+def claim_pending_autonomy_events(limit: int = 10) -> List[Dict[str, Any]]:
+    """
+    Atomically claims up to `limit` pending autonomy events by transitioning
+    their status from 'pending' to 'processing'.
+    Guarantees no two watcher instances or concurrent cycles can process the same event.
+    """
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    claimed: List[Dict[str, Any]] = []
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            # Query candidate pending events
+            res = supabase.table("autonomy_events").select("*").eq("processing_status", "pending").order("created_at", desc=False).limit(limit).execute()
+            candidates = res.data or []
+            for cand in candidates:
+                eid = cand["event_id"]
+                # Atomically claim if still pending
+                upd = supabase.table("autonomy_events").update({
+                    "processing_status": "processing",
+                    "processed_at": now_iso
+                }).eq("event_id", eid).eq("processing_status", "pending").execute()
+                if upd.data:
+                    claimed.append(upd.data[0])
+            return claimed
+        except Exception as e:
+            logger.debug(f"[SUPABASE CLAIM AUTONOMY EVENTS FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM autonomy_events WHERE processing_status = 'pending' ORDER BY created_at ASC LIMIT ?", (limit,))
+    candidates = [dict(r) for r in c.fetchall()]
+    for cand in candidates:
+        eid = cand["event_id"]
+        c.execute("""
+            UPDATE autonomy_events
+            SET processing_status = 'processing', processed_at = ?
+            WHERE event_id = ? AND processing_status = 'pending'
+        """, (now_iso, eid))
+        if c.rowcount > 0:
+            cand["processing_status"] = "processing"
+            cand["processed_at"] = now_iso
+            if isinstance(cand.get("payload"), str):
+                try:
+                    cand["payload"] = json.loads(cand["payload"])
+                except Exception:
+                    cand["payload"] = {}
+            claimed.append(cand)
+    conn.commit()
+    conn.close()
+    return claimed
+
+
+def get_autonomy_event_counts() -> Dict[str, int]:
+    """Returns counts of autonomy events by processing_status."""
+    counts = {"pending": 0, "processing": 0, "processed": 0, "failed": 0, "ignored": 0, "total": 0}
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("autonomy_events").select("processing_status").execute()
+            if res.data:
+                for row in res.data:
+                    st = row.get("processing_status", "pending")
+                    counts[st] = counts.get(st, 0) + 1
+                    counts["total"] += 1
+                return counts
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT processing_status, COUNT(*) as cnt FROM autonomy_events GROUP BY processing_status")
+    for row in c.fetchall():
+        st = row["processing_status"]
+        cnt = row["cnt"]
+        counts[st] = cnt
+        counts["total"] += cnt
+    conn.close()
+    return counts
+
+
+
 # -----------------------------------------------------------------------------
 # 5. AUTONOMY AUDIT LOG (STRUCTURED REASONING CODES)
 # -----------------------------------------------------------------------------
@@ -2689,7 +3049,20 @@ def get_autonomy_audit_logs(complaint_id: Optional[str] = None, limit: int = 50)
         c.execute("SELECT * FROM autonomy_audit_log WHERE complaint_id = ? ORDER BY created_at DESC LIMIT ?", (complaint_id, limit))
     else:
         c.execute("SELECT * FROM autonomy_audit_log ORDER BY created_at DESC LIMIT ?", (limit,))
-    rows = [dict(r) for r in c.fetchall()]
+    rows = []
+    for r in c.fetchall():
+        d = dict(r)
+        if isinstance(d.get("decision_factors"), str):
+            try:
+                d["decision_factors"] = json.loads(d["decision_factors"])
+            except Exception:
+                pass
+        if isinstance(d.get("action_payload"), str):
+            try:
+                d["action_payload"] = json.loads(d["action_payload"])
+            except Exception:
+                pass
+        rows.append(d)
     conn.close()
     return rows
 

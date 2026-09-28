@@ -17,6 +17,7 @@ from api.routes import mule
 from api.routes import atms
 from api.routes import voice
 from api.routes import auth
+from api.routes import autonomy
 from scheduler import start_scheduler
 from db.repo import init_db
 
@@ -106,6 +107,7 @@ app.include_router(mule.router, prefix="/mule", tags=["Mule"])
 app.include_router(atms.router, prefix="/atms", tags=["Atm"])
 app.include_router(voice.router, prefix="/voice", tags=["Voice"])
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
+app.include_router(autonomy.router, prefix="/autonomy", tags=["Autonomy"])
 
 from db import repo
 
