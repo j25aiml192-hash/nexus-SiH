@@ -251,9 +251,12 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
           </span>
         </button>
 
-        {/* User Profile & Sign Out Button */}
+        {/* User Profile Badge (Clickable -> Navigates to Settings Page) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '6px' }}>
-          <div
+          <button
+            type="button"
+            title="Account & Governance Settings"
+            onClick={() => navigate('/settings')}
             style={{
               padding: '4px 12px',
               height: '36px',
@@ -266,7 +269,17 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.16)';
             }}
           >
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
@@ -274,7 +287,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
             <span style={{ fontWeight: 700, color: '#FFFFFF' }}>
               {user?.name ? user.name.replace(/\s*\(NEXUS Command\)/gi, '') : 'Senior Analyst'}
             </span>
-          </div>
+          </button>
 
           <button
             type="button"

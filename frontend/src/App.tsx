@@ -13,6 +13,7 @@ import { AlertsPage } from './pages/AlertsPage';
 import { IncidentsPage } from './pages/IncidentsPage';
 import { IncidentDetailPage } from './pages/IncidentDetailPage';
 import { NetworkGraphPage } from './pages/NetworkGraphPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { SaiFloatingButton } from './components/nexus/SaiFloatingButton';
 import { useNexusStore } from './store/useNexusStore';
 import { PageTransition } from './components/ui/PageTransition';
@@ -78,6 +79,7 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
                 <Route path="/alerts" element={<AlertsPage />} />
                 <Route path="/incidents" element={<IncidentsPage />} />
                 <Route path="/incidents/:id" element={<IncidentDetailPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />
