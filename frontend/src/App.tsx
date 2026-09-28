@@ -72,6 +72,8 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
                 <Route path="/complaints" element={<ComplaintsPage />} />
                 <Route path="/complaints/:complaintId" element={<ComplaintDetailPage />} />
                 <Route path="/complaints/:complaintId/network" element={<NetworkGraphPage />} />
+                <Route path="/graph/:complaintId" element={<NetworkGraphPage />} />
+                <Route path="/graph" element={<Navigate to="/complaints" replace />} />
                 <Route path="/network" element={<Navigate to="/complaints" replace />} />
                 <Route path="/prediction/:complaintId" element={<PredictionResultsPage />} />
                 <Route path="/prediction" element={<Navigate to="/complaints" replace />} />

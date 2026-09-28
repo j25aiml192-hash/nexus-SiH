@@ -252,23 +252,23 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
         </button>
 
         {/* User Profile Badge (Clickable -> Navigates to Settings Page) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
           <button
             type="button"
             title="Account & Governance Settings"
             onClick={() => navigate('/settings')}
             style={{
-              padding: '4px 12px',
-              height: '36px',
-              borderRadius: '10px',
+              padding: '3px 10px',
+              height: '28px',
+              borderRadius: '9999px',
               backgroundColor: 'rgba(255, 255, 255, 0.08)',
               border: '1px solid rgba(255, 255, 255, 0.16)',
-              fontSize: '11.5px',
+              fontSize: '11px',
               fontWeight: 700,
               color: '#E2E8F0',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '5px',
               boxSizing: 'border-box',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
@@ -282,10 +282,10 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearch }) => {
               e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.16)';
             }}
           >
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
-            <Shield size={13} style={{ color: '#38BDF8' }} />
-            <span style={{ fontWeight: 700, color: '#FFFFFF' }}>
-              {user?.name ? user.name.replace(/\s*\(NEXUS Command\)/gi, '') : 'Senior Analyst'}
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block', flexShrink: 0 }} />
+            <Shield size={12} style={{ color: '#38BDF8', flexShrink: 0 }} />
+            <span style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '11px', letterSpacing: '0.01em' }}>
+              {user?.role ? user.role : (user?.name && /admin/i.test(user.name)) ? 'Admin' : (user?.name && /officer/i.test(user.name)) ? 'Officer' : 'Analyst'}
             </span>
           </button>
 

@@ -136,7 +136,7 @@ export const useNexusStore = create<NexusState>((set, get) => ({
   mapFocusTarget: null,
   selectedMapItem: null,
 
-  selectedTimeframe: 'Last 24h',
+  selectedTimeframe: 'All Time',
   setSelectedTimeframe: (timeframe: string) => set({ selectedTimeframe: timeframe }),
 
   isSidebarCollapsed: true,

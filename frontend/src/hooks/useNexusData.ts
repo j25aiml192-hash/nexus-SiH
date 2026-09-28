@@ -333,7 +333,7 @@ export function useComplaints() {
   };
 }
 
-export function useDashboardStats(timeframe: string = '24h') {
+export function useDashboardStats(timeframe: string = 'all') {
   const [stats, setStats] = useState<DashboardStatsResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

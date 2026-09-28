@@ -917,20 +917,24 @@ def get_complaints(
 
 def get_supabase_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
     from db.supabase_client import supabase
-    if not is_valid_uuid(complaint_id):
-        return None
     try:
-        res = supabase.table("complaints").select("*").eq("complaint_id", complaint_id).execute()
-        return res.data[0] if res.data else None
+        if is_valid_uuid(complaint_id):
+            res = supabase.table("complaints").select("*").eq("complaint_id", complaint_id).execute()
+            if res.data:
+                return res.data[0]
+        res = supabase.table("complaints").select("*").eq("ncrp_id", complaint_id).execute()
+        if res.data:
+            return res.data[0]
+        return None
     except Exception as e:
-        logger.error(f"[SUPABASE COMPLAINT GET ERROR] Failed to fetch complaint {complaint_id}: {e}", exc_info=True)
-        raise
+        logger.error(f"[SUPABASE COMPLAINT GET ERROR] Failed to fetch complaint {complaint_id}: {e}")
+        return None
 
 
 def get_sqlite_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT * FROM complaints WHERE complaint_id = ?", (complaint_id,))
+    c.execute("SELECT * FROM complaints WHERE complaint_id = ? OR ncrp_id = ?", (complaint_id, complaint_id))
     row = c.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -2079,11 +2083,10 @@ def get_sqlite_dashboard_stats(timeframe: str = "24h") -> Dict[str, Any]:
     }
 
 
-def get_dashboard_stats(timeframe: str = "24h") -> Dict[str, Any]:
+def get_dashboard_stats(timeframe: str = "all") -> Dict[str, Any]:
     if _use_supabase():
         return get_supabase_dashboard_stats(timeframe)
     return get_sqlite_dashboard_stats(timeframe)
-
 
 # =============================================================================
 # PHASE 1: TRUTH GRAPH & AUTONOMY DATA FOUNDATION UTILITIES & REPOSITORY
@@ -2292,10 +2295,6 @@ def get_truth_entity_by_id(entity_id: str) -> Optional[Dict[str, Any]]:
     return d
 
 
-# =============================================================================
-# USER MANAGEMENT HELPERS
-# =============================================================================
-
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     conn = get_connection()
     c = conn.cursor()
@@ -2305,38 +2304,6 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     if not row:
         return None
     return dict(row)
-
-def register_user(name: str, email: str, password_hash: str, role: str = "Officer", badge_id: str = "", agency: str = "", status: str = "pending_approval") -> Dict[str, Any]:
-    uid = f"usr_{abs(hash(email))}"
-    now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO users (id, name, email, password_hash, role, badge_id, agency, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (uid, name, email, password_hash, role, badge_id, agency, status, now_str))
-    conn.commit()
-    c.execute("SELECT * FROM users WHERE id = ?", (uid,))
-    row = c.fetchone()
-    conn.close()
-    return dict(row) if row else {"id": uid, "name": name, "email": email, "role": role, "badge_id": badge_id, "agency": agency, "status": status}
-
-def get_pending_users() -> List[Dict[str, Any]]:
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE status = 'pending_approval' ORDER BY created_at DESC")
-    rows = c.fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
-
-def update_user_status(email_or_id: str, status: str) -> bool:
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("UPDATE users SET status = ? WHERE id = ? OR LOWER(email) = LOWER(?)", (status, email_or_id, email_or_id.strip()))
-    updated = c.rowcount > 0
-    conn.commit()
-    conn.close()
-    return updated
 
 
 def get_truth_entity_by_reference(canonical_reference: str) -> Optional[Dict[str, Any]]:

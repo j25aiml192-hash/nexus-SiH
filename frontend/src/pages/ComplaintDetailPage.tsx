@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   UserPlus,
   MoreHorizontal,
   Activity,
   FileText,
-  RefreshCw,
   MapPin,
   Check,
   X,
   AlertTriangle,
   Loader2,
+  Shield,
+  Zap,
+  Download,
+  Lock,
+  MessageSquare,
+  Clock,
+  Copy,
+  CheckCircle2
 } from 'lucide-react';
 import { dataSource } from '../services/dataSource';
 import { useNexusStore } from '../store/useNexusStore';
@@ -27,7 +35,7 @@ export const ComplaintDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Interactive notes state
+  // Interactive state
   const [notes, setNotes] = useState<Array<{ id: string; author: string; timestamp: string; text: string }>>([
     {
       id: 'note-init',
@@ -36,6 +44,7 @@ export const ComplaintDetailPage: React.FC = () => {
       text: 'Case received via portal. Automated mule chain extraction initiated.',
     },
   ]);
+
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [newNoteText, setNewNoteText] = useState('');
   const [currentStatus, setCurrentStatus] = useState('Under Investigation');
@@ -43,6 +52,8 @@ export const ComplaintDetailPage: React.FC = () => {
   const [showAssignOfficerModal, setShowAssignOfficerModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+  const [noticeBanner, setNoticeBanner] = useState<string | null>(null);
 
   useEffect(() => {
     if (!complaintId) return;
@@ -63,7 +74,7 @@ export const ComplaintDetailPage: React.FC = () => {
           setCurrentStatus(
             res.status === 'resolved' ? 'Resolved' :
             res.status === 'flagged' ? 'Under Investigation' :
-            res.status === 'alerted' ? 'Under Investigation' : 'New'
+            res.status === 'alerted' ? 'Under Investigation' : 'Under Investigation'
           );
         }
       })
@@ -80,6 +91,12 @@ export const ComplaintDetailPage: React.FC = () => {
     };
   }, [complaintId, setSelectedComplaintId]);
 
+  const handleCopyId = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNoteText.trim()) return;
@@ -92,16 +109,22 @@ export const ComplaintDetailPage: React.FC = () => {
     setNotes((prev) => [note, ...prev]);
     setNewNoteText('');
     setShowAddNoteModal(false);
+    setNoticeBanner('Tactical investigation note saved.');
+    setTimeout(() => setNoticeBanner(null), 4000);
   };
 
   const handleAssignOfficerSelect = (officer: string) => {
     setAssignedOfficer(officer);
     setShowAssignOfficerModal(false);
+    setNoticeBanner(`Officer ${officer} assigned to case.`);
+    setTimeout(() => setNoticeBanner(null), 4000);
   };
 
   const handleStatusSelect = (status: string) => {
     setCurrentStatus(status);
     setShowStatusModal(false);
+    setNoticeBanner(`Complaint status updated to "${status}".`);
+    setTimeout(() => setNoticeBanner(null), 4000);
   };
 
   const handleViewOnMap = () => {
@@ -112,10 +135,10 @@ export const ComplaintDetailPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="nexus-center-container">
-        <Loader2 className="nexus-spinner animate-spin" size={42} />
-        <div className="nexus-loading-text mt-3">
-          FETCHING COMPLAINT DOSSIER {complaintId} FROM NEXUS BACKEND...
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 76px)', padding: '40px', color: '#64748B' }}>
+        <Loader2 size={36} className="animate-spin text-blue-600 mb-3" />
+        <div style={{ fontSize: '13.5px', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em' }}>
+          STREAMING COMPLAINT DOSSIER {complaintId}...
         </div>
       </div>
     );
@@ -123,18 +146,18 @@ export const ComplaintDetailPage: React.FC = () => {
 
   if (error || !complaint) {
     return (
-      <div className="nexus-center-container">
-        <div className="nexus-card nexus-error-card">
-          <AlertTriangle size={48} className="text-red-500 mb-3" />
-          <h2 className="text-xl font-bold">COMPLAINT NOT FOUND</h2>
-          <p className="text-slate-500 text-sm mt-2 mb-4">
-            {error || `Complaint ID "${complaintId}" does not exist in the active case ledger.`}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 76px)', padding: '40px' }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #FECACA', padding: '36px', maxWidth: '480px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.06)' }}>
+          <AlertTriangle size={44} color="#DC2626" style={{ margin: '0 auto 16px auto' }} />
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', marginBottom: '8px' }}>COMPLAINT DOSSIER NOT FOUND</h2>
+          <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '24px', lineHeight: 1.5 }}>
+            {error || `Complaint ID "${complaintId}" does not exist in active ledger.`}
           </p>
           <button
             onClick={() => navigate('/complaints')}
-            className="nexus-btn-assign-officer"
+            style={{ padding: '10px 20px', borderRadius: '10px', backgroundColor: '#000000', color: '#FFFFFF', fontSize: '13px', fontWeight: 700, border: 'none', cursor: 'pointer' }}
           >
-            ← Return to Complaints List
+            ← Return to Complaints Ledger
           </button>
         </div>
       </div>
@@ -148,196 +171,290 @@ export const ComplaintDetailPage: React.FC = () => {
     `₹${amountVal.toLocaleString('en-IN')}`;
 
   const reportedDate = complaint.created_at ? new Date(complaint.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent';
-  const primaryAcc = complaint.linkedAccountId || (complaint.accused_bank ? `${complaint.accused_bank} Acc` : 'ACC-PRIMARY-01');
+  const displayId = complaint.ncrp_id || complaint.complaint_id || complaint.id || 'NCRP-A82D74';
+  const primaryAcc = complaint.linkedAccountId || (complaint.accused_bank ? `${complaint.accused_bank} Acc` : 'ACC-PRIMARY-8821');
 
   return (
-    <div className="nexus-page-container">
-      {/* 1. Top Back-link + Breadcrumb Navigation */}
-      <div className="nexus-detail-top-nav">
-        <button
-          onClick={() => navigate('/complaints')}
-          className="nexus-back-link"
-        >
-          <ArrowLeft size={14} /> Back to complaints
-        </button>
-        <div className="nexus-breadcrumbs">
-          <Link to="/complaints" className="nexus-breadcrumb-link">Complaints</Link>
-          <span style={{ margin: '0 6px', color: '#94A3B8' }}>/</span>
-          <span className="nexus-breadcrumb-current">{complaint.ncrp_id || complaint.complaint_id}</span>
+    <div style={{
+      backgroundColor: '#F8FAFC',
+      minHeight: 'calc(100vh - 76px)',
+      color: '#0F172A',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      padding: '24px 32px 60px 32px'
+    }}>
+      {/* SUCCESS NOTICE BANNER */}
+      {noticeBanner && (
+        <div style={{
+          marginBottom: '20px',
+          padding: '12px 18px',
+          borderRadius: '12px',
+          backgroundColor: '#F0FDF4',
+          border: '1px solid #BBF7D0',
+          color: '#16A34A',
+          fontSize: '13px',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: '0 4px 14px rgba(22, 163, 74, 0.08)'
+        }}>
+          <CheckCircle2 size={18} />
+          <span>{noticeBanner}</span>
+        </div>
+      )}
+
+      {/* 1. BREADCRUMBS & NAVIGATION */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/complaints')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: 'none',
+              backgroundColor: 'transparent',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#0284C7',
+              cursor: 'pointer',
+              padding: 0
+            }}
+          >
+            <ArrowLeft size={14} /> Back to complaints
+          </button>
+          <span style={{ color: '#CBD5E1' }}>/</span>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Complaints</span>
+          <span style={{ color: '#CBD5E1' }}>/</span>
+          <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', fontFamily: "'JetBrains Mono', monospace" }}>{displayId}</span>
         </div>
       </div>
 
-      {/* 2. Header Row: Title, Subtitle, Status Pill & Action Buttons */}
-      <div className="nexus-detail-header">
+      {/* 2. HEADER BANNER */}
+      <div style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: '16px',
+        border: '1px solid #E2E8F0',
+        padding: '24px 28px',
+        marginBottom: '24px',
+        boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.05)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
         <div>
-          <h1 className="nexus-detail-title">
-            Complaint {complaint.ncrp_id || complaint.complaint_id}
-          </h1>
-          <div className="nexus-detail-subtitle">
-            {complaint.fraud_type || 'Cyber Fraud'} · Reported {reportedDate}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>
+              Complaint {displayId}
+            </h1>
+            <button
+              type="button"
+              onClick={() => handleCopyId(displayId)}
+              title="Copy ID"
+              style={{ border: 'none', backgroundColor: 'transparent', cursor: 'pointer', color: '#94A3B8', padding: 0 }}
+            >
+              {copiedId ? <CheckCircle2 size={16} color="#16A34A" /> : <Copy size={16} />}
+            </button>
+          </div>
+          <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>
+            {complaint.fraud_type || 'INVESTMENT_SCAM'} · Reported {reportedDate}
           </div>
         </div>
 
-        <div className="nexus-detail-header-actions">
-          <span className="nexus-status-pill-under-investigation">
+        {/* HEADER ACTIONS */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 14px',
+            borderRadius: '999px',
+            backgroundColor: '#EFF6FF',
+            border: '1px solid #BFDBFE',
+            color: '#1D4ED8',
+            fontSize: '12px',
+            fontWeight: 800,
+            fontFamily: "'JetBrains Mono', monospace"
+          }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#2563EB' }} />
             {currentStatus}
           </span>
+
           <button
+            type="button"
             onClick={() => setShowAssignOfficerModal(true)}
-            className="nexus-btn-assign-officer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 16px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: '#059669',
+              color: '#FFFFFF',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
+              transition: 'all 0.15s ease'
+            }}
           >
-            <UserPlus size={15} /> Assign Officer
+            <UserPlus size={14} />
+            <span>Assign Officer</span>
           </button>
+
           <button
+            type="button"
             onClick={() => setShowMoreActionsModal(true)}
-            className="nexus-btn-outline-action"
-            title="More actions"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 16px',
+              borderRadius: '10px',
+              border: '1px solid #CBD5E1',
+              backgroundColor: '#FFFFFF',
+              color: '#334155',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
           >
-            <MoreHorizontal size={16} /> More actions
+            <MoreHorizontal size={15} />
+            <span>More actions</span>
           </button>
         </div>
       </div>
 
-      {/* 3. 8-Box Metadata Overview Grid */}
-      <div className="nexus-metadata-grid">
-        <div className="nexus-metadata-box">
-          <span className="nexus-metadata-label">COMPLAINT REF</span>
-          <span className="nexus-metadata-val mono">{complaint.ncrp_id || complaint.complaint_id}</span>
+      {/* 3. 4-BOX METADATA SUMMARY CARDS */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '16px',
+        marginBottom: '24px'
+      }}>
+        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '16px 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+          <div style={{ fontSize: '11px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
+            COMPLAINT REF
+          </div>
+          <div style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', fontFamily: "'JetBrains Mono', monospace" }}>
+            {displayId}
+          </div>
         </div>
 
-        <div className="nexus-metadata-box">
-          <span className="nexus-metadata-label">COMPLAINT TYPE</span>
-          <span className="nexus-metadata-val">{complaint.fraud_type || 'Impersonation'}</span>
+        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '16px 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+          <div style={{ fontSize: '11px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
+            COMPLAINT TYPE
+          </div>
+          <div style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>
+            {complaint.fraud_type || 'INVESTMENT_SCAM'}
+          </div>
         </div>
 
-        <div className="nexus-metadata-box">
-          <span className="nexus-metadata-label">REPORTED ON</span>
-          <span className="nexus-metadata-val mono" style={{ fontSize: '12.5px', fontWeight: 500 }}>
-            {reportedDate}
-          </span>
+        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '16px 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+          <div style={{ fontSize: '11px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
+            REPORTED AMOUNT
+          </div>
+          <div style={{ fontSize: '16px', fontWeight: 900, color: '#DC2626', fontFamily: "'JetBrains Mono', monospace" }}>
+            {formattedAmount}
+          </div>
         </div>
 
-        <div className="nexus-metadata-box">
-          <span className="nexus-metadata-label">PRIMARY BENEFICIARY</span>
-          <span className="nexus-metadata-val mono">{primaryAcc}</span>
-        </div>
-
-        <div className="nexus-metadata-box">
-          <span className="nexus-metadata-label">AMOUNT</span>
-          <span className="nexus-metadata-val mono">{formattedAmount}</span>
-        </div>
-
-        <div className="nexus-metadata-box">
-          <span className="nexus-metadata-label">RISK</span>
-          <span
-            className="nexus-metadata-val"
-            style={{ color: '#DC2626', display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <span
-              style={{
-                width: '3px',
-                height: '14px',
-                backgroundColor: '#DC2626',
-                borderRadius: '2px',
-                display: 'inline-block',
-              }}
-            ></span>
-            CRITICAL
-          </span>
-        </div>
-
-        <div className="nexus-metadata-box">
-          <span className="nexus-metadata-label">STATUS</span>
-          <span className="nexus-status-pill-small">{currentStatus}</span>
-        </div>
-
-        <div className="nexus-metadata-box">
-          <span className="nexus-metadata-label">VICTIM LOCATION</span>
-          <span className="nexus-metadata-val" style={{ fontSize: '13px', fontWeight: 500 }}>
-            {complaint.victim_district || complaint.victim_state || 'Delhi NCR'}
-          </span>
+        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '16px 20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+          <div style={{ fontSize: '11px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
+            PRIMARY BENEFICIARY
+          </div>
+          <div style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A', fontFamily: "'JetBrains Mono', monospace" }}>
+            {primaryAcc}
+          </div>
         </div>
       </div>
 
-      {/* 4. Two-Column Layout */}
-      <div className="nexus-detail-main-layout">
-        {/* Left Column */}
-        <div className="nexus-detail-left-col">
-          {/* Card: Complaint Details */}
-          <div className="nexus-box-card">
-            <h3 className="nexus-box-title">Complaint Details</h3>
+      {/* 4. MAIN CONTENT TWO-COLUMN GRID */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '2fr 1fr',
+        gap: '24px'
+      }}>
+        {/* LEFT COLUMN */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* COMPLAINT DETAILS PANEL */}
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '24px', boxShadow: '0 6px 20px rgba(15,23,42,0.04)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={18} style={{ color: '#0284C7' }} />
+              <span>Complaint Telemetry & Details</span>
+            </h3>
 
-            <div className="nexus-detail-keyval-grid">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div className="nexus-keyval-row">
-                  <span className="nexus-keyval-key">Complainant / Victim</span>
-                  <span className="nexus-keyval-val">{complaint.victimInfo?.name || 'Citizen Victim'}</span>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '2px' }}>Complainant / Victim</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{complaint.victimInfo?.name || 'Citizen Victim'}</span>
                 </div>
-                <div className="nexus-keyval-row">
-                  <span className="nexus-keyval-key">Incident jurisdiction</span>
-                  <span className="nexus-keyval-val mono">{complaint.victim_district || 'District Cyber Cell'}</span>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '2px' }}>Incident Jurisdiction</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{complaint.victim_district || 'District Cyber Cell'}</span>
                 </div>
-                <div className="nexus-keyval-row">
-                  <span className="nexus-keyval-key">Accused beneficiary bank</span>
-                  <span className="nexus-keyval-val mono">{complaint.accused_bank || 'HDFC Bank'}</span>
-                </div>
-                <div className="nexus-keyval-row">
-                  <span className="nexus-keyval-key">Channel</span>
-                  <span className="nexus-keyval-val mono">{complaint.channel || '1930 Helpline'}</span>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '2px' }}>Accused Beneficiary Bank</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{complaint.accused_bank || 'HDFC Bank'}</span>
                 </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div className="nexus-keyval-row">
-                  <span className="nexus-keyval-key">Complaint category</span>
-                  <span className="nexus-keyval-val">{complaint.fraud_type || 'UPI Fraud'}</span>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '2px' }}>Complaint Category</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{complaint.fraud_type || 'INVESTMENT_SCAM'}</span>
                 </div>
-                <div className="nexus-keyval-row">
-                  <span className="nexus-keyval-key">Reported channel</span>
-                  <span className="nexus-keyval-val">{complaint.channel || 'National Cybercrime Portal'}</span>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '2px' }}>Reported Channel</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{complaint.channel || 'National Cybercrime Portal'}</span>
                 </div>
-                <div className="nexus-keyval-row">
-                  <span className="nexus-keyval-key">Reported amount</span>
-                  <span className="nexus-keyval-val mono">{formattedAmount}</span>
-                </div>
-                <div className="nexus-keyval-row">
-                  <span className="nexus-keyval-key">Assigned officer</span>
-                  <span className="nexus-keyval-val">{assignedOfficer}</span>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '2px' }}>Assigned Officer</span>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>{assignedOfficer}</span>
                 </div>
               </div>
             </div>
 
-            <div className="nexus-detail-description">
-              <span className="nexus-detail-description-label">DESCRIPTION</span>
-              <p className="nexus-detail-description-text">
-                {complaint.description || `Victim reported unauthorized transfer of ${formattedAmount} diverted through rapid multi-hop accounts. First hop beneficiary identified in ${complaint.accused_bank || 'nodal bank'}. Interception recommended.`}
+            <div style={{ backgroundColor: '#F8FAFC', borderRadius: '12px', padding: '16px', border: '1px solid #F1F5F9' }}>
+              <div style={{ fontSize: '11px', fontFamily: "'JetBrains Mono', monospace", fontWeight: 800, color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
+                CASE DESCRIPTION
+              </div>
+              <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+                {complaint.description || `Intake reported: ${complaint.fraud_type || 'INVESTMENT_SCAM'} case originating in ${complaint.victim_district || 'District Cyber Cell'}. Target institution: ${complaint.accused_bank || 'Commercial Bank'}.`}
               </p>
             </div>
           </div>
 
-          {/* Card: Case Activity Timeline */}
-          <div className="nexus-box-card">
-            <h3 className="nexus-box-title">Case Activity</h3>
+          {/* CASE ACTIVITY TIMELINE */}
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '24px', boxShadow: '0 6px 20px rgba(15,23,42,0.04)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Clock size={18} style={{ color: '#059669' }} />
+              <span>Case Audit Activity Log</span>
+            </h3>
 
-            <div className="nexus-timeline-list">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {[
-                { time: '10:00 AM', title: 'Complaint Intake', description: `Complaint filed and ingested into NEXUS database with ID ${complaint.id}.` },
-                { time: '10:05 AM', title: 'ML Fraud Inference', description: 'Dual LightGBM and XGBoost cashout location and risk vector computed.' },
-                { time: '10:12 AM', title: 'Mule Graph Constructed', description: 'Immediate inter-bank transfer hops traced to beneficiary network.' }
-              ].map((event, idx) => (
-                <div key={idx} className="nexus-timeline-item">
-                  <div className="nexus-timeline-node">
-                    <span className="nexus-timeline-dot"></span>
-                    {idx < 2 && <span className="nexus-timeline-line"></span>}
-                  </div>
-
-                  <div className="nexus-timeline-content">
-                    <div className="nexus-timeline-header">
-                      <span style={{ fontFamily: 'var(--font-mono)' }}>{event.time}</span>
-                      <span>{event.title}</span>
+                { time: '10:00 AM', title: 'Complaint Ingested', desc: `Ingested into NEXUS database with ref ${displayId}.` },
+                { time: '10:05 AM', title: 'ML Fraud Inference', desc: 'Predictive dual LightGBM model computed target cashout cell.' },
+                { time: '10:12 AM', title: 'Mule Graph Traced', desc: 'Multi-hop inter-bank account chain extracted into truth graph.' }
+              ].map((ev, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0284C7', marginTop: '5px', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", color: '#0284C7' }}>{ev.time}</span>
+                      <span>·</span>
+                      <span>{ev.title}</span>
                     </div>
-                    <div className="nexus-timeline-desc">
-                      {event.description}
+                    <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+                      {ev.desc}
                     </div>
                   </div>
                 </div>
@@ -345,306 +462,659 @@ export const ComplaintDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Card: Tactical Notes */}
-          <div className="nexus-box-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 className="nexus-box-title" style={{ margin: 0 }}>Investigator Log Notes</h3>
+          {/* TACTICAL INVESTIGATION NOTES */}
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '24px', boxShadow: '0 6px 20px rgba(15,23,42,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={18} style={{ color: '#7C3AED' }} />
+                <span>Tactical Investigation Notes</span>
+              </h3>
               <button
+                type="button"
                 onClick={() => setShowAddNoteModal(true)}
-                className="nexus-btn-assign-officer"
-                style={{ fontSize: '11px', padding: '4px 10px' }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#000000',
+                  color: '#FFFFFF',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
                 + Add Note
               </button>
             </div>
 
-            <div className="nexus-timeline-list">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {notes.map((n) => (
-                <div key={n.id} className="nexus-timeline-item">
-                  <div className="nexus-timeline-node">
-                    <span className="nexus-timeline-dot" style={{ backgroundColor: '#0F9D72' }}></span>
+                <div key={n.id} style={{ backgroundColor: '#F8FAFC', borderRadius: '12px', padding: '14px', border: '1px solid #F1F5F9' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0F172A' }}>{n.author}</span>
+                    <span style={{ fontSize: '11px', color: '#94A3B8', fontFamily: "'JetBrains Mono', monospace" }}>{n.timestamp}</span>
                   </div>
-                  <div className="nexus-timeline-content">
-                    <div className="nexus-timeline-header">
-                      <span style={{ fontFamily: 'var(--font-mono)', color: '#087F5B' }}>{n.author}</span>
-                      <span style={{ color: '#94A3B8', fontSize: '11px' }}>{n.timestamp}</span>
-                    </div>
-                    <div className="nexus-timeline-desc">{n.text}</div>
-                  </div>
+                  <p style={{ fontSize: '12.5px', color: '#334155', margin: 0, lineHeight: 1.5 }}>
+                    {n.text}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
+
         </div>
 
-        {/* Right Column */}
-        <div className="nexus-detail-right-col">
-          {/* Card: Case Actions */}
-          <div className="nexus-box-card">
-            <h3 className="nexus-box-title">Case Actions</h3>
+        {/* RIGHT COLUMN: CASE ACTIONS */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '24px', boxShadow: '0 6px 20px rgba(15,23,42,0.04)' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', marginBottom: '16px' }}>
+              Case Actions
+            </h3>
 
-            <div className="nexus-case-actions-list">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <button
+                type="button"
                 onClick={() => setShowAssignOfficerModal(true)}
-                className="nexus-case-action-btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  backgroundColor: '#059669',
+                  color: '#FFFFFF',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)'
+                }}
               >
-                <UserPlus size={16} />
+                <UserPlus size={15} />
                 <span>Assign Officer</span>
               </button>
 
               <button
-                onClick={() => navigate(`/prediction/${complaint.complaint_id}`)}
-                className="nexus-case-action-btn"
+                type="button"
+                onClick={() => navigate(`/prediction/${displayId}`)}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #CBD5E1',
+                  color: '#0F172A',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'left'
+                }}
               >
-                <Activity size={16} style={{ color: '#087F5B' }} />
+                <Zap size={15} style={{ color: '#D97706' }} />
                 <span>Run Prediction</span>
               </button>
 
               <button
-                onClick={() => navigate(`/complaints/${complaint.complaint_id}/network`)}
-                className="nexus-case-action-btn"
+                type="button"
+                onClick={() => {
+                  setSelectedComplaintId(displayId);
+                  navigate(`/complaints/${displayId}/network`);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #CBD5E1',
+                  color: '#0F172A',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'left'
+                }}
               >
-                <Activity size={16} style={{ color: '#64748B' }} />
+                <Activity size={15} style={{ color: '#2563EB' }} />
                 <span>View Network Graph</span>
               </button>
 
               <button
+                type="button"
                 onClick={handleViewOnMap}
-                className="nexus-case-action-btn"
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #CBD5E1',
+                  color: '#0F172A',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'left'
+                }}
               >
-                <MapPin size={16} style={{ color: '#64748B' }} />
+                <MapPin size={15} style={{ color: '#0284C7' }} />
                 <span>View on Map</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setShowAddNoteModal(true)}
-                className="nexus-case-action-btn"
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #CBD5E1',
+                  color: '#0F172A',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'left'
+                }}
               >
-                <FileText size={16} style={{ color: '#64748B' }} />
+                <MessageSquare size={15} style={{ color: '#7C3AED' }} />
                 <span>Add Note</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setShowStatusModal(true)}
-                className="nexus-case-action-btn"
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #CBD5E1',
+                  color: '#0F172A',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'left'
+                }}
               >
-                <RefreshCw size={16} style={{ color: '#64748B' }} />
+                <Shield size={15} style={{ color: '#059669' }} />
                 <span>Update Status</span>
               </button>
-            </div>
-          </div>
-
-          {/* Card: Case Information */}
-          <div className="nexus-box-card">
-            <h3 className="nexus-box-title">Case Information</h3>
-
-            <div className="nexus-info-list">
-              <div className="nexus-info-row">
-                <span className="nexus-info-key">Created</span>
-                <span className="nexus-info-val" style={{ fontFamily: 'var(--font-mono)' }}>
-                  {reportedDate}
-                </span>
-              </div>
-
-              <div className="nexus-info-row">
-                <span className="nexus-info-key">Assigned Officer</span>
-                <span className="nexus-info-val">{assignedOfficer}</span>
-              </div>
-
-              <div className="nexus-info-row">
-                <span className="nexus-info-key">Priority</span>
-                <span className="nexus-info-val" style={{ color: '#DC2626', fontWeight: 700 }}>Critical</span>
-              </div>
-
-              <div className="nexus-info-row">
-                <span className="nexus-info-key">Target Bank</span>
-                <span className="nexus-info-val">{complaint.accused_bank || 'HDFC Bank'}</span>
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* MODAL: Assign Officer */}
-      {showAssignOfficerModal && (
-        <div className="nexus-modal-overlay">
-          <div className="nexus-modal-dialog">
-            <div className="nexus-modal-header">
-              <h3 className="nexus-modal-title">Assign Investigating Officer</h3>
+      {/* ==================================================================== */}
+      {/* PORTAL MODAL 1: MORE ACTIONS MODAL */}
+      {/* ==================================================================== */}
+      {showMoreActionsModal && createPortal(
+        <div
+          onClick={() => setShowMoreActionsModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(16px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '20px',
+              border: '1px solid #E2E8F0',
+              padding: '24px',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MoreHorizontal size={18} color="#0F172A" />
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: 0 }}>More Actions</h3>
+              </div>
               <button
-                onClick={() => setShowAssignOfficerModal(false)}
-                className="nexus-modal-close"
+                type="button"
+                onClick={() => setShowMoreActionsModal(false)}
+                style={{ border: 'none', backgroundColor: '#F1F5F9', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
-            <div className="nexus-modal-body">
-              <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '14px' }}>
-                Select an investigating officer from the Cybercrime Division roster:
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {['Inspector Vikram Rao', 'Inspector Rajesh Sharma', 'Sub-Inspector Anjali Verma', 'Inspector Priya Deshmukh'].map((off) => (
-                  <button
-                    key={off}
-                    onClick={() => handleAssignOfficerSelect(off)}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '10px 14px',
-                      background: assignedOfficer === off ? '#E8F5F0' : '#FFFFFF',
-                      border: assignedOfficer === off ? '1px solid #087F5B' : '1px solid #E2E8E6',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: assignedOfficer === off ? '#087F5B' : '#102A2A',
-                    }}
-                  >
-                    <span>{off}</span>
-                    {assignedOfficer === off && <Check size={16} color="#087F5B" />}
-                  </button>
-                ))}
-              </div>
+
+            {/* Modal Action Options */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMoreActionsModal(false);
+                  setNoticeBanner('Lien freeze request dispatched to nodal bank officer.');
+                  setTimeout(() => setNoticeBanner(null), 5000);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E2E8F0',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#F8FAFC';
+                  e.currentTarget.style.borderColor = '#93C5FD';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#E2E8F0';
+                }}
+              >
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Lock size={18} color="#DC2626" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A' }}>Mark Lien Freeze on Primary Account</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '2px' }}>Dispatch immediate freezing notice to beneficiary bank</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMoreActionsModal(false);
+                  setNoticeBanner('Case dossier export generated successfully.');
+                  setTimeout(() => setNoticeBanner(null), 5000);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E2E8F0',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#F8FAFC';
+                  e.currentTarget.style.borderColor = '#93C5FD';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#E2E8F0';
+                }}
+              >
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Download size={18} color="#0284C7" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A' }}>Export Case Dossier PDF</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '2px' }}>Download complete evidentiary dossier report</div>
+                </div>
+              </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* MODAL: Add Note */}
-      {showAddNoteModal && (
-        <div className="nexus-modal-overlay">
-          <div className="nexus-modal-dialog">
-            <div className="nexus-modal-header">
-              <h3 className="nexus-modal-title">Add Case Note</h3>
+      {/* ==================================================================== */}
+      {/* PORTAL MODAL 2: ASSIGN OFFICER MODAL */}
+      {/* ==================================================================== */}
+      {showAssignOfficerModal && createPortal(
+        <div
+          onClick={() => setShowAssignOfficerModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(16px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '20px',
+              border: '1px solid #E2E8F0',
+              padding: '24px',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: 0 }}>Assign Investigating Officer</h3>
+                <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0', fontWeight: 500 }}>
+                  Select an investigating officer from the Cybercrime Division roster:
+                </p>
+              </div>
               <button
-                onClick={() => setShowAddNoteModal(false)}
-                className="nexus-modal-close"
+                type="button"
+                onClick={() => setShowAssignOfficerModal(false)}
+                style={{ border: 'none', backgroundColor: '#F1F5F9', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
-            <form onSubmit={handleAddNote}>
-              <div className="nexus-modal-body">
-                <textarea
-                  value={newNoteText}
-                  onChange={(e) => setNewNoteText(e.target.value)}
-                  placeholder="Enter case note or investigation update..."
-                  rows={4}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[
+                { name: 'Inspector Vikram Rao', unit: 'Cybercrime Intelligence Unit' },
+                { name: 'Inspector Rajesh Sharma', unit: 'Predictive Interception Cell' },
+                { name: 'Sub-Inspector Anjali Verma', unit: 'Financial Fraud Division' },
+                { name: 'Inspector Priya Deshmukh', unit: 'National Command Centre' }
+              ].map((off) => {
+                const isSelected = assignedOfficer === off.name;
+                return (
+                  <button
+                    key={off.name}
+                    type="button"
+                    onClick={() => handleAssignOfficerSelect(off.name)}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      backgroundColor: isSelected ? '#F0FDF4' : '#FFFFFF',
+                      border: isSelected ? '1px solid #86EFAC' : '1px solid #E2E8F0',
+                      color: '#0F172A',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = '#F8FAFC';
+                        e.currentTarget.style.borderColor = '#CBD5E1';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = '#FFFFFF';
+                        e.currentTarget.style.borderColor = '#E2E8F0';
+                      }
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: isSelected ? '#DCFCE7' : '#F1F5F9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: isSelected ? '#16A34A' : '#0284C7',
+                        fontWeight: 800,
+                        fontSize: '12px',
+                        flexShrink: 0
+                      }}>
+                        <Shield size={16} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>{off.name}</div>
+                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 500, marginTop: '1px' }}>{off.unit}</div>
+                      </div>
+                    </div>
+
+                    {isSelected ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#16A34A', fontWeight: 800, backgroundColor: '#DCFCE7', padding: '3px 8px', borderRadius: '999px' }}>
+                        <Check size={13} /> Assigned
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: 700 }}>Select →</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ==================================================================== */}
+      {/* PORTAL MODAL 3: STATUS UPDATE MODAL */}
+      {/* ==================================================================== */}
+      {showStatusModal && createPortal(
+        <div
+          onClick={() => setShowStatusModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(16px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '20px',
+              border: '1px solid #E2E8F0',
+              padding: '24px',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '14px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: 0 }}>Update Complaint Status</h3>
+              <button
+                type="button"
+                onClick={() => setShowStatusModal(false)}
+                style={{ border: 'none', backgroundColor: '#F1F5F9', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {['Under Investigation', 'New Intake', 'Resolved'].map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => handleStatusSelect(st)}
                   style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid #E2E8E6',
-                    fontFamily: 'var(--font-sans)',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    backgroundColor: currentStatus === st ? '#EFF6FF' : '#FFFFFF',
+                    border: currentStatus === st ? '1px solid #BFDBFE' : '1px solid #E2E8F0',
+                    color: currentStatus === st ? '#1D4ED8' : '#0F172A',
                     fontSize: '13px',
-                    boxSizing: 'border-box',
+                    fontWeight: 700,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
                   }}
-                  autoFocus
-                />
-              </div>
-              <div className="nexus-modal-footer">
+                >
+                  <span>{st}</span>
+                  {currentStatus === st && <Check size={16} color="#2563EB" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ==================================================================== */}
+      {/* PORTAL MODAL 4: ADD NOTE MODAL */}
+      {/* ==================================================================== */}
+      {showAddNoteModal && createPortal(
+        <div
+          onClick={() => setShowAddNoteModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(16px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '480px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '20px',
+              border: '1px solid #E2E8F0',
+              padding: '24px',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '14px', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: 0 }}>Add Tactical Note</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddNoteModal(false)}
+                style={{ border: 'none', backgroundColor: '#F1F5F9', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddNote} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <textarea
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                placeholder="Enter tactical observation, nodal bank update, or intelligence memo..."
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #CBD5E1',
+                  fontSize: '13px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit'
+                }}
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button
                   type="button"
                   onClick={() => setShowAddNoteModal(false)}
-                  className="nexus-btn-outline-action"
+                  style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#64748B', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!newNoteText.trim()}
-                  className="nexus-btn-assign-officer"
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: '#000000',
+                    color: '#FFFFFF',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: newNoteText.trim() ? 'pointer' : 'not-allowed',
+                    opacity: newNoteText.trim() ? 1 : 0.5
+                  }}
                 >
                   Save Note
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* MODAL: Update Status */}
-      {showStatusModal && (
-        <div className="nexus-modal-overlay">
-          <div className="nexus-modal-dialog">
-            <div className="nexus-modal-header">
-              <h3 className="nexus-modal-title">Update Complaint Status</h3>
-              <button
-                onClick={() => setShowStatusModal(false)}
-                className="nexus-modal-close"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="nexus-modal-body">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {['Under Investigation', 'New', 'Resolved'].map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => handleStatusSelect(st)}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '10px 14px',
-                      background: currentStatus === st ? '#E8F5F0' : '#FFFFFF',
-                      border: currentStatus === st ? '1px solid #087F5B' : '1px solid #E2E8E6',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: currentStatus === st ? '#087F5B' : '#102A2A',
-                    }}
-                  >
-                    <span>{st}</span>
-                    {currentStatus === st && <Check size={16} color="#087F5B" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* MODAL: More Actions */}
-      {showMoreActionsModal && (
-        <div className="nexus-modal-overlay">
-          <div className="nexus-modal-dialog">
-            <div className="nexus-modal-header">
-              <h3 className="nexus-modal-title">More Actions</h3>
-              <button
-                onClick={() => setShowMoreActionsModal(false)}
-                className="nexus-modal-close"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="nexus-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                onClick={() => {
-                  alert('Lien freeze request dispatched to nodal officer.');
-                  setShowMoreActionsModal(false);
-                }}
-                className="nexus-case-action-btn"
-                style={{ textAlign: 'left' }}
-              >
-                Mark Lien Freeze on Primary Account
-              </button>
-              <button
-                onClick={() => {
-                  alert('Case dossier export initialized.');
-                  setShowMoreActionsModal(false);
-                }}
-                className="nexus-case-action-btn"
-                style={{ textAlign: 'left' }}
-              >
-                Export Case Dossier PDF
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
 export default ComplaintDetailPage;

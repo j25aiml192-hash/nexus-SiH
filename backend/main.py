@@ -119,7 +119,7 @@ def health():
 
 @app.get("/dashboard/stats")
 @app.get("/stats")
-def get_dashboard_stats(timeframe: str = "24h"):
+def get_dashboard_stats(timeframe: str = "all"):
     try:
         return repo.get_dashboard_stats(timeframe)
     except Exception as e:
