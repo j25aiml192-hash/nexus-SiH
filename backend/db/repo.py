@@ -938,7 +938,11 @@ def get_sqlite_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
 
 def get_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
     if _use_supabase():
-        return get_supabase_complaint_by_id(complaint_id)
+        try:
+            return get_supabase_complaint_by_id(complaint_id)
+        except Exception as e:
+            logger.warning(f"[SUPABASE COMPLAINT GET FALLBACK] Falling back to SQLite for {complaint_id}: {e}")
+            return get_sqlite_complaint_by_id(complaint_id)
     return get_sqlite_complaint_by_id(complaint_id)
 
 
@@ -2629,7 +2633,7 @@ def add_potential_network_member(
     confidence: float = 1.0,
     evidence_metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Adds an entity or complaint membership link to an inferred network cluster."""
+    """Adds an entity or complaint membership link to an inferred network cluster idempotently."""
     new_id = str(uuid.uuid4())
     now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
     meta = evidence_metadata or {}
@@ -2638,6 +2642,15 @@ def add_potential_network_member(
     if _use_supabase():
         try:
             from db.supabase_client import supabase
+            q = supabase.table("potential_network_members").select("*").eq("cluster_id", cluster_id).eq("member_type", member_type)
+            if entity_id:
+                q = q.eq("entity_id", entity_id)
+            if complaint_id:
+                q = q.eq("complaint_id", complaint_id)
+            existing = q.execute()
+            if existing.data:
+                return existing.data[0]
+
             new_row = {
                 "id": new_id,
                 "cluster_id": cluster_id,
@@ -2659,7 +2672,18 @@ def add_potential_network_member(
     conn = get_connection()
     c = conn.cursor()
     c.execute("""
-        INSERT INTO potential_network_members (
+        SELECT * FROM potential_network_members
+        WHERE cluster_id = ? AND member_type = ? 
+        AND ((entity_id = ? AND entity_id IS NOT NULL) OR (entity_id IS NULL AND ? IS NULL))
+        AND ((complaint_id = ? AND complaint_id IS NOT NULL) OR (complaint_id IS NULL AND ? IS NULL))
+    """, (cluster_id, member_type, entity_id, entity_id, complaint_id, complaint_id))
+    existing_row = c.fetchone()
+    if existing_row:
+        conn.close()
+        return dict(existing_row)
+
+    c.execute("""
+        INSERT OR IGNORE INTO potential_network_members (
             id, cluster_id, member_type, entity_id, complaint_id,
             evidence_basis, confidence, evidence_metadata, joined_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -2689,7 +2713,14 @@ def get_potential_network_clusters(limit: int = 50, status: Optional[str] = None
                 query = query.eq("status", status)
             res = query.execute()
             if res.data:
-                return res.data
+                rows = res.data
+                for r in rows:
+                    if isinstance(r.get("summary_metadata"), str):
+                        try:
+                            r["summary_metadata"] = json.loads(r["summary_metadata"])
+                        except Exception:
+                            r["summary_metadata"] = {}
+                return rows
         except Exception:
             pass
 
@@ -2701,7 +2732,186 @@ def get_potential_network_clusters(limit: int = 50, status: Optional[str] = None
         c.execute("SELECT * FROM potential_network_clusters ORDER BY detected_at DESC LIMIT ?", (limit,))
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
+    for r in rows:
+        if isinstance(r.get("summary_metadata"), str):
+            try:
+                r["summary_metadata"] = json.loads(r["summary_metadata"])
+            except Exception:
+                r["summary_metadata"] = {}
     return rows
+
+
+def get_potential_network_cluster_by_id(cluster_id: str) -> Optional[Dict[str, Any]]:
+    """Fetches a single potential network cluster by its UUID."""
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("potential_network_clusters").select("*").eq("cluster_id", cluster_id).execute()
+            if res.data:
+                row = res.data[0]
+                if isinstance(row.get("summary_metadata"), str):
+                    try:
+                        row["summary_metadata"] = json.loads(row["summary_metadata"])
+                    except Exception:
+                        row["summary_metadata"] = {}
+                return row
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM potential_network_clusters WHERE cluster_id = ?", (cluster_id,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    if isinstance(d.get("summary_metadata"), str):
+        try:
+            d["summary_metadata"] = json.loads(d["summary_metadata"])
+        except Exception:
+            d["summary_metadata"] = {}
+    return d
+
+
+def get_potential_network_members(cluster_id: str) -> List[Dict[str, Any]]:
+    """Returns all entity and complaint members associated with a potential network cluster."""
+    rows = []
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("potential_network_members").select("*").eq("cluster_id", cluster_id).execute()
+            if res.data:
+                rows = res.data
+        except Exception:
+            rows = []
+
+    if not rows:
+        conn = get_connection()
+        c = conn.cursor()
+        c.execute("SELECT * FROM potential_network_members WHERE cluster_id = ?", (cluster_id,))
+        rows = [dict(r) for r in c.fetchall()]
+        conn.close()
+
+    for r in rows:
+        if isinstance(r.get("evidence_metadata"), str):
+            try:
+                r["evidence_metadata"] = json.loads(r["evidence_metadata"])
+            except Exception:
+                r["evidence_metadata"] = {}
+    return rows
+
+
+def get_potential_network_clusters_for_complaint(complaint_id: str) -> List[Dict[str, Any]]:
+    """Returns all potential network clusters that include the given complaint as a member."""
+    cluster_ids = []
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("potential_network_members").select("cluster_id").eq("complaint_id", complaint_id).execute()
+            if res.data:
+                cluster_ids = [r["cluster_id"] for r in res.data if r.get("cluster_id")]
+        except Exception:
+            cluster_ids = []
+
+    if not cluster_ids:
+        conn = get_connection()
+        c = conn.cursor()
+        c.execute("SELECT DISTINCT cluster_id FROM potential_network_members WHERE complaint_id = ?", (complaint_id,))
+        cluster_ids = [r[0] for r in c.fetchall() if r[0]]
+        conn.close()
+
+    clusters = []
+    for cid in sorted(list(set(cluster_ids))):
+        cl = get_potential_network_cluster_by_id(cid)
+        if cl:
+            clusters.append(cl)
+    return clusters
+
+
+def update_potential_network_cluster(cluster_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Updates mutable summary and count fields of a potential network cluster."""
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    clean_updates = dict(updates)
+    clean_updates["last_updated_at"] = now_iso
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            supabase_updates = dict(clean_updates)
+            # Ensure summary_metadata is properly typed for JSONB
+            if "summary_metadata" in supabase_updates and isinstance(supabase_updates["summary_metadata"], str):
+                try:
+                    supabase_updates["summary_metadata"] = json.loads(supabase_updates["summary_metadata"])
+                except Exception:
+                    pass
+            res = supabase.table("potential_network_clusters").update(supabase_updates).eq("cluster_id", cluster_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            logger.debug(f"[SUPABASE UPDATE CLUSTER FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    set_clauses = []
+    vals = []
+    for k, v in clean_updates.items():
+        if k in ("cluster_label", "cluster_type", "status", "confidence_score",
+                 "supporting_entity_count", "supporting_complaint_count",
+                 "total_exposure_inr", "summary_metadata", "last_updated_at"):
+            set_clauses.append(f"{k} = ?")
+            if k == "summary_metadata" and isinstance(v, dict):
+                vals.append(json.dumps(v))
+            else:
+                vals.append(v)
+    if set_clauses:
+        vals.append(cluster_id)
+        c.execute(f"UPDATE potential_network_clusters SET {', '.join(set_clauses)} WHERE cluster_id = ?", vals)
+        conn.commit()
+    conn.close()
+    return get_potential_network_cluster_by_id(cluster_id)
+
+
+def find_existing_cluster_for_entities_or_complaints(
+    entity_ids: List[str], complaint_ids: List[str]
+) -> Optional[str]:
+    """
+    Finds if an active potential network cluster already contains any of the given entities or complaints.
+    Enables incremental cluster expansion without creating duplicate fragments.
+    """
+    clean_eids = [e for e in entity_ids if e]
+    clean_cids = [c for c in complaint_ids if c]
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            if clean_eids:
+                res_e = supabase.table("potential_network_members").select("cluster_id").in_("entity_id", clean_eids).limit(1).execute()
+                if res_e.data and res_e.data[0].get("cluster_id"):
+                    return res_e.data[0]["cluster_id"]
+            if clean_cids:
+                res_c = supabase.table("potential_network_members").select("cluster_id").in_("complaint_id", clean_cids).limit(1).execute()
+                if res_c.data and res_c.data[0].get("cluster_id"):
+                    return res_c.data[0]["cluster_id"]
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    for eid in clean_eids:
+        c.execute("SELECT cluster_id FROM potential_network_members WHERE entity_id = ? LIMIT 1", (eid,))
+        row = c.fetchone()
+        if row:
+            conn.close()
+            return row[0]
+    for cid in clean_cids:
+        c.execute("SELECT cluster_id FROM potential_network_members WHERE complaint_id = ? LIMIT 1", (cid,))
+        row = c.fetchone()
+        if row:
+            conn.close()
+            return row[0]
+    conn.close()
+    return None
 
 
 # -----------------------------------------------------------------------------

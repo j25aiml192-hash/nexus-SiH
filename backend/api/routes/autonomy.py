@@ -51,3 +51,78 @@ def get_case_attention(complaint_id: str):
 
     return attention_engine.evaluate_case_attention(complaint_id)
 
+
+# -----------------------------------------------------------------------------
+# SYNDICATE DNA / CROSS-CASE INTELLIGENCE ENDPOINTS (PHASE 3A)
+# -----------------------------------------------------------------------------
+
+@router.get("/syndicates")
+def list_potential_syndicates(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    cluster_type: Optional[str] = Query(None, description="Filter by cluster type: POTENTIAL_SHARED_INFRASTRUCTURE, STRUCTURAL_SIMILARITY, GEOGRAPHIC_CORRIDOR"),
+    status: Optional[str] = Query(None, description="Filter by status: candidate, under_review, dismissed"),
+):
+    """
+    Returns paginated list of Potential Shared Operational Networks (inferred clusters).
+    NOTE: These are analytical clusters and strictly distinct from authoritative syndicates.
+    """
+    from core.autonomy.syndicate_dna_engine import syndicate_dna_engine
+    return syndicate_dna_engine.get_clusters_list(
+        limit=limit,
+        offset=offset,
+        cluster_type=cluster_type,
+        status=status,
+    )
+
+
+@router.get("/syndicates/case/{complaint_id}/expand")
+def expand_case_syndicate_network(
+    complaint_id: str,
+    depth: int = Query(1, ge=1, le=2, description="Bounded expansion depth (1 or 2)"),
+    max_nodes: int = Query(50, ge=5, le=100, description="Max nodes to return"),
+):
+    """
+    Returns a bounded structural subgraph (depth 1 or 2) linking the target case
+    to shared entities and connected cases for visual intelligence.
+    """
+    from core.autonomy.syndicate_dna_engine import syndicate_dna_engine
+    comp = repo.get_complaint_by_id(complaint_id)
+    if not comp:
+        raise HTTPException(status_code=404, detail=f"Complaint '{complaint_id}' not found")
+
+    return syndicate_dna_engine.expand_case_network(
+        complaint_id=complaint_id,
+        depth=depth,
+        max_nodes=max_nodes,
+    )
+
+
+@router.get("/syndicates/case/{complaint_id}")
+def get_case_syndicates(complaint_id: str):
+    """
+    Returns Potential Shared Operational Network clusters and direct structural
+    relationships for a given case.
+    """
+    from core.autonomy.syndicate_dna_engine import syndicate_dna_engine
+    comp = repo.get_complaint_by_id(complaint_id)
+    if not comp:
+        raise HTTPException(status_code=404, detail=f"Complaint '{complaint_id}' not found")
+
+    return syndicate_dna_engine.get_case_syndicates(complaint_id)
+
+
+@router.get("/syndicates/{cluster_id}")
+def get_syndicate_cluster_details(cluster_id: str):
+    """
+    Returns detailed summary, complaint members, entity members, and relationship
+    evidence for a specific Potential Shared Operational Network cluster.
+    """
+    from core.autonomy.syndicate_dna_engine import syndicate_dna_engine
+    cluster = syndicate_dna_engine.get_cluster_details(cluster_id)
+    if not cluster:
+        raise HTTPException(status_code=404, detail=f"Potential network cluster '{cluster_id}' not found")
+
+    return cluster
+
+

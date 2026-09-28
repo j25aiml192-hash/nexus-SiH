@@ -105,6 +105,21 @@ class EventRouter:
             except Exception as e:
                 logger.debug(f"[Autonomy Attention Evaluation Safe Notice]: {e}")
 
+            # Trigger Syndicate DNA Cross-Case Intelligence Analysis
+            try:
+                from core.autonomy.syndicate_dna_engine import syndicate_dna_engine
+                dna_res = syndicate_dna_engine.correlate_case(
+                    complaint_id=str(complaint_id),
+                    trigger_event=event,
+                )
+                result["syndicate_dna_evaluation"] = {
+                    "correlated_cases_count": dna_res.get("correlated_cases_count", 0),
+                    "clusters_updated": dna_res.get("clusters_updated", []),
+                    "status": dna_res.get("status"),
+                }
+            except Exception as e:
+                logger.debug(f"[Autonomy Syndicate DNA Safe Notice]: {e}")
+
         return result
 
     # -------------------------------------------------------------------------

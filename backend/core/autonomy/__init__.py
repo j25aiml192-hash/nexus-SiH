@@ -12,6 +12,8 @@ from core.autonomy.case_watcher import CaseWatcher, case_watcher, get_autonomy_s
 from core.autonomy.reconciler import AutonomyReconciler, reconciler
 from core.autonomy.attention_engine import CaseAttentionEngine, attention_engine
 from core.autonomy.attention_policy import compute_attention, ATTENTION_POLICY_VERSION
+from core.autonomy.syndicate_dna_engine import SyndicateDNAEngine, syndicate_dna_engine
+from core.autonomy.syndicate_dna_policy import compute_structural_similarity, SYNDICATE_DNA_POLICY_VERSION
 
 __all__ = [
     "EventRouter",
@@ -25,4 +27,8 @@ __all__ = [
     "attention_engine",
     "compute_attention",
     "ATTENTION_POLICY_VERSION",
+    "SyndicateDNAEngine",
+    "syndicate_dna_engine",
+    "compute_structural_similarity",
+    "SYNDICATE_DNA_POLICY_VERSION",
 ]
