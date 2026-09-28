@@ -284,7 +284,27 @@ def init_db():
         status TEXT NOT NULL DEFAULT 'approved',
         created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS case_attention_state (
+        attention_id TEXT PRIMARY KEY,
+        complaint_id TEXT UNIQUE NOT NULL,
+        attention_score REAL NOT NULL DEFAULT 0.0,
+        attention_level TEXT NOT NULL DEFAULT 'LOW',
+        reason_codes TEXT NOT NULL DEFAULT '[]',
+        decision_factors TEXT NOT NULL DEFAULT '{}',
+        source_event_id TEXT,
+        calculated_at TEXT NOT NULL,
+        policy_version TEXT NOT NULL DEFAULT 'phase2b-v1',
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
     """)
+
+    c.execute("CREATE INDEX IF NOT EXISTS idx_case_attention_score ON case_attention_state(attention_score)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_case_attention_level ON case_attention_state(attention_level)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_case_attention_complaint ON case_attention_state(complaint_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_case_attention_active ON case_attention_state(active)")
     
     # Pre-seed initial default approved accounts if not present
     default_users = [
@@ -1193,6 +1213,8 @@ def get_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
     if _use_supabase():
         return get_supabase_prediction_by_complaint(complaint_id)
     return get_sqlite_prediction_by_complaint(complaint_id)
+
+get_prediction = get_prediction_by_complaint
 
 
 def save_supabase_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
@@ -3438,6 +3460,268 @@ def update_user_status(target: str, status: str) -> bool:
     conn.commit()
     conn.close()
     return affected > 0
+
+
+# -----------------------------------------------------------------------------
+# 9. CASE ATTENTION STATE PERSISTENCE (PHASE 2B)
+# -----------------------------------------------------------------------------
+
+def upsert_case_attention_state(
+    complaint_id: str,
+    attention_score: float,
+    attention_level: str,
+    reason_codes: List[str],
+    decision_factors: Dict[str, Any],
+    source_event_id: Optional[str] = None,
+    policy_version: str = "phase2b-v1",
+    active: bool = True,
+) -> Dict[str, Any]:
+    """
+    Persists or updates the single active operational attention state for a complaint.
+    Stores structured machine-readable reason codes and normalized signal contributions.
+    """
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    cid = str(complaint_id)
+    att_score = round(float(attention_score), 2)
+    att_lvl = str(attention_level).upper()
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            existing = supabase.table("case_attention_state").select("attention_id").eq("complaint_id", cid).execute()
+            if existing.data:
+                att_id = existing.data[0]["attention_id"]
+                row_data = {
+                    "attention_score": att_score,
+                    "attention_level": att_lvl,
+                    "reason_codes": reason_codes,
+                    "decision_factors": decision_factors,
+                    "source_event_id": source_event_id,
+                    "calculated_at": now_iso,
+                    "policy_version": policy_version,
+                    "active": active,
+                    "updated_at": now_iso,
+                }
+                upd = supabase.table("case_attention_state").update(row_data).eq("attention_id", att_id).execute()
+                if upd.data:
+                    return upd.data[0]
+            else:
+                att_id = str(uuid.uuid4())
+                row_data = {
+                    "attention_id": att_id,
+                    "complaint_id": cid,
+                    "attention_score": att_score,
+                    "attention_level": att_lvl,
+                    "reason_codes": reason_codes,
+                    "decision_factors": decision_factors,
+                    "source_event_id": source_event_id,
+                    "calculated_at": now_iso,
+                    "policy_version": policy_version,
+                    "active": active,
+                    "created_at": now_iso,
+                    "updated_at": now_iso,
+                }
+                ins = supabase.table("case_attention_state").insert(row_data).execute()
+                if ins.data:
+                    return ins.data[0]
+        except Exception as e:
+            logger.debug(f"[SUPABASE CASE ATTENTION UPSERT FALLBACK]: {e}")
+
+    conn = get_connection()
+    c = conn.cursor()
+    new_id = str(uuid.uuid4())
+    rc_json = json.dumps(reason_codes)
+    df_json = json.dumps(decision_factors)
+    act_int = 1 if active else 0
+
+    c.execute("""
+        INSERT INTO case_attention_state (
+            attention_id, complaint_id, attention_score, attention_level,
+            reason_codes, decision_factors, source_event_id, calculated_at,
+            policy_version, active, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(complaint_id) DO UPDATE SET
+            attention_score = excluded.attention_score,
+            attention_level = excluded.attention_level,
+            reason_codes = excluded.reason_codes,
+            decision_factors = excluded.decision_factors,
+            source_event_id = excluded.source_event_id,
+            calculated_at = excluded.calculated_at,
+            policy_version = excluded.policy_version,
+            active = excluded.active,
+            updated_at = excluded.updated_at
+    """, (
+        new_id, cid, att_score, att_lvl,
+        rc_json, df_json, source_event_id, now_iso,
+        policy_version, act_int, now_iso, now_iso
+    ))
+    conn.commit()
+    c.execute("SELECT * FROM case_attention_state WHERE complaint_id = ?", (cid,))
+    row = c.fetchone()
+    conn.close()
+
+    if row:
+        d = dict(row)
+        if isinstance(d.get("reason_codes"), str):
+            try:
+                d["reason_codes"] = json.loads(d["reason_codes"])
+            except Exception:
+                d["reason_codes"] = []
+        if isinstance(d.get("decision_factors"), str):
+            try:
+                d["decision_factors"] = json.loads(d["decision_factors"])
+            except Exception:
+                d["decision_factors"] = {}
+        d["active"] = bool(d.get("active", 1))
+        return d
+
+    return {
+        "attention_id": new_id,
+        "complaint_id": cid,
+        "attention_score": att_score,
+        "attention_level": att_lvl,
+        "reason_codes": reason_codes,
+        "decision_factors": decision_factors,
+        "source_event_id": source_event_id,
+        "calculated_at": now_iso,
+        "policy_version": policy_version,
+        "active": active,
+    }
+
+
+def get_case_attention_state(complaint_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieves current active operational attention state for a complaint."""
+    cid = str(complaint_id)
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("case_attention_state").select("*").eq("complaint_id", cid).eq("active", True).limit(1).execute()
+            if res.data:
+                row = res.data[0]
+                if isinstance(row.get("reason_codes"), str):
+                    try:
+                        row["reason_codes"] = json.loads(row["reason_codes"])
+                    except Exception:
+                        row["reason_codes"] = []
+                if isinstance(row.get("decision_factors"), str):
+                    try:
+                        row["decision_factors"] = json.loads(row["decision_factors"])
+                    except Exception:
+                        row["decision_factors"] = {}
+                return row
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM case_attention_state WHERE complaint_id = ? AND active = 1", (cid,))
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    d = dict(row)
+    if isinstance(d.get("reason_codes"), str):
+        try:
+            d["reason_codes"] = json.loads(d["reason_codes"])
+        except Exception:
+            d["reason_codes"] = []
+    if isinstance(d.get("decision_factors"), str):
+        try:
+            d["decision_factors"] = json.loads(d["decision_factors"])
+        except Exception:
+            d["decision_factors"] = {}
+    d["active"] = bool(d.get("active", 1))
+    return d
+
+
+def get_case_attention_queue(
+    limit: int = 50,
+    offset: int = 0,
+    attention_level: Optional[str] = None,
+    fraud_type: Optional[str] = None,
+    victim_state: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Retrieves the prioritized active attention queue ordered by attention_score descending.
+    Enriches results with complaint details for investigator triage.
+    """
+    raw_attention: List[Dict[str, Any]] = []
+
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            query = supabase.table("case_attention_state").select("*").eq("active", True).order("attention_score", desc=True)
+            if attention_level:
+                query = query.eq("attention_level", attention_level.upper())
+            res = query.execute()
+            if res.data:
+                raw_attention = res.data
+        except Exception as e:
+            logger.debug(f"[SUPABASE CASE ATTENTION QUEUE FALLBACK]: {e}")
+
+    if not raw_attention:
+        conn = get_connection()
+        c = conn.cursor()
+        if attention_level:
+            c.execute(
+                "SELECT * FROM case_attention_state WHERE active = 1 AND attention_level = ? ORDER BY attention_score DESC",
+                (attention_level.upper(),)
+            )
+        else:
+            c.execute("SELECT * FROM case_attention_state WHERE active = 1 ORDER BY attention_score DESC")
+        raw_attention = [dict(r) for r in c.fetchall()]
+        conn.close()
+
+    # Parse JSON fields and enrich with complaint metadata
+    enriched_cases: List[Dict[str, Any]] = []
+    for att in raw_attention:
+        if isinstance(att.get("reason_codes"), str):
+            try:
+                att["reason_codes"] = json.loads(att["reason_codes"])
+            except Exception:
+                att["reason_codes"] = []
+        if isinstance(att.get("decision_factors"), str):
+            try:
+                att["decision_factors"] = json.loads(att["decision_factors"])
+            except Exception:
+                att["decision_factors"] = {}
+
+        cid = att.get("complaint_id")
+        comp = get_complaint_by_id(cid) if cid else None
+
+        # Filter by complaint attributes if provided
+        if fraud_type and comp and comp.get("fraud_type", "").lower() != fraud_type.lower():
+            continue
+        if victim_state and comp and comp.get("victim_state", "").lower() != victim_state.lower():
+            continue
+
+        item = {
+            **att,
+            "complaint": {
+                "complaint_id": cid,
+                "ncrp_id": comp.get("ncrp_id") if comp else None,
+                "fraud_type": comp.get("fraud_type") if comp else None,
+                "amount_inr": comp.get("amount_inr") if comp else None,
+                "victim_state": comp.get("victim_state") if comp else None,
+                "suspect_phone": comp.get("suspect_phone") if comp else None,
+                "status": comp.get("status") if comp else "active",
+                "created_at": comp.get("created_at") if comp else None,
+            } if comp else None,
+        }
+        enriched_cases.append(item)
+
+    total_count = len(enriched_cases)
+    paginated = enriched_cases[offset: offset + limit]
+
+    return {
+        "total": total_count,
+        "limit": limit,
+        "offset": offset,
+        "cases": paginated,
+    }
+
 
 # Initialize SQLite only if in development and explicitly enabled
 if os.getenv("NEXUS_ENV", "").lower() != "production" and os.getenv("USE_LOCAL_SQLITE", "").lower() == "true":

@@ -482,11 +482,22 @@ class TestAutonomyEventRouterAndWatcher(unittest.TestCase):
             idempotency_key=f"multi:{cid3}",
         )
 
-        processed = case_watcher.run_cycle(batch_size=10)
-        self.assertGreaterEqual(processed, 3)
+        import time
+        for _ in range(5):
+            case_watcher.run_cycle(batch_size=10)
+            ev1 = repo.get_autonomy_event_by_idempotency_key(f"multi:{cid1}")
+            ev2 = repo.get_autonomy_event_by_idempotency_key(f"multi:{cid2}")
+            ev3 = repo.get_autonomy_event_by_idempotency_key(f"multi:{cid3}")
+            st1 = (ev1.get("processing_status") or ev1.get("status")) if ev1 else None
+            st2 = (ev2.get("processing_status") or ev2.get("status")) if ev2 else None
+            st3 = (ev3.get("processing_status") or ev3.get("status")) if ev3 else None
+            if st1 == "processed" and st2 == "processed" and st3 == "processed":
+                break
+            time.sleep(0.5)
 
-        counts = repo.get_autonomy_event_counts()
-        self.assertGreaterEqual(counts["processed"], 3)
+        self.assertEqual(st1, "processed")
+        self.assertEqual(st2, "processed")
+        self.assertEqual(st3, "processed")
 
     def test_16_one_bad_event_does_not_kill_watcher(self):
         """Test that a bad event is marked failed but other events in the batch complete successfully."""

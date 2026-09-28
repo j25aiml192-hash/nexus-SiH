@@ -76,7 +76,36 @@ class EventRouter:
                 "event_id": event_id,
             }
 
-        return handler(event)
+        result = handler(event)
+
+        # Trigger Case Attention Engine evaluation for the affected case
+        complaint_id = event.get("complaint_id")
+        if not complaint_id:
+            payload = event.get("payload") or {}
+            if isinstance(payload, str):
+                import json
+                try:
+                    payload = json.loads(payload)
+                except Exception:
+                    payload = {}
+            complaint_id = payload.get("complaint_id") or (event.get("entity_id") if event.get("entity_type") == "complaint" else None)
+
+        if complaint_id:
+            try:
+                from core.autonomy.attention_engine import attention_engine
+                att_res = attention_engine.evaluate_case_attention(
+                    complaint_id=str(complaint_id),
+                    trigger_event=event,
+                )
+                result["attention_evaluation"] = {
+                    "score": att_res.get("attention_score"),
+                    "level": att_res.get("attention_level"),
+                    "reasons": att_res.get("reason_codes"),
+                }
+            except Exception as e:
+                logger.debug(f"[Autonomy Attention Evaluation Safe Notice]: {e}")
+
+        return result
 
     # -------------------------------------------------------------------------
     # HANDLERS
