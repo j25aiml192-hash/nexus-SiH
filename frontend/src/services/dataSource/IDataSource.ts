@@ -132,4 +132,10 @@ export interface IDataSource {
 
   // Dashboard Aggregates
   getDashboardStats(timeframe?: string): Promise<DashboardStatsResult>;
+
+  // Syndicate Intelligence (Phase 3A/3B)
+  getPotentialSyndicates(params?: { limit?: number; offset?: number; cluster_type?: string; status?: string }): Promise<import('../../types/syndicate').ClustersListResponse>;
+  getPotentialSyndicateById(clusterId: string): Promise<import('../../types/syndicate').PotentialClusterDetail>;
+  getCaseSyndicates(complaintId: string): Promise<import('../../types/syndicate').CaseSyndicatesResponse>;
+  expandCaseSyndicateNetwork(complaintId: string, depth?: number, maxNodes?: number): Promise<import('../../types/syndicate').GraphExpansionResponse>;
 }

@@ -15,6 +15,9 @@ export default defineConfig({
     hmr: {
       overlay: true,
     },
+    watch: {
+      ignored: ['**/dist/**'],
+    },
   },
   optimizeDeps: {
     exclude: ['maplibre-gl'],

@@ -7,6 +7,7 @@ import {
   BarChart3,
   MapPin,
   Settings,
+  Network,
 } from 'lucide-react';
 import { useNexusStore } from '../store/useNexusStore';
 
@@ -90,6 +91,18 @@ export const Navigation: React.FC = () => {
           {openIncidentsCount > 0 && (
             <span className="nexus-floating-badge warning">{openIncidentsCount}</span>
           )}
+        </NavLink>
+
+        <NavLink
+          to="/syndicates"
+          className={({ isActive }) =>
+            `nexus-floating-item ${isActive ? 'active' : ''}`
+          }
+        >
+          <div className="nexus-squircle-box">
+            <Network size={18} />
+          </div>
+          <span className="nexus-floating-label">Syndicate Intelligence</span>
         </NavLink>
 
         <NavLink

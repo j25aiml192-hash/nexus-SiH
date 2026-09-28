@@ -955,7 +955,9 @@ def get_sqlite_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
 def get_complaint_by_id(complaint_id: str) -> Optional[Dict[str, Any]]:
     if _use_supabase():
         try:
-            return get_supabase_complaint_by_id(complaint_id)
+            res = get_supabase_complaint_by_id(complaint_id)
+            if res:
+                return res
         except Exception as e:
             logger.warning(f"[SUPABASE COMPLAINT GET FALLBACK] Falling back to SQLite for {complaint_id}: {e}")
             return get_sqlite_complaint_by_id(complaint_id)

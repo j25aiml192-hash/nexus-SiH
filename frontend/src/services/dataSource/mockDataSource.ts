@@ -211,4 +211,20 @@ export class MockDataSource implements IDataSource {
       },
     };
   }
+
+  async getPotentialSyndicates(): Promise<import('../../types/syndicate').ClustersListResponse> {
+    return { total: 0, limit: 50, offset: 0, clusters: [] };
+  }
+
+  async getPotentialSyndicateById(clusterId: string): Promise<import('../../types/syndicate').PotentialClusterDetail> {
+    throw new Error(`Cluster ${clusterId} not found in mock store`);
+  }
+
+  async getCaseSyndicates(complaintId: string): Promise<import('../../types/syndicate').CaseSyndicatesResponse> {
+    return { complaint_id: complaintId, clusters_count: 0, clusters: [], related_cases_count: 0, related_cases: [] };
+  }
+
+  async expandCaseSyndicateNetwork(complaintId: string, depth: number = 1): Promise<import('../../types/syndicate').GraphExpansionResponse> {
+    return { root_complaint_id: complaintId, depth, total_nodes: 0, total_edges: 0, total_cases: 0, nodes: [], edges: [] };
+  }
 }

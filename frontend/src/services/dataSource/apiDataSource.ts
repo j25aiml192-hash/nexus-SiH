@@ -610,4 +610,38 @@ export class ApiDataSource implements IDataSource {
     const query = timeframe ? `?timeframe=${encodeURIComponent(timeframe)}` : '';
     return await this.request<DashboardStatsResult>(`/dashboard/stats${query}`);
   }
+
+  async getPotentialSyndicates(params?: {
+    limit?: number;
+    offset?: number;
+    cluster_type?: string;
+    status?: string;
+  }): Promise<import('../../types/syndicate').ClustersListResponse> {
+    const queryParts: string[] = [];
+    if (params?.limit !== undefined) queryParts.push(`limit=${encodeURIComponent(params.limit)}`);
+    if (params?.offset !== undefined) queryParts.push(`offset=${encodeURIComponent(params.offset)}`);
+    if (params?.cluster_type) queryParts.push(`cluster_type=${encodeURIComponent(params.cluster_type)}`);
+    if (params?.status) queryParts.push(`status=${encodeURIComponent(params.status)}`);
+    const qs = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
+    return await this.request<import('../../types/syndicate').ClustersListResponse>(`/autonomy/syndicates${qs}`);
+  }
+
+  async getPotentialSyndicateById(clusterId: string): Promise<import('../../types/syndicate').PotentialClusterDetail> {
+    return await this.request<import('../../types/syndicate').PotentialClusterDetail>(`/autonomy/syndicates/${encodeURIComponent(clusterId)}`);
+  }
+
+  async getCaseSyndicates(complaintId: string): Promise<import('../../types/syndicate').CaseSyndicatesResponse> {
+    return await this.request<import('../../types/syndicate').CaseSyndicatesResponse>(`/autonomy/syndicates/case/${encodeURIComponent(complaintId)}`);
+  }
+
+  async expandCaseSyndicateNetwork(
+    complaintId: string,
+    depth: number = 1,
+    maxNodes: number = 50
+  ): Promise<import('../../types/syndicate').GraphExpansionResponse> {
+    return await this.request<import('../../types/syndicate').GraphExpansionResponse>(
+      `/autonomy/syndicates/case/${encodeURIComponent(complaintId)}/expand?depth=${encodeURIComponent(depth)}&max_nodes=${encodeURIComponent(maxNodes)}`
+    );
+  }
 }
+
