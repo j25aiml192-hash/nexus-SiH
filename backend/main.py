@@ -39,13 +39,17 @@ if nexus_env == "production":
         logger.error(error_msg)
         raise FileNotFoundError(error_msg)
 
-start_scheduler()
-
 app = FastAPI(
     title="Nexus Cybercrime Intelligence API",
     description="Predictive cybercrime and cash-out risk intelligence backend",
     version="1.0.0",
 )
+
+
+@app.on_event("startup")
+def on_startup():
+    start_scheduler()
+
 
 # CORS Configuration
 allowed_origins = [
