@@ -141,7 +141,10 @@ export const Navigation: React.FC = () => {
           </div>
           <span className="nexus-floating-label">Geospatial Map</span>
         </NavLink>
+      </div>
 
+      {/* Bottom Pinned Section */}
+      <div style={{ marginTop: 'auto', paddingTop: '8px', borderTop: '1px dashed #E2E8E6' }}>
         <NavLink
           to="/settings"
           className={({ isActive }) =>

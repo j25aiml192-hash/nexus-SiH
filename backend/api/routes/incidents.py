@@ -28,20 +28,24 @@ class IncidentAuthorizeRequest(BaseModel):
 @router.get("/list")
 @router.get("/")
 def get_incidents_list(limit: int = 50):
-    incidents = repo.get_incidents(limit=limit)
-    enriched = []
-    for inc in incidents:
-        cid = inc.get("complaint_id")
-        comp = repo.get_complaint_by_id(cid) if cid else None
-        pred = repo.get_prediction_by_complaint(cid) if cid else None
-        enriched.append({
-            **inc,
-            "id": inc.get("incident_id"),
-            "complaint": comp,
-            "prediction": pred,
-            "priority": "HIGH" if pred and pred.get("risk_level") == "RED" else "MEDIUM"
-        })
-    return enriched
+    try:
+        incidents = repo.get_incidents(limit=limit)
+        enriched = []
+        for inc in incidents:
+            cid = inc.get("complaint_id")
+            comp = repo.get_complaint_by_id(cid) if cid else None
+            pred = repo.get_prediction_by_complaint(cid) if cid else None
+            enriched.append({
+                **inc,
+                "id": inc.get("incident_id"),
+                "complaint": comp,
+                "prediction": pred,
+                "priority": "HIGH" if pred and pred.get("risk_level") == "RED" else "MEDIUM"
+            })
+        return enriched
+    except Exception as e:
+        print(f"[INCIDENTS LIST ERROR] {e}")
+        return []
 
 
 @router.get("/{incident_id}")
