@@ -18,6 +18,7 @@ from api.routes import atms
 from api.routes import voice
 from api.routes import auth
 from api.routes import autonomy
+from api.routes import actions
 from scheduler import start_scheduler
 from db.repo import init_db
 
@@ -112,6 +113,7 @@ app.include_router(atms.router, prefix="/atms", tags=["Atm"])
 app.include_router(voice.router, prefix="/voice", tags=["Voice"])
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(autonomy.router, prefix="/autonomy", tags=["Autonomy"])
+app.include_router(actions.router, prefix="/autonomy/actions", tags=["Actions"])
 
 from db import repo
 

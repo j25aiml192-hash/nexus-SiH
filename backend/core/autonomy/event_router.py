@@ -120,6 +120,21 @@ class EventRouter:
             except Exception as e:
                 logger.debug(f"[Autonomy Syndicate DNA Safe Notice]: {e}")
 
+            # Trigger Phase 5 Action Policy Engine evaluation
+            try:
+                from core.autonomy.action_policy import action_policy_engine
+                policy_res = action_policy_engine.evaluate_and_persist(
+                    complaint_id=str(complaint_id),
+                    trigger_event=event,
+                )
+                result["action_policy_evaluation"] = {
+                    "recommendations_created": policy_res.get("recommendations_created", 0),
+                    "recommendations_suppressed": policy_res.get("recommendations_suppressed", 0),
+                    "action_ids": policy_res.get("action_ids", []),
+                }
+            except Exception as e:
+                logger.debug(f"[Autonomy Action Policy Safe Notice]: {e}")
+
         return result
 
     # -------------------------------------------------------------------------

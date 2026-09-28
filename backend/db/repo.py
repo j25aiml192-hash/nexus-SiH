@@ -330,6 +330,43 @@ def init_db():
     except Exception:
         pass
 
+    # Phase 5 — Action Recommendations (additive migration, safe on existing DB)
+    try:
+        c.executescript("""
+        CREATE TABLE IF NOT EXISTS action_recommendations (
+            action_id TEXT PRIMARY KEY,
+            complaint_id TEXT NOT NULL,
+            action_type TEXT NOT NULL,
+            priority TEXT NOT NULL DEFAULT 'MEDIUM',
+            status TEXT NOT NULL DEFAULT 'PROPOSED',
+            policy_version TEXT NOT NULL DEFAULT 'phase5-v1',
+            reason_codes TEXT NOT NULL DEFAULT '[]',
+            decision_factors TEXT NOT NULL DEFAULT '{}',
+            supporting_evidence TEXT NOT NULL DEFAULT '[]',
+            approval_required INTEGER NOT NULL DEFAULT 0,
+            requested_by TEXT,
+            approved_by TEXT,
+            approved_at TEXT,
+            rejected_by TEXT,
+            rejected_at TEXT,
+            execution_started_at TEXT,
+            completed_at TEXT,
+            failure_reason TEXT,
+            expires_at TEXT,
+            idempotency_key TEXT UNIQUE NOT NULL,
+            trigger_event_id TEXT,
+            history TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_action_rec_complaint ON action_recommendations(complaint_id);
+        CREATE INDEX IF NOT EXISTS idx_action_rec_status ON action_recommendations(status);
+        CREATE INDEX IF NOT EXISTS idx_action_rec_priority ON action_recommendations(priority);
+        CREATE INDEX IF NOT EXISTS idx_action_rec_created ON action_recommendations(created_at);
+        """)
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 
@@ -3952,3 +3989,277 @@ if os.getenv("NEXUS_ENV", "").lower() != "production" and os.getenv("USE_LOCAL_S
     init_db()
     seed_if_empty()
 
+
+
+# =============================================================================
+# PHASE 5 - ACTION RECOMMENDATIONS REPO METHODS
+# =============================================================================
+
+def _get_conn():
+    """Local alias for get_connection using sqlite3.Row factory."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _parse_action_row(row):
+    """Parse JSON string fields in action_recommendations row."""
+    for field in ("reason_codes", "decision_factors", "supporting_evidence", "history"):
+        val = row.get(field)
+        if isinstance(val, str):
+            try:
+                row[field] = json.loads(val)
+            except Exception:
+                row[field] = [] if field in ("reason_codes", "supporting_evidence", "history") else {}
+    row["approval_required"] = bool(row.get("approval_required", 0))
+    return row
+
+
+def create_action_recommendation(
+    complaint_id,
+    action_type,
+    priority,
+    status,
+    policy_version,
+    reason_codes,
+    decision_factors,
+    supporting_evidence,
+    approval_required,
+    expires_at,
+    idempotency_key,
+    trigger_event_id=None,
+    requested_by=None,
+):
+    """Creates action recommendation (idempotent). Returns None if key exists."""
+    conn = _get_conn()
+    c = conn.cursor()
+    try:
+        action_id = "ACT-" + uuid.uuid4().hex[:10].upper()
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        history = json.dumps([{"at": now, "status": status, "actor": "system_policy_engine"}])
+        c.execute("""
+            INSERT OR IGNORE INTO action_recommendations (
+                action_id, complaint_id, action_type, priority, status,
+                policy_version, reason_codes, decision_factors, supporting_evidence,
+                approval_required, expires_at, idempotency_key, trigger_event_id,
+                requested_by, history, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            action_id, complaint_id, action_type, priority, status,
+            policy_version,
+            json.dumps(reason_codes),
+            json.dumps(decision_factors),
+            json.dumps(supporting_evidence),
+            1 if approval_required else 0,
+            expires_at, idempotency_key, trigger_event_id,
+            requested_by, history, now, now,
+        ))
+        if c.rowcount == 0:
+            conn.close()
+            return None
+        conn.commit()
+        conn.close()
+        return {"action_id": action_id, "status": status}
+    except Exception as e:
+        logger.error("[repo.create_action_recommendation] %s", e)
+        conn.close()
+        return None
+
+
+def get_action_recommendation(action_id):
+    """Returns single action recommendation by ID."""
+    conn = _get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("SELECT * FROM action_recommendations WHERE action_id = ?", (action_id,))
+        row = c.fetchone()
+        conn.close()
+        if not row:
+            return None
+        return _parse_action_row(dict(row))
+    except Exception as e:
+        logger.error("[repo.get_action_recommendation] %s", e)
+        conn.close()
+        return None
+
+
+def list_action_recommendations(
+    status=None,
+    priority=None,
+    action_type=None,
+    complaint_id=None,
+    limit=50,
+    offset=0,
+):
+    """Returns filtered paginated action recommendations."""
+    conn = _get_conn()
+    c = conn.cursor()
+    try:
+        filters = []
+        params = []
+        if status:
+            filters.append("status = ?")
+            params.append(status)
+        if priority:
+            filters.append("priority = ?")
+            params.append(priority)
+        if action_type:
+            filters.append("action_type = ?")
+            params.append(action_type)
+        if complaint_id:
+            filters.append("complaint_id = ?")
+            params.append(complaint_id)
+        where = ("WHERE " + " AND ".join(filters)) if filters else ""
+        porder = "CASE priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 ELSE 4 END"
+        c.execute(
+            "SELECT * FROM action_recommendations {} ORDER BY {}, created_at DESC LIMIT ? OFFSET ?".format(where, porder),
+            params + [limit, offset],
+        )
+        rows = c.fetchall()
+        conn.close()
+        return [_parse_action_row(dict(r)) for r in rows]
+    except Exception as e:
+        logger.error("[repo.list_action_recommendations] %s", e)
+        conn.close()
+        return []
+
+
+def transition_action_status(action_id, new_status, actor, notes=None):
+    """Transitions action recommendation to new_status. Appends to audit history."""
+    conn = _get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("SELECT status, history FROM action_recommendations WHERE action_id = ?", (action_id,))
+        row = c.fetchone()
+        if not row:
+            conn.close()
+            return False
+        history = []
+        try:
+            history = json.loads(row["history"] or "[]")
+        except Exception:
+            history = []
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        history.append({
+            "at": now,
+            "from_status": row["status"],
+            "to_status": new_status,
+            "actor": actor,
+            "notes": notes,
+        })
+        extra_fields = ""
+        extra_params = []
+        if new_status == "EXECUTING":
+            extra_fields = ", execution_started_at = ?"
+            extra_params.append(now)
+        elif new_status == "COMPLETED":
+            extra_fields = ", completed_at = ?"
+            extra_params.append(now)
+        elif new_status == "APPROVED":
+            extra_fields = ", approved_by = ?, approved_at = ?"
+            extra_params += [actor, now]
+        elif new_status == "REJECTED":
+            extra_fields = ", rejected_by = ?, rejected_at = ?"
+            extra_params += [actor, now]
+        elif new_status == "FAILED":
+            extra_fields = ", failure_reason = ?"
+            extra_params.append(notes or "unknown")
+        c.execute(
+            "UPDATE action_recommendations SET status = ?, history = ?, updated_at = ? {} WHERE action_id = ?".format(extra_fields),
+            [new_status, json.dumps(history), now] + extra_params + [action_id],
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        logger.error("[repo.transition_action_status] %s", e)
+        conn.close()
+        return False
+
+
+def expire_stale_action_recommendations(now_iso):
+    """Marks PROPOSED/PENDING_APPROVAL recommendations past expires_at as EXPIRED."""
+    conn = _get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("""
+            SELECT action_id, history FROM action_recommendations
+            WHERE status IN ('PROPOSED', 'PENDING_APPROVAL')
+            AND expires_at IS NOT NULL AND expires_at < ?
+        """, (now_iso,))
+        rows = c.fetchall()
+        count = 0
+        for row in rows:
+            history = []
+            try:
+                history = json.loads(row["history"] or "[]")
+            except Exception:
+                history = []
+            history.append({"at": now_iso, "to_status": "EXPIRED", "actor": "system_expiry_job"})
+            c.execute(
+                "UPDATE action_recommendations SET status = 'EXPIRED', history = ?, updated_at = ? WHERE action_id = ?",
+                (json.dumps(history), now_iso, row["action_id"]),
+            )
+            count += 1
+        conn.commit()
+        conn.close()
+        return count
+    except Exception as e:
+        logger.error("[repo.expire_stale_action_recommendations] %s", e)
+        conn.close()
+        return 0
+
+
+def get_entity_cross_case_links_for_complaint(complaint_id):
+    """Returns cross-case entity links for a given complaint via Truth Graph relations."""
+    conn = _get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("""
+            SELECT DISTINCT source_entity_id, target_entity_id
+            FROM truth_graph_relations
+            WHERE complaint_id = ?
+        """, (complaint_id,))
+        entity_rows = c.fetchall()
+        entity_ids = set()
+        for row in entity_rows:
+            entity_ids.add(row["source_entity_id"])
+            entity_ids.add(row["target_entity_id"])
+        if not entity_ids:
+            conn.close()
+            return {"complaint_id": complaint_id, "linked_complaints": []}
+        linked = set()
+        for eid in entity_ids:
+            c.execute("""
+                SELECT DISTINCT complaint_id FROM truth_graph_relations
+                WHERE (source_entity_id = ? OR target_entity_id = ?)
+                AND complaint_id IS NOT NULL AND complaint_id != ?
+            """, (eid, eid, complaint_id))
+            for row in c.fetchall():
+                if row["complaint_id"]:
+                    linked.add(row["complaint_id"])
+        conn.close()
+        return {"complaint_id": complaint_id, "linked_complaints": list(linked)}
+    except Exception as e:
+        logger.debug("[repo.get_entity_cross_case_links_for_complaint] %s", e)
+        conn.close()
+        return {"complaint_id": complaint_id, "linked_complaints": []}
+
+
+def get_autonomy_audit_log_for_complaint(complaint_id, limit=10):
+    """Returns recent autonomy_audit_log entries for a complaint."""
+    conn = _get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("""
+            SELECT * FROM autonomy_audit_log
+            WHERE complaint_id = ?
+            ORDER BY created_at DESC LIMIT ?
+        """, (complaint_id, limit))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+    except Exception as e:
+        logger.debug("[repo.get_autonomy_audit_log_for_complaint] %s", e)
+        conn.close()
+        return []

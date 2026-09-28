@@ -15,6 +15,7 @@ import { IncidentDetailPage } from './pages/IncidentDetailPage';
 import { NetworkGraphPage } from './pages/NetworkGraphPage';
 import { SyndicateIntelligencePage } from './pages/SyndicateIntelligencePage';
 import { EvidenceIntelligencePage } from './pages/EvidenceIntelligencePage';
+import { ActionCenterPage } from './pages/ActionCenterPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SaiFloatingButton } from './components/nexus/SaiFloatingButton';
 import { useNexusStore } from './store/useNexusStore';
@@ -87,6 +88,7 @@ function AppContent({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
                 <Route path="/syndicates/:clusterId" element={<SyndicateIntelligencePage />} />
                 <Route path="/evidence" element={<EvidenceIntelligencePage />} />
                 <Route path="/evidence/:complaintId" element={<EvidenceIntelligencePage />} />
+                <Route path="/actions" element={<ActionCenterPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
 
