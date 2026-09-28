@@ -7082,3 +7082,6 @@ a.btn:active,
   animation: nexusModalFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
 }
+/* Phase 5 - utility animations */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }

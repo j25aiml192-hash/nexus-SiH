@@ -196,5 +196,48 @@ def get_evidence_entity_details(entity_id: str):
         "cross_case_links": cross,
     }
 
+# -----------------------------------------------------------------------------
+# INVESTIGATOR COPILOT (PHASE 5)
+# -----------------------------------------------------------------------------
+
+@router.get("/copilot/{complaint_id}")
+def copilot_case_summary(complaint_id: str):
+    """
+    Returns a grounded case summary via the Investigator Copilot.
+    All facts are derived from structured NEXUS records. Read-only.
+    """
+    from core.autonomy.investigator_copilot import investigator_copilot
+    return investigator_copilot.case_summary(complaint_id)
 
 
+@router.post("/copilot/{complaint_id}/ask")
+def copilot_ask(complaint_id: str, body: dict):
+    """
+    Answer an investigator question about a specific complaint.
+    Grounded in NEXUS data. Copilot is strictly read-only.
+    Body: { "question": "..." }
+    """
+    from core.autonomy.investigator_copilot import investigator_copilot
+    question = (body or {}).get("question", "summary")
+    return investigator_copilot.answer(complaint_id, question)
+
+
+@router.post("/copilot/{complaint_id}/evidence")
+def copilot_evidence(complaint_id: str):
+    """Returns grounded evidence graph explanation for a case."""
+    from core.autonomy.investigator_copilot import investigator_copilot
+    return investigator_copilot.explain_evidence(complaint_id)
+
+
+@router.post("/copilot/{complaint_id}/attention")
+def copilot_attention(complaint_id: str):
+    """Returns grounded attention explanation for a case."""
+    from core.autonomy.investigator_copilot import investigator_copilot
+    return investigator_copilot.explain_attention(complaint_id)
+
+
+@router.get("/copilot/{complaint_id}/actions")
+def copilot_actions(complaint_id: str):
+    """Returns current action recommendations explanation from the copilot."""
+    from core.autonomy.investigator_copilot import investigator_copilot
+    return investigator_copilot.current_actions(complaint_id)
