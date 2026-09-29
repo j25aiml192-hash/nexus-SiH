@@ -14,8 +14,10 @@ import json
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-os.environ["USE_LOCAL_SQLITE"] = "true"
-os.environ["NEXUS_ENV"] = "development"
+
+# NOTE: Do NOT set os.environ here (module-level) — all test modules are imported
+# before any tests run, so module-level env sets bleed into each other's
+# _ORIG captures. Use setUpModule/tearDownModule instead.
 
 from core.autonomy.action_policy import (
     ACTION_POLICY_VERSION,
@@ -30,6 +32,31 @@ from core.autonomy.action_policy import (
     action_policy_engine,
 )
 from db import repo
+
+# Module-level storage for setUp/tearDown
+_SAVED_USE_LOCAL_SQLITE = None
+_SAVED_NEXUS_ENV = None
+
+
+def setUpModule():
+    """Called before first test in module. Set SQLite mode, saving real env."""
+    global _SAVED_USE_LOCAL_SQLITE, _SAVED_NEXUS_ENV
+    _SAVED_USE_LOCAL_SQLITE = os.environ.get("USE_LOCAL_SQLITE")
+    _SAVED_NEXUS_ENV = os.environ.get("NEXUS_ENV")
+    os.environ["USE_LOCAL_SQLITE"] = "true"
+    os.environ["NEXUS_ENV"] = "development"
+
+
+def tearDownModule():
+    """Called after last test in module. Restore real env for subsequent modules."""
+    if _SAVED_USE_LOCAL_SQLITE is None:
+        os.environ.pop("USE_LOCAL_SQLITE", None)
+    else:
+        os.environ["USE_LOCAL_SQLITE"] = _SAVED_USE_LOCAL_SQLITE
+    if _SAVED_NEXUS_ENV is None:
+        os.environ.pop("NEXUS_ENV", None)
+    else:
+        os.environ["NEXUS_ENV"] = _SAVED_NEXUS_ENV
 
 
 # ---------------------------------------------------------------------------
