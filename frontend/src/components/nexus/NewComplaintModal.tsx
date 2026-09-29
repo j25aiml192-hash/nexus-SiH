@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   ShieldAlert,
   Check,
+  CheckCircle2,
   Loader2,
   CreditCard,
   Smartphone,
@@ -15,6 +17,7 @@ import {
 import { dataSource } from '../../services/dataSource';
 import type { Complaint } from '../../types/nexus';
 import { INDIA_STATES, getFastStateFromPincode, lookupPincodeDetails } from '../../constants/indiaStates';
+import { VictimAdvisoryCard } from '../advisory/VictimAdvisoryCard';
 
 interface NewComplaintModalProps {
   isOpen: boolean;
@@ -27,6 +30,8 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
   onClose,
   onComplaintCreated,
 }) => {
+  const navigate = useNavigate();
+  const [createdComplaint, setCreatedComplaint] = useState<any | null>(null);
   const [fraudType, setFraudType] = useState('UPI_PHISHING');
   const [pincode, setPincode] = useState('');
   const [victimState, setVictimState] = useState('');
@@ -41,6 +46,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const resetForm = () => {
+    setCreatedComplaint(null);
     setFraudType('UPI_PHISHING');
     setPincode('');
     setVictimState('');
@@ -148,13 +154,18 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
       const cid = res.complaint_id || res.complaint?.complaint_id || '';
       const displayId = res.ncrp_id || res.complaint?.ncrp_id || cid;
 
-      setSuccessMessage(`Complaint ${displayId} successfully registered in NEXUS (UUID: ${cid.slice(0, 8)}...).`);
-      setTimeout(() => {
-        if (res.complaint) {
-          onComplaintCreated(res.complaint);
-        }
-        onClose();
-      }, 1000);
+      const compRecord = res.complaint || {
+        complaint_id: cid,
+        ncrp_id: displayId,
+        fraud_type: fraudType,
+        amount_inr: numAmount,
+        channel,
+      };
+
+      setCreatedComplaint(compRecord);
+      if (res.complaint) {
+        onComplaintCreated(res.complaint);
+      }
     } catch (err: any) {
       console.error('[NEXUS INTAKE ERROR]', err);
       const msg = err?.message || 'Failed to submit complaint to backend.';
@@ -183,7 +194,9 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '640px',
+        maxWidth: createdComplaint ? '760px' : '640px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
         backgroundColor: '#FFFFFF',
         border: '1px solid rgba(226, 232, 240, 0.9)',
         borderRadius: '24px',
@@ -192,8 +205,102 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
         color: '#0F172A',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
       }}>
-        {/* Floating Modal Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+        {createdComplaint ? (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  backgroundColor: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  color: '#16A34A',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                    Complaint Registered: {createdComplaint.ncrp_id || createdComplaint.complaint_id?.slice(0, 8)}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#16A34A', margin: '3px 0 0 0', fontWeight: 600 }}>
+                    Protect yourself now: immediate steps based on this complaint
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { resetForm(); onClose(); }}
+                title="Close window"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#F8FAFC',
+                  color: '#64748B',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ maxHeight: '60vh', overflowY: 'auto', marginBottom: '20px' }}>
+              <VictimAdvisoryCard complaintId={createdComplaint.complaint_id} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #E2E8F0', paddingTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => { resetForm(); onClose(); }}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: '10px',
+                  backgroundColor: '#F1F5F9',
+                  border: '1px solid #CBD5E1',
+                  color: '#475569',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Done & Return to Ledger
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const targetId = createdComplaint.complaint_id;
+                  resetForm();
+                  onClose();
+                  navigate(`/complaints/${targetId}`);
+                }}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  backgroundColor: '#2563EB',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                }}
+              >
+                View Complaint Dossier →
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Floating Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
               width: '44px',
@@ -592,6 +699,8 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
             </button>
           </div>
         </form>
+          </>
+        )}
       </div>
     </div>,
     document.body

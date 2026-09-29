@@ -241,3 +241,67 @@ def copilot_actions(complaint_id: str):
     """Returns current action recommendations explanation from the copilot."""
     from core.autonomy.investigator_copilot import investigator_copilot
     return investigator_copilot.current_actions(complaint_id)
+
+
+# -----------------------------------------------------------------------------
+# VICTIM PROACTIVE ADVISORY (PHASE 6)
+# -----------------------------------------------------------------------------
+
+@router.get("/advisories/case/{complaint_id}")
+def get_case_victim_advisory(complaint_id: str):
+    """
+    Returns the current active deterministic proactive advisory for a complaint.
+    Evaluates on demand if an advisory has not yet been computed for the case.
+    """
+    comp = repo.get_complaint_by_id(complaint_id)
+    if not comp:
+        raise HTTPException(status_code=404, detail=f"Complaint '{complaint_id}' not found")
+
+    adv = repo.get_current_victim_advisory(complaint_id)
+    if not adv:
+        from core.autonomy.victim_advisory_policy import victim_advisory_engine
+        eval_res = victim_advisory_engine.evaluate_and_persist(complaint_id)
+        if eval_res.get("status") in ("created", "unchanged"):
+            adv = eval_res.get("advisory") or repo.get_current_victim_advisory(complaint_id)
+
+    if not adv:
+        raise HTTPException(status_code=404, detail=f"No advisory available for complaint '{complaint_id}'")
+
+    return adv
+
+
+@router.get("/advisories/case/{complaint_id}/history")
+def get_case_advisory_history(complaint_id: str, limit: int = Query(50, ge=1, le=100)):
+    """
+    Returns historical advisory versions for audit and compliance.
+    """
+    comp = repo.get_complaint_by_id(complaint_id)
+    if not comp:
+        raise HTTPException(status_code=404, detail=f"Complaint '{complaint_id}' not found")
+
+    history = repo.get_victim_advisory_history(complaint_id, limit=limit)
+    return {
+        "complaint_id": complaint_id,
+        "count": len(history),
+        "advisories": history,
+    }
+
+
+@router.post("/advisories/case/{complaint_id}/refresh")
+def refresh_case_victim_advisory(complaint_id: str):
+    """
+    Forces re-evaluation of the deterministic advisory policy against updated case context.
+    Previous advisory is superseded and preserved in history.
+    """
+    comp = repo.get_complaint_by_id(complaint_id)
+    if not comp:
+        raise HTTPException(status_code=404, detail=f"Complaint '{complaint_id}' not found")
+
+    from core.autonomy.victim_advisory_policy import victim_advisory_engine
+    eval_res = victim_advisory_engine.evaluate_and_persist(complaint_id, force_refresh=True)
+    if eval_res.get("status") == "error":
+        raise HTTPException(status_code=500, detail=eval_res.get("error", "Failed to refresh advisory"))
+
+    adv = eval_res.get("advisory") or repo.get_current_victim_advisory(complaint_id)
+    return adv
+

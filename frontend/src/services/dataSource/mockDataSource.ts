@@ -282,4 +282,21 @@ export class MockDataSource implements IDataSource {
   async getEvidenceEntity(_entityId: string): Promise<any> {
     return null;
   }
+
+  // Victim Proactive Advisory (Phase 6)
+  async getVictimAdvisory(_complaintId: string): Promise<import('../../types/advisory').VictimAdvisory | null> {
+    return null;
+  }
+
+  async getVictimAdvisoryHistory(complaintId: string, _limit: number = 50): Promise<import('../../types/advisory').AdvisoryHistoryResponse> {
+    return {
+      complaint_id: complaintId,
+      count: 0,
+      advisories: [],
+    };
+  }
+
+  async refreshVictimAdvisory(_complaintId: string): Promise<import('../../types/advisory').VictimAdvisory | null> {
+    return null;
+  }
 }

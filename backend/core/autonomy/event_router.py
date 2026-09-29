@@ -135,6 +135,22 @@ class EventRouter:
             except Exception as e:
                 logger.debug(f"[Autonomy Action Policy Safe Notice]: {e}")
 
+            # Trigger Phase 6 Victim Proactive Advisory Engine evaluation
+            try:
+                from core.autonomy.victim_advisory_policy import victim_advisory_engine
+                adv_res = victim_advisory_engine.evaluate_and_persist(
+                    complaint_id=str(complaint_id),
+                    trigger_event=event,
+                )
+                result["victim_advisory_evaluation"] = {
+                    "status": adv_res.get("status"),
+                    "advisory_id": adv_res.get("advisory_id"),
+                    "urgency": adv_res.get("urgency"),
+                    "policy_version": adv_res.get("policy_version"),
+                }
+            except Exception as e:
+                logger.debug(f"[Autonomy Victim Advisory Safe Notice]: {e}")
+
         return result
 
     # -------------------------------------------------------------------------
@@ -282,22 +298,16 @@ class EventRouter:
         except Exception as e:
             logger.debug(f"[Autonomy Voice TG]: {e}")
 
-        # 2. Persist Proactive Victim Advisory (Phase 1 table)
-        adv_text = (
-            f"NEXUS Citizen Advisory: Your cyber incident report (Ref: {cid[:8]}) has been registered. "
-            f"Never share OTPs or authorize remote device access applications. Official cyber helpline: 1930."
-        )
+        # 2. Persist Proactive Victim Advisory (Phase 6 Deterministic Engine)
+        adv_res = {}
         try:
-            repo.create_victim_advisory(
+            from core.autonomy.victim_advisory_policy import victim_advisory_engine
+            adv_res = victim_advisory_engine.evaluate_and_persist(
                 complaint_id=cid,
-                phone_number_masked=masked_phone,
-                channel="SMS",
-                advisory_type="INTAKE_CONFIRMATION_AND_SAFETY_WARNING",
-                advisory_text=adv_text,
-                advisory_version="v1.0",
+                trigger_event=event,
             )
         except Exception as e:
-            logger.debug(f"[Autonomy Advisory Persist]: {e}")
+            logger.debug(f"[Autonomy Voice Advisory Persist Safe Notice]: {e}")
 
         # 3. Record Audit Log
         audit = repo.create_autonomy_audit_log(

@@ -24,6 +24,7 @@ import {
 import { dataSource } from '../services/dataSource';
 import { useNexusStore } from '../store/useNexusStore';
 import type { Complaint } from '../types/nexus';
+import { VictimAdvisoryCard } from '../components/advisory/VictimAdvisoryCard';
 
 export const ComplaintDetailPage: React.FC = () => {
   const { complaintId } = useParams<{ complaintId: string }>();
@@ -383,6 +384,9 @@ export const ComplaintDetailPage: React.FC = () => {
         {/* LEFT COLUMN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
+          {/* PROACTIVE CITIZEN ADVISORY (PHASE 6) */}
+          <VictimAdvisoryCard complaintId={complaint.complaint_id || complaintId || ''} />
+
           {/* COMPLAINT DETAILS PANEL */}
           <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '24px', boxShadow: '0 6px 20px rgba(15,23,42,0.04)' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -145,4 +145,9 @@ export interface IDataSource {
   getCaseEvidenceTimeline(complaintId: string): Promise<import('../../types/evidence').EvidenceTimelineEvent[]>;
   getEvidenceRelation(relationId: string): Promise<import('../../types/evidence').EvidenceRelationDetail>;
   getEvidenceEntity(entityId: string): Promise<any>;
+
+  // Victim Proactive Advisory (Phase 6)
+  getVictimAdvisory(complaintId: string): Promise<import('../../types/advisory').VictimAdvisory | null>;
+  getVictimAdvisoryHistory(complaintId: string, limit?: number): Promise<import('../../types/advisory').AdvisoryHistoryResponse>;
+  refreshVictimAdvisory(complaintId: string): Promise<import('../../types/advisory').VictimAdvisory | null>;
 }

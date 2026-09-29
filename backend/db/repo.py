@@ -3423,6 +3423,52 @@ def get_autonomy_audit_logs(complaint_id: Optional[str] = None, limit: int = 50)
 # 6. VICTIM PROACTIVE ADVISORIES
 # -----------------------------------------------------------------------------
 
+def _parse_advisory_payload(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Parses advisory row into structured dictionary, handling JSON advisory_text or legacy text."""
+    if not row:
+        return {}
+    res = dict(row)
+    adv_text = str(res.get("advisory_text") or "").strip()
+    if adv_text.startswith("{") and adv_text.endswith("}"):
+        try:
+            parsed = json.loads(adv_text)
+            if isinstance(parsed, dict):
+                # Overlay DB authoritative identifiers
+                parsed["advisory_id"] = res.get("advisory_id") or parsed.get("advisory_id")
+                parsed["complaint_id"] = res.get("complaint_id") or parsed.get("complaint_id")
+                parsed["generated_at"] = res.get("created_at") or parsed.get("generated_at")
+                parsed["status"] = res.get("delivery_status") or parsed.get("status", "CURRENT")
+                parsed["channel"] = res.get("channel") or parsed.get("channel")
+                parsed["phone_masked"] = res.get("phone_number_masked") or parsed.get("phone_masked")
+                return parsed
+        except Exception:
+            pass
+
+    # Legacy or plain-text fallback representation
+    return {
+        "advisory_id": res.get("advisory_id"),
+        "complaint_id": res.get("complaint_id"),
+        "urgency": res.get("advisory_type", "STANDARD"),
+        "title": "Proactive Citizen Safety Advisory",
+        "summary": adv_text or "Follow standard cyber precautions to protect accounts and preserve evidence.",
+        "sections": [
+            {
+                "type": "URGENT_ACTIONS",
+                "title": "Immediate Safety Guidance",
+                "items": [adv_text] if adv_text else ["Contact your bank to report the incident."],
+            }
+        ],
+        "reason_codes": ["LEGACY_ADVISORY"],
+        "sources": [],
+        "policy_version": res.get("advisory_version", "v1.0"),
+        "fingerprint": "",
+        "generated_at": res.get("created_at"),
+        "status": res.get("delivery_status", "queued"),
+        "channel": res.get("channel", "SMS"),
+        "phone_masked": res.get("phone_number_masked", ""),
+    }
+
+
 def create_victim_advisory(
     complaint_id: str,
     phone_number_masked: str,
@@ -3430,6 +3476,7 @@ def create_victim_advisory(
     advisory_type: str,
     advisory_text: str,
     advisory_version: str = "v1.0",
+    delivery_status: str = "queued",
 ) -> Dict[str, Any]:
     """Persists a deterministic citizen scam warning or case advisory."""
     new_id = str(uuid.uuid4())
@@ -3447,7 +3494,7 @@ def create_victim_advisory(
                 "advisory_type": advisory_type,
                 "advisory_version": advisory_version,
                 "advisory_text": advisory_text,
-                "delivery_status": "queued",
+                "delivery_status": delivery_status,
                 "created_at": now_iso,
             }
             res = supabase.table("victim_advisories").insert(new_row).execute()
@@ -3463,8 +3510,8 @@ def create_victim_advisory(
         INSERT INTO victim_advisories (
             advisory_id, complaint_id, phone_number_masked, channel,
             advisory_type, advisory_version, advisory_text, delivery_status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?)
-    """, (new_id, complaint_id, phone_number_masked, chan, advisory_type, advisory_version, advisory_text, now_iso))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (new_id, complaint_id, phone_number_masked, chan, advisory_type, advisory_version, advisory_text, delivery_status, now_iso))
     conn.commit()
     conn.close()
 
@@ -3476,7 +3523,7 @@ def create_victim_advisory(
         "advisory_type": advisory_type,
         "advisory_version": advisory_version,
         "advisory_text": advisory_text,
-        "delivery_status": "queued",
+        "delivery_status": delivery_status,
         "created_at": now_iso,
     }
 
@@ -3503,6 +3550,50 @@ def get_victim_advisories(complaint_id: Optional[str] = None, limit: int = 50) -
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
+
+
+def get_current_victim_advisory(complaint_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieves the most recent advisory for a complaint, parsing structured JSON if available."""
+    advisories = get_victim_advisories(complaint_id=complaint_id, limit=1)
+    if not advisories:
+        return None
+    return _parse_advisory_payload(advisories[0])
+
+
+def get_victim_advisory_history(complaint_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+    """Retrieves all advisories for a complaint in descending order of creation."""
+    rows = get_victim_advisories(complaint_id=complaint_id, limit=limit)
+    return [_parse_advisory_payload(r) for r in rows]
+
+
+def update_victim_advisory_status(advisory_id: str, delivery_status: str) -> Optional[Dict[str, Any]]:
+    """Updates the delivery_status of a victim advisory."""
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("victim_advisories").update({"delivery_status": delivery_status}).eq("advisory_id", advisory_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception:
+            pass
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE victim_advisories SET delivery_status = ? WHERE advisory_id = ?", (delivery_status, advisory_id))
+    conn.commit()
+    c.execute("SELECT * FROM victim_advisories WHERE advisory_id = ?", (advisory_id,))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def find_advisory_by_fingerprint(complaint_id: str, fingerprint: str) -> Optional[Dict[str, Any]]:
+    """Finds an existing advisory matching the specified deterministic case fingerprint."""
+    rows = get_victim_advisory_history(complaint_id=complaint_id, limit=10)
+    for r in rows:
+        if r.get("fingerprint") == fingerprint:
+            return r
+    return None
 
 
 # -----------------------------------------------------------------------------

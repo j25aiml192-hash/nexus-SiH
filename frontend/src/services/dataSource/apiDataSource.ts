@@ -694,5 +694,35 @@ export class ApiDataSource implements IDataSource {
   async getEvidenceEntity(entityId: string): Promise<any> {
     return await this.request<any>(`/autonomy/evidence/entity/${encodeURIComponent(entityId)}`);
   }
+
+  // Victim Proactive Advisory (Phase 6)
+  async getVictimAdvisory(complaintId: string): Promise<import('../../types/advisory').VictimAdvisory | null> {
+    try {
+      return await this.request<import('../../types/advisory').VictimAdvisory>(
+        `/autonomy/advisories/case/${encodeURIComponent(complaintId)}`
+      );
+    } catch (err: any) {
+      if (err.message && err.message.includes('404')) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  async getVictimAdvisoryHistory(
+    complaintId: string,
+    limit: number = 50
+  ): Promise<import('../../types/advisory').AdvisoryHistoryResponse> {
+    return await this.request<import('../../types/advisory').AdvisoryHistoryResponse>(
+      `/autonomy/advisories/case/${encodeURIComponent(complaintId)}/history?limit=${encodeURIComponent(limit)}`
+    );
+  }
+
+  async refreshVictimAdvisory(complaintId: string): Promise<import('../../types/advisory').VictimAdvisory | null> {
+    return await this.request<import('../../types/advisory').VictimAdvisory>(
+      `/autonomy/advisories/case/${encodeURIComponent(complaintId)}/refresh`,
+      { method: 'POST' }
+    );
+  }
 }
 
