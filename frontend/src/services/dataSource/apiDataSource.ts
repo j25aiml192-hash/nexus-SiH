@@ -83,28 +83,46 @@ export class ApiDataSource implements IDataSource {
     
     return (raw || []).map((c: any) => {
       const cid = String(c.complaint_id || c.id || '');
-      const ncrpId = c.ncrp_id ? String(c.ncrp_id) : (cid.length >= 8 ? `CMP-${cid.slice(0, 8).toUpperCase()}` : cid);
+      const ncrpId = c.ncrp_id ? String(c.ncrp_id) : (cid.length >= 8 ? `NCRP-${cid.slice(0, 8).toUpperCase()}` : cid);
       const amt = Number(c.amount_inr !== undefined ? c.amount_inr : (c.amount || 0));
+
+      const district = c.victim_district || (c.victim_state ? `${c.victim_state} Cyber Unit` : 'National Cell');
+      const state = c.victim_state || 'IN';
+
+      let victimName = c.victim_name || c.victim_name_masked;
+      if (!victimName || victimName === 'Citizen Complainant') {
+        if (c.victim_district && c.victim_state) {
+          victimName = `Citizen (${c.victim_district}, ${c.victim_state})`;
+        } else if (c.victim_state) {
+          victimName = `Citizen (${c.victim_state})`;
+        } else {
+          victimName = 'Citizen Complainant';
+        }
+      }
+
+      const contact = c.victim_contact || (c.accused_phone_prefix ? `+91-${c.accused_phone_prefix}XXXX` : '+91-9811XXXXXX');
+      const nodeLabel = c.accused_bank ? `${c.accused_bank} (${c.accused_phone_prefix ? `Node +91-${c.accused_phone_prefix}` : 'Primary Node'})` : 'ACC-PRIMARY';
+
       return {
         id: cid,
         complaint_id: cid,
         ncrp_id: ncrpId,
         victimInfo: {
-          name: c.victim_district ? `Citizen (${c.victim_district}, ${c.victim_state || 'IN'})` : (c.victimInfo?.name || 'Citizen Complainant'),
-          contact: c.accused_phone_prefix ? `+91-${c.accused_phone_prefix}XXXX` : (c.victimInfo?.contact || '+91-9811XXXXXX'),
+          name: victimName,
+          contact: contact,
         },
         amount: amt,
         amount_inr: amt,
         status: c.status || 'flagged',
-        linkedAccountId: c.accused_bank ? `${c.accused_bank} (Node 1)` : 'ACC-PRIMARY',
+        linkedAccountId: nodeLabel,
         fraud_type: c.fraud_type || 'cyber_fraud',
-        victim_state: c.victim_state,
-        victim_district: c.victim_district,
+        victim_state: state,
+        victim_district: district,
         accused_phone_prefix: c.accused_phone_prefix,
         accused_bank: c.accused_bank,
         channel: c.channel || 'Online Portal',
-        created_at: c.created_at,
-        filed_at: c.filed_at,
+        created_at: c.created_at || new Date().toISOString(),
+        filed_at: c.filed_at || c.created_at || new Date().toISOString(),
         assignedOfficer: 'Unassigned',
       };
     });

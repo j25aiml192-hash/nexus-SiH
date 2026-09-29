@@ -11,6 +11,7 @@ import Carousel from './Carousel';
 import { CinematicFooter } from '../components/ui/motion-footer';
 import { ScrollReveal } from '../components/ui/ScrollReveal';
 import { ShapeGrid } from '../components/ui/ShapeGrid';
+import { LiveGraphShowcase } from '../components/network/LiveGraphShowcase';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -232,13 +233,25 @@ export const LandingPage: React.FC = () => {
           style={{ zIndex: 1, pointerEvents: 'none' }}
         />
 
-        <div style={{ width: '100%', maxWidth: '1240px', margin: '0 auto', textAlign: 'left', position: 'relative', zIndex: 10, paddingLeft: '0' }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '1280px',
+          margin: '0 auto',
+          textAlign: 'left',
+          position: 'relative',
+          zIndex: 10,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
+          gap: '40px',
+          alignItems: 'center'
+        }}>
+          {/* Left Column - Hero Branding & Copy */}
           <div style={{ maxWidth: '560px' }}>
             {/* GIANT LEFT-ALIGNED NEXUS BRAND TITLE WITH GLITCH TEXT */}
             <ScrollReveal variant="slide-up" delay={80} duration={800}>
               <h1 style={{
                 fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 'clamp(64px, 10vw, 110px)',
+                fontSize: 'clamp(54px, 8vw, 96px)',
                 fontWeight: 900,
                 letterSpacing: '-0.04em',
                 lineHeight: 0.95,
@@ -262,7 +275,7 @@ export const LandingPage: React.FC = () => {
             <ScrollReveal variant="slide-up" delay={180} duration={800}>
               <h2 style={{
                 fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 'clamp(20px, 2.4vw, 26px)',
+                fontSize: 'clamp(20px, 2.2vw, 24px)',
                 fontWeight: 800,
                 lineHeight: 1.25,
                 letterSpacing: '-0.02em',
@@ -279,7 +292,7 @@ export const LandingPage: React.FC = () => {
             {/* DESCRIPTION - BOLD BLACK FONT */}
             <ScrollReveal variant="slide-up" delay={280} duration={800}>
               <p style={{
-                fontSize: '16px',
+                fontSize: '15px',
                 lineHeight: 1.6,
                 color: '#000000',
                 fontWeight: 700,
@@ -354,6 +367,11 @@ export const LandingPage: React.FC = () => {
               </div>
             </ScrollReveal>
           </div>
+
+          {/* Right Column - Live 10s Auto-Rotating Cybercrime Network Graph */}
+          <ScrollReveal variant="slide-left" delay={200} duration={850}>
+            <LiveGraphShowcase variant="glass" autoRotateIntervalMs={10000} />
+          </ScrollReveal>
         </div>
 
         {/* EXACT USER INDIAN SKYLINE LINEART BACKGROUND (COMPACT AT BOTTOM) */}

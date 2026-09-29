@@ -30,11 +30,17 @@ class IncidentAuthorizeRequest(BaseModel):
 def get_incidents_list(limit: int = 50):
     try:
         incidents = repo.get_incidents(limit=limit)
+        complaints_list = repo.get_complaints(limit=200)
+        preds_list = repo.get_all_active_predictions()
+
+        comp_map = {str(c.get("complaint_id")): c for c in complaints_list if c.get("complaint_id")}
+        pred_map = {str(p.get("complaint_id")): p for p in preds_list if p.get("complaint_id")}
+
         enriched = []
         for inc in incidents:
-            cid = inc.get("complaint_id")
-            comp = repo.get_complaint_by_id(cid) if cid else None
-            pred = repo.get_prediction_by_complaint(cid) if cid else None
+            cid = str(inc.get("complaint_id") or "")
+            comp = comp_map.get(cid)
+            pred = pred_map.get(cid)
             enriched.append({
                 **inc,
                 "id": inc.get("incident_id"),

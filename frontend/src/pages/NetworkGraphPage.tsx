@@ -13,6 +13,7 @@ import { GraphToolbar, type GraphFilters } from "../components/network/GraphTool
 import { GraphLegend } from "../components/network/GraphLegend";
 import { NetworkGraph, type GraphApi } from "../components/network/NetworkGraph";
 import { InspectorPanel } from "../components/network/InspectorPanel";
+import { LiveGraphShowcase } from "../components/network/LiveGraphShowcase";
 import { dataSource } from "../services/dataSource";
 import { useNexusStore } from "../store/useNexusStore";
 import type { NetworkNode, NetworkEdge } from "../lib/network-data";
@@ -312,54 +313,26 @@ export function NetworkGraphPage() {
 
   if (!complaintId) {
     return (
-      <div
-        style={{
-          minHeight: '80vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '40px',
-          backgroundColor: '#F8FAFC',
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            padding: '40px 48px',
-            borderRadius: '24px',
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 16px 40px -8px rgba(15, 23, 42, 0.08)',
-            textAlign: 'center',
-            maxWidth: '480px',
-          }}
-        >
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '20px',
-              backgroundColor: '#EFF6FF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px auto',
-            }}
-          >
-            <Network size={36} style={{ color: '#2563EB' }} />
+      <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px 32px 60px 32px', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>Intelligence Pipeline</span>
+              <span>/</span>
+              <span style={{ color: '#00B6C4', fontWeight: 700 }}>Preset Network Showcase</span>
+            </div>
+            <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', margin: '2px 0 0 0' }}>
+              Cybercrime Topology Patterns (Auto-Rotates Every 10s)
+            </h1>
           </div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
-            NO COMPLAINT SELECTED
-          </h2>
-          <p style={{ fontSize: '13px', color: '#64748B', marginTop: '8px', marginBottom: '24px', lineHeight: 1.5 }}>
-            Please select an active complaint from the registry to inspect its money mule transaction graph.
-          </p>
+
           <button
             onClick={() => navigate('/complaints')}
             style={{
-              backgroundColor: '#2563EB',
+              backgroundColor: '#0F172A',
               color: '#FFFFFF',
               border: 'none',
-              padding: '12px 24px',
+              padding: '10px 20px',
               borderRadius: '12px',
               fontSize: '13px',
               fontWeight: 700,
@@ -367,11 +340,14 @@ export function NetworkGraphPage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
+              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.15)',
             }}
           >
-            <ArrowLeft size={16} /> View Complaints Registry
+            <ArrowLeft size={16} /> Select Active Complaint from Registry
           </button>
         </div>
+
+        <LiveGraphShowcase autoRotateIntervalMs={10000} />
       </div>
     );
   }
