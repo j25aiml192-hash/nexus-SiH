@@ -28,9 +28,20 @@ export class ApiDataSource implements IDataSource {
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+
+    let userToken = 'admin@nexus.gov.in';
+    try {
+      const rawUser = typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_user') : null;
+      if (rawUser) {
+        const u = JSON.parse(rawUser);
+        userToken = u.email || u.badgeId || userToken;
+      }
+    } catch {}
+
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      Authorization: `Bearer ${userToken}`,
       ...options?.headers,
     };
 
@@ -723,6 +734,55 @@ export class ApiDataSource implements IDataSource {
       `/autonomy/advisories/case/${encodeURIComponent(complaintId)}/refresh`,
       { method: 'POST' }
     );
+  }
+
+  // Outcome Feedback & Model Learning (Phase 7)
+  async getModelPerformance(modelVersion?: string): Promise<any> {
+    const ep = modelVersion ? `/autonomy/model-performance/${encodeURIComponent(modelVersion)}` : '/autonomy/model-performance';
+    return await this.request<any>(ep);
+  }
+
+  async getModelCandidates(): Promise<{ count: number; candidates: any[] }> {
+    return await this.request<{ count: number; candidates: any[] }>('/autonomy/model-candidates');
+  }
+
+  async getModelCandidateDetail(candidateId: string): Promise<any> {
+    return await this.request<any>(`/autonomy/model-candidates/${encodeURIComponent(candidateId)}`);
+  }
+
+  async getModelDatasets(): Promise<{ count: number; datasets: any[] }> {
+    return await this.request<{ count: number; datasets: any[] }>('/autonomy/datasets');
+  }
+
+  async getDriftStatus(modelVersion?: string): Promise<any> {
+    const ep = modelVersion ? `/autonomy/drift?model_version=${encodeURIComponent(modelVersion)}` : '/autonomy/drift';
+    return await this.request<any>(ep);
+  }
+
+  async approveModelCandidate(candidateId: string, notes?: string): Promise<any> {
+    return await this.request<any>(`/autonomy/model-candidates/${encodeURIComponent(candidateId)}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ notes }),
+    });
+  }
+
+  async rejectModelCandidate(candidateId: string, reason?: string): Promise<any> {
+    return await this.request<any>(`/autonomy/model-candidates/${encodeURIComponent(candidateId)}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async deployModelCandidate(candidateId: string): Promise<any> {
+    return await this.request<any>(`/autonomy/model-candidates/${encodeURIComponent(candidateId)}/deploy`, {
+      method: 'POST',
+    });
+  }
+
+  async rollbackModelDeployment(candidateId: string): Promise<any> {
+    return await this.request<any>(`/autonomy/model-candidates/${encodeURIComponent(candidateId)}/rollback`, {
+      method: 'POST',
+    });
   }
 }
 

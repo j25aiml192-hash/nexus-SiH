@@ -570,22 +570,39 @@ class EventRouter:
                 payload = {}
 
         cid = str(event.get("complaint_id") or payload.get("complaint_id"))
+        iid = str(event.get("entity_id") or payload.get("incident_id"))
         actual_lat = payload.get("actual_lat")
         actual_lon = payload.get("actual_lon")
 
-        # Check existing evaluations for complaint
+        # Evaluate against prediction if available
         eval_updated = False
         try:
-            evals = repo.get_model_evaluations_for_complaint(cid)
-            if evals and actual_lat is not None and actual_lon is not None:
-                first_eval = evals[0]
-                repo.update_model_evaluation_outcome(
-                    eval_id=first_eval["eval_id"],
-                    actual_lat=float(actual_lat),
-                    actual_lon=float(actual_lon),
-                    actual_cashout_at=payload.get("actual_cashout_at"),
+            from core.autonomy.model_evaluation_service import model_evaluation_service
+            pred = repo.get_prediction_by_complaint(cid)
+            if pred:
+                norm_payload = dict(payload)
+                norm_payload["incident_id"] = iid
+                norm_payload["complaint_id"] = cid
+                eval_res = model_evaluation_service.record_and_evaluate_outcome(
+                    prediction_id=pred["prediction_id"],
+                    outcome_data=norm_payload,
+                    source_type="incident",
                 )
-                eval_updated = True
+                eval_updated = bool(eval_res)
+            else:
+                # If no prediction found, check existing evaluations for complaint
+                evals = repo.get_model_evaluations_for_complaint(cid)
+                if evals and actual_lat is not None and actual_lon is not None:
+                    first_eval = evals[0]
+                    repo.update_model_evaluation_outcome(
+                        eval_id=first_eval["eval_id"],
+                        actual_lat=float(actual_lat),
+                        actual_lon=float(actual_lon),
+                        actual_cashout_at=payload.get("actual_cashout_at"),
+                        actual_outcome=payload.get("status") or payload.get("outcome"),
+                        amount_recovered=float(payload.get("amount_recovered") or 0.0),
+                    )
+                    eval_updated = True
         except Exception as e:
             logger.debug(f"[Autonomy Outcome Eval Update]: {e}")
 

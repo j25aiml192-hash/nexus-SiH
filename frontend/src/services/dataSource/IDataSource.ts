@@ -150,4 +150,15 @@ export interface IDataSource {
   getVictimAdvisory(complaintId: string): Promise<import('../../types/advisory').VictimAdvisory | null>;
   getVictimAdvisoryHistory(complaintId: string, limit?: number): Promise<import('../../types/advisory').AdvisoryHistoryResponse>;
   refreshVictimAdvisory(complaintId: string): Promise<import('../../types/advisory').VictimAdvisory | null>;
+
+  // Outcome Feedback & Model Learning (Phase 7)
+  getModelPerformance(modelVersion?: string): Promise<any>;
+  getModelCandidates(): Promise<{ count: number; candidates: any[] }>;
+  getModelCandidateDetail(candidateId: string): Promise<any>;
+  getModelDatasets(): Promise<{ count: number; datasets: any[] }>;
+  getDriftStatus(modelVersion?: string): Promise<any>;
+  approveModelCandidate(candidateId: string, notes?: string): Promise<any>;
+  rejectModelCandidate(candidateId: string, reason?: string): Promise<any>;
+  deployModelCandidate(candidateId: string): Promise<any>;
+  rollbackModelDeployment(candidateId: string): Promise<any>;
 }

@@ -15,7 +15,7 @@ logger = logging.getLogger("nexus.repo")
 DB_PATH = os.path.join(os.path.dirname(__file__), "nexus.db")
 
 def get_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -272,6 +272,12 @@ def init_db():
         time_correct_window INTEGER,
         evaluation_status TEXT NOT NULL DEFAULT 'pending',
         evaluated_at TEXT,
+        model_version TEXT DEFAULT 'geo_lgbm_v3',
+        evaluation_version TEXT DEFAULT 'v1.0',
+        outcome_source TEXT DEFAULT 'incident',
+        actual_outcome TEXT,
+        amount_recovered REAL DEFAULT 0.0,
+        notes TEXT,
         created_at TEXT NOT NULL
     );
 
@@ -363,7 +369,95 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_action_rec_status ON action_recommendations(status);
         CREATE INDEX IF NOT EXISTS idx_action_rec_priority ON action_recommendations(priority);
         CREATE INDEX IF NOT EXISTS idx_action_rec_created ON action_recommendations(created_at);
+
+        CREATE TABLE IF NOT EXISTS model_registry (
+            model_id TEXT PRIMARY KEY,
+            model_name TEXT NOT NULL,
+            model_version TEXT UNIQUE NOT NULL,
+            model_type TEXT NOT NULL,
+            artifact_reference TEXT NOT NULL,
+            feature_schema_version TEXT NOT NULL DEFAULT 'v1.0',
+            dataset_version TEXT,
+            evaluation_version TEXT NOT NULL DEFAULT 'v1.0',
+            metrics TEXT NOT NULL DEFAULT '{}',
+            status TEXT NOT NULL DEFAULT 'CANDIDATE',
+            parent_model_version TEXT,
+            created_at TEXT NOT NULL,
+            approved_by TEXT,
+            approved_at TEXT,
+            deployed_at TEXT,
+            retired_at TEXT,
+            rejection_reason TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_model_reg_version ON model_registry(model_version);
+        CREATE INDEX IF NOT EXISTS idx_model_reg_status ON model_registry(status);
+
+        CREATE TABLE IF NOT EXISTS model_datasets (
+            dataset_id TEXT PRIMARY KEY,
+            dataset_version TEXT UNIQUE NOT NULL,
+            dataset_type TEXT NOT NULL,
+            feature_schema_version TEXT NOT NULL DEFAULT 'v1.0',
+            label_definition TEXT NOT NULL,
+            evaluation_config_version TEXT NOT NULL DEFAULT 'v1.0',
+            source_reference TEXT NOT NULL,
+            row_count INTEGER NOT NULL DEFAULT 0,
+            validation_status TEXT NOT NULL DEFAULT 'VALID',
+            split_config TEXT NOT NULL DEFAULT '{}',
+            checksum TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_model_ds_version ON model_datasets(dataset_version);
         """)
+    except Exception:
+        pass
+
+    # Phase 7 migration: Add columns to model_evaluations if table already existed
+    for col_def in [
+        "model_version TEXT DEFAULT 'geo_lgbm_v3'",
+        "evaluation_version TEXT DEFAULT 'v1.0'",
+        "outcome_source TEXT DEFAULT 'incident'",
+        "actual_outcome TEXT",
+        "amount_recovered REAL DEFAULT 0.0",
+        "notes TEXT",
+    ]:
+        try:
+            c.execute(f"ALTER TABLE model_evaluations ADD COLUMN {col_def}")
+        except Exception:
+            pass
+
+    # Phase 7 initial seeds: register current production model and baseline dataset
+    try:
+        c.execute("SELECT COUNT(*) FROM model_registry WHERE model_version = 'geo_lgbm_v3'")
+        if c.fetchone()[0] == 0:
+            c.execute("""
+                INSERT INTO model_registry (
+                    model_id, model_name, model_version, model_type,
+                    artifact_reference, feature_schema_version, dataset_version,
+                    evaluation_version, metrics, status, parent_model_version,
+                    created_at, deployed_at
+                ) VALUES (
+                    'mod_geo_lgbm_v3', 'LightGBM Spatial Predictor (L1 Objective)', 'geo_lgbm_v3', 'geo',
+                    'backend/models/geo_model_lat.pkl,backend/models/geo_model_lon.pkl', 'v1.0', 'geo_baseline_v1',
+                    'v1.0', '{"mean_error_km": 422.33, "median_error_km": 165.6, "p75_error_km": 845.32, "p90_error_km": 1111.32, "accuracy_2_5km_pct": 0.0, "n_test": 436}',
+                    'DEPLOYED', NULL, '2026-09-22T18:50:34.461247+00:00', '2026-09-22T18:50:34.461247+00:00'
+                )
+            """)
+        c.execute("SELECT COUNT(*) FROM model_datasets WHERE dataset_version = 'geo_baseline_v1'")
+        if c.fetchone()[0] == 0:
+            c.execute("""
+                INSERT INTO model_datasets (
+                    dataset_id, dataset_version, dataset_type, feature_schema_version,
+                    label_definition, evaluation_config_version, source_reference,
+                    row_count, validation_status, split_config, checksum, created_at
+                ) VALUES (
+                    'ds_geo_baseline_v1', 'geo_baseline_v1', 'geo_outcomes', 'v1.0',
+                    'target_lat, target_lon from actual cashout coordinates', 'v1.0',
+                    'operational_incidents_v1', 2975, 'VALID',
+                    '{"train_rows": 2082, "val_rows": 457, "test_rows": 436}',
+                    '3d5e1812e1d37d35b07691a94de076a48894a9786a65d9dfe84876e4eb8961c6',
+                    '2026-09-22T18:50:34.461247+00:00'
+                )
+            """)
     except Exception:
         pass
 
@@ -1291,6 +1385,32 @@ def get_prediction_by_complaint(complaint_id: str) -> Optional[Dict[str, Any]]:
     return get_sqlite_prediction_by_complaint(complaint_id)
 
 get_prediction = get_prediction_by_complaint
+
+
+def get_prediction_by_id(prediction_id: str) -> Optional[Dict[str, Any]]:
+    clean_id = str(prediction_id).strip()
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("predictions").select("*").eq("prediction_id", clean_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception:
+            pass
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM predictions WHERE prediction_id = ?", (clean_id,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    if d.get("shap_features") and isinstance(d["shap_features"], str):
+        try:
+            d["shap_features"] = json.loads(d["shap_features"])
+        except Exception:
+            pass
+    return d
 
 
 def save_supabase_prediction(pred: Dict[str, Any]) -> Dict[str, Any]:
@@ -3609,13 +3729,22 @@ def create_model_evaluation(
     predicted_h3: Optional[str] = None,
     predicted_time_start: Optional[str] = None,
     predicted_time_end: Optional[str] = None,
+    model_version: str = "geo_lgbm_v3",
+    evaluation_version: str = "v1.0",
+    outcome_source: str = "incident",
+    eval_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Creates an additive outcome evaluation record against a prediction.
     DOES NOT overwrite or mutate the original prediction row.
+    Deterministic eval_id: eval:{prediction_id}:{outcome_source} for idempotency.
     """
-    new_id = str(uuid.uuid4())
+    new_id = eval_id or f"eval:{prediction_id}:{outcome_source}"
     now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    existing = get_model_evaluation(new_id)
+    if existing:
+        return existing
 
     if _use_supabase():
         try:
@@ -3630,6 +3759,9 @@ def create_model_evaluation(
                 "predicted_h3": predicted_h3,
                 "predicted_time_start": predicted_time_start,
                 "predicted_time_end": predicted_time_end,
+                "model_version": model_version,
+                "evaluation_version": evaluation_version,
+                "outcome_source": outcome_source,
                 "evaluation_status": "pending",
                 "created_at": now_iso,
             }
@@ -3643,20 +3775,24 @@ def create_model_evaluation(
     conn = get_connection()
     c = conn.cursor()
     c.execute("""
-        INSERT INTO model_evaluations (
+        INSERT OR IGNORE INTO model_evaluations (
             eval_id, prediction_id, complaint_id, incident_id,
             predicted_lat, predicted_lon, predicted_h3,
-            predicted_time_start, predicted_time_end, evaluation_status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+            predicted_time_start, predicted_time_end,
+            model_version, evaluation_version, outcome_source,
+            evaluation_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
     """, (
         new_id, str(prediction_id), str(complaint_id), str(incident_id) if incident_id else None,
         predicted_lat, predicted_lon, predicted_h3,
-        predicted_time_start, predicted_time_end, now_iso
+        predicted_time_start, predicted_time_end,
+        model_version, evaluation_version, outcome_source,
+        now_iso
     ))
     conn.commit()
     conn.close()
 
-    return {
+    return get_model_evaluation(new_id) or {
         "eval_id": new_id,
         "prediction_id": str(prediction_id),
         "complaint_id": str(complaint_id),
@@ -3666,6 +3802,9 @@ def create_model_evaluation(
         "predicted_h3": predicted_h3,
         "predicted_time_start": predicted_time_start,
         "predicted_time_end": predicted_time_end,
+        "model_version": model_version,
+        "evaluation_version": evaluation_version,
+        "outcome_source": outcome_source,
         "evaluation_status": "pending",
         "created_at": now_iso,
     }
@@ -3673,10 +3812,14 @@ def create_model_evaluation(
 
 def update_model_evaluation_outcome(
     eval_id: str,
-    actual_lat: float,
-    actual_lon: float,
+    actual_lat: Optional[float] = None,
+    actual_lon: Optional[float] = None,
     actual_cashout_at: Optional[str] = None,
     actual_h3: Optional[str] = None,
+    actual_outcome: Optional[str] = None,
+    amount_recovered: Optional[float] = None,
+    notes: Optional[str] = None,
+    evaluation_status: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Computes spatial and temporal accuracy when actual ground-truth field data is known.
@@ -3714,20 +3857,25 @@ def update_model_evaluation_outcome(
             pass
 
     now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    status = "evaluated"
+    status = evaluation_status or ("evaluated" if (dist_km is not None or actual_outcome is not None) else "pending")
+    recovered = float(amount_recovered) if amount_recovered is not None else float(eval_row.get("amount_recovered") or 0.0)
+    outcome_val = actual_outcome or eval_row.get("actual_outcome")
 
     if _use_supabase():
         try:
             from db.supabase_client import supabase
             update_data = {
-                "actual_lat": actual_lat,
-                "actual_lon": actual_lon,
-                "actual_h3": actual_h3,
-                "actual_cashout_at": actual_cashout_at,
-                "distance_error_km": dist_km,
-                "time_error_minutes": time_error_min,
-                "geo_correct_2_5km": geo_correct,
-                "time_correct_window": time_correct,
+                "actual_lat": actual_lat if actual_lat is not None else eval_row.get("actual_lat"),
+                "actual_lon": actual_lon if actual_lon is not None else eval_row.get("actual_lon"),
+                "actual_h3": actual_h3 if actual_h3 is not None else eval_row.get("actual_h3"),
+                "actual_cashout_at": actual_cashout_at if actual_cashout_at is not None else eval_row.get("actual_cashout_at"),
+                "distance_error_km": dist_km if dist_km is not None else eval_row.get("distance_error_km"),
+                "time_error_minutes": time_error_min if time_error_min is not None else eval_row.get("time_error_minutes"),
+                "geo_correct_2_5km": geo_correct if geo_correct is not None else eval_row.get("geo_correct_2_5km"),
+                "time_correct_window": time_correct if time_correct is not None else eval_row.get("time_correct_window"),
+                "actual_outcome": outcome_val,
+                "amount_recovered": recovered,
+                "notes": notes or eval_row.get("notes"),
                 "evaluation_status": status,
                 "evaluated_at": now_iso,
             }
@@ -3741,31 +3889,32 @@ def update_model_evaluation_outcome(
     c = conn.cursor()
     c.execute("""
         UPDATE model_evaluations
-        SET actual_lat = ?, actual_lon = ?, actual_h3 = ?, actual_cashout_at = ?,
-            distance_error_km = ?, time_error_minutes = ?, geo_correct_2_5km = ?,
-            time_correct_window = ?, evaluation_status = ?, evaluated_at = ?
+        SET actual_lat = COALESCE(?, actual_lat),
+            actual_lon = COALESCE(?, actual_lon),
+            actual_h3 = COALESCE(?, actual_h3),
+            actual_cashout_at = COALESCE(?, actual_cashout_at),
+            distance_error_km = COALESCE(?, distance_error_km),
+            time_error_minutes = COALESCE(?, time_error_minutes),
+            geo_correct_2_5km = COALESCE(?, geo_correct_2_5km),
+            time_correct_window = COALESCE(?, time_correct_window),
+            actual_outcome = COALESCE(?, actual_outcome),
+            amount_recovered = COALESCE(?, amount_recovered),
+            notes = COALESCE(?, notes),
+            evaluation_status = ?,
+            evaluated_at = ?
         WHERE eval_id = ?
     """, (
         actual_lat, actual_lon, actual_h3, actual_cashout_at,
-        dist_km, time_error_min, 1 if geo_correct else 0,
-        1 if time_correct else 0, status, now_iso, eval_id
+        dist_km, time_error_min,
+        (1 if geo_correct else 0) if geo_correct is not None else None,
+        (1 if time_correct else 0) if time_correct is not None else None,
+        outcome_val, recovered, notes,
+        status, now_iso, eval_id
     ))
     conn.commit()
     conn.close()
 
-    eval_row.update({
-        "actual_lat": actual_lat,
-        "actual_lon": actual_lon,
-        "actual_h3": actual_h3,
-        "actual_cashout_at": actual_cashout_at,
-        "distance_error_km": dist_km,
-        "time_error_minutes": time_error_min,
-        "geo_correct_2_5km": geo_correct,
-        "time_correct_window": time_correct,
-        "evaluation_status": status,
-        "evaluated_at": now_iso,
-    })
-    return eval_row
+    return get_model_evaluation(eval_id)
 
 
 def get_model_evaluation(eval_id: str) -> Optional[Dict[str, Any]]:
@@ -3802,6 +3951,303 @@ def get_model_evaluations_for_complaint(complaint_id: str) -> List[Dict[str, Any
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
+
+
+def get_model_evaluation_by_prediction(prediction_id: str) -> Optional[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("model_evaluations").select("*").eq("prediction_id", prediction_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception:
+            pass
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM model_evaluations WHERE prediction_id = ? ORDER BY created_at DESC LIMIT 1", (prediction_id,))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_model_evaluation_by_incident(incident_id: str) -> Optional[Dict[str, Any]]:
+    if _use_supabase():
+        try:
+            from db.supabase_client import supabase
+            res = supabase.table("model_evaluations").select("*").eq("incident_id", incident_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception:
+            pass
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM model_evaluations WHERE incident_id = ? ORDER BY created_at DESC LIMIT 1", (incident_id,))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_model_evaluations(
+    model_version: Optional[str] = None,
+    evaluation_status: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    c = conn.cursor()
+    query = "SELECT * FROM model_evaluations WHERE 1=1"
+    params = []
+    if model_version:
+        query += " AND model_version = ?"
+        params.append(model_version)
+    if evaluation_status:
+        query += " AND evaluation_status = ?"
+        params.append(evaluation_status)
+    query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+    c.execute(query, params)
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+def register_model_candidate(candidate_data: Dict[str, Any]) -> Dict[str, Any]:
+    model_id = candidate_data.get("model_id") or f"mod_{candidate_data['model_version']}"
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    record = {
+        "model_id": model_id,
+        "model_name": candidate_data.get("model_name", candidate_data["model_version"]),
+        "model_version": candidate_data["model_version"],
+        "model_type": candidate_data.get("model_type", "geo"),
+        "artifact_reference": candidate_data.get("artifact_reference", ""),
+        "feature_schema_version": candidate_data.get("feature_schema_version", "v1.0"),
+        "dataset_version": candidate_data.get("dataset_version"),
+        "evaluation_version": candidate_data.get("evaluation_version", "v1.0"),
+        "metrics": json.dumps(candidate_data.get("metrics", {})) if isinstance(candidate_data.get("metrics"), dict) else str(candidate_data.get("metrics") or "{}"),
+        "status": candidate_data.get("status", "CANDIDATE"),
+        "parent_model_version": candidate_data.get("parent_model_version"),
+        "created_at": candidate_data.get("created_at") or now_iso,
+        "approved_by": candidate_data.get("approved_by"),
+        "approved_at": candidate_data.get("approved_at"),
+        "deployed_at": candidate_data.get("deployed_at"),
+        "retired_at": candidate_data.get("retired_at"),
+        "rejection_reason": candidate_data.get("rejection_reason"),
+    }
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO model_registry (
+            model_id, model_name, model_version, model_type,
+            artifact_reference, feature_schema_version, dataset_version,
+            evaluation_version, metrics, status, parent_model_version,
+            created_at, approved_by, approved_at, deployed_at, retired_at, rejection_reason
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(model_version) DO UPDATE SET
+            metrics = excluded.metrics,
+            status = excluded.status,
+            approved_by = excluded.approved_by,
+            approved_at = excluded.approved_at,
+            deployed_at = excluded.deployed_at,
+            retired_at = excluded.retired_at,
+            rejection_reason = excluded.rejection_reason
+    """, (
+        record["model_id"], record["model_name"], record["model_version"], record["model_type"],
+        record["artifact_reference"], record["feature_schema_version"], record["dataset_version"],
+        record["evaluation_version"], record["metrics"], record["status"], record["parent_model_version"],
+        record["created_at"], record["approved_by"], record["approved_at"], record["deployed_at"],
+        record["retired_at"], record["rejection_reason"]
+    ))
+    conn.commit()
+    conn.close()
+    return get_model_candidate_by_id(record["model_version"]) or record
+
+
+def get_model_candidates(
+    model_type: Optional[str] = None,
+    status: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    c = conn.cursor()
+    query = "SELECT * FROM model_registry WHERE 1=1"
+    params = []
+    if model_type:
+        query += " AND model_type = ?"
+        params.append(model_type)
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+    query += " ORDER BY created_at DESC"
+    c.execute(query, params)
+    rows = []
+    for r in c.fetchall():
+        d = dict(r)
+        if isinstance(d.get("metrics"), str):
+            try:
+                d["metrics"] = json.loads(d["metrics"])
+            except Exception:
+                pass
+        rows.append(d)
+    conn.close()
+    return rows
+
+
+def get_model_candidate_by_id(model_id_or_version: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute(
+        "SELECT * FROM model_registry WHERE model_id = ? OR model_version = ? LIMIT 1",
+        (model_id_or_version, model_id_or_version)
+    )
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    if isinstance(d.get("metrics"), str):
+        try:
+            d["metrics"] = json.loads(d["metrics"])
+        except Exception:
+            pass
+    return d
+
+
+def update_model_candidate_status(
+    model_id_or_version: str,
+    status: str,
+    actor: Optional[str] = None,
+    notes: Optional[str] = None,
+    deployed_at: Optional[str] = None,
+    retired_at: Optional[str] = None,
+    rejection_reason: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    cand = get_model_candidate_by_id(model_id_or_version)
+    if not cand:
+        return None
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    conn = get_connection()
+    c = conn.cursor()
+    updates = ["status = ?"]
+    params = [status]
+    if status == "APPROVED":
+        updates.extend(["approved_by = ?", "approved_at = ?"])
+        params.extend([actor or "authorized_lead", now_iso])
+    elif status == "DEPLOYED":
+        updates.append("deployed_at = ?")
+        params.append(deployed_at or now_iso)
+    elif status == "REJECTED":
+        updates.extend(["approved_by = ?", "rejection_reason = ?"])
+        params.extend([actor or "authorized_lead", rejection_reason or notes or "Rejected during quality gate review"])
+    elif status == "RETIRED":
+        updates.append("retired_at = ?")
+        params.append(retired_at or now_iso)
+
+    params.append(cand["model_id"])
+    c.execute(f"UPDATE model_registry SET {', '.join(updates)} WHERE model_id = ?", params)
+    conn.commit()
+    conn.close()
+    return get_model_candidate_by_id(cand["model_id"])
+
+
+def get_deployed_model(model_type: str = "geo") -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute(
+        "SELECT * FROM model_registry WHERE model_type = ? AND status = 'DEPLOYED' ORDER BY deployed_at DESC LIMIT 1",
+        (model_type,)
+    )
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    if isinstance(d.get("metrics"), str):
+        try:
+            d["metrics"] = json.loads(d["metrics"])
+        except Exception:
+            pass
+    return d
+
+
+def record_model_dataset(dataset_data: Dict[str, Any]) -> Dict[str, Any]:
+    ds_id = dataset_data.get("dataset_id") or f"ds_{dataset_data['dataset_version']}"
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    record = {
+        "dataset_id": ds_id,
+        "dataset_version": dataset_data["dataset_version"],
+        "dataset_type": dataset_data.get("dataset_type", "geo_outcomes"),
+        "feature_schema_version": dataset_data.get("feature_schema_version", "v1.0"),
+        "label_definition": dataset_data.get("label_definition", "target_lat, target_lon"),
+        "evaluation_config_version": dataset_data.get("evaluation_config_version", "v1.0"),
+        "source_reference": dataset_data.get("source_reference", "incidents"),
+        "row_count": int(dataset_data.get("row_count", 0)),
+        "validation_status": dataset_data.get("validation_status", "VALID"),
+        "split_config": json.dumps(dataset_data.get("split_config", {})) if isinstance(dataset_data.get("split_config"), dict) else str(dataset_data.get("split_config") or "{}"),
+        "checksum": dataset_data.get("checksum", ""),
+        "created_at": dataset_data.get("created_at") or now_iso,
+    }
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO model_datasets (
+            dataset_id, dataset_version, dataset_type, feature_schema_version,
+            label_definition, evaluation_config_version, source_reference,
+            row_count, validation_status, split_config, checksum, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(dataset_version) DO UPDATE SET
+            row_count = excluded.row_count,
+            validation_status = excluded.validation_status,
+            split_config = excluded.split_config,
+            checksum = excluded.checksum
+    """, (
+        record["dataset_id"], record["dataset_version"], record["dataset_type"],
+        record["feature_schema_version"], record["label_definition"],
+        record["evaluation_config_version"], record["source_reference"],
+        record["row_count"], record["validation_status"], record["split_config"],
+        record["checksum"], record["created_at"]
+    ))
+    conn.commit()
+    conn.close()
+    return get_model_dataset_by_version(record["dataset_version"]) or record
+
+
+def get_model_datasets(dataset_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    c = conn.cursor()
+    query = "SELECT * FROM model_datasets WHERE 1=1"
+    params = []
+    if dataset_type:
+        query += " AND dataset_type = ?"
+        params.append(dataset_type)
+    query += " ORDER BY created_at DESC"
+    c.execute(query, params)
+    rows = []
+    for r in c.fetchall():
+        d = dict(r)
+        if isinstance(d.get("split_config"), str):
+            try:
+                d["split_config"] = json.loads(d["split_config"])
+            except Exception:
+                pass
+        rows.append(d)
+    conn.close()
+    return rows
+
+
+def get_model_dataset_by_version(dataset_version: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM model_datasets WHERE dataset_version = ? LIMIT 1", (dataset_version,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    if isinstance(d.get("split_config"), str):
+        try:
+            d["split_config"] = json.loads(d["split_config"])
+        except Exception:
+            pass
+    return d
 
 
 def register_user(name: str, email: str, password_hash: str, role: str, badge_id: str, agency: str, status: str = "pending_approval") -> Dict[str, Any]:

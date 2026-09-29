@@ -9,6 +9,7 @@ import {
   Network,
   FileCheck2,
   Zap,
+  Cpu,
 } from 'lucide-react';
 import { useNexusStore } from '../store/useNexusStore';
 
@@ -127,6 +128,18 @@ export const Navigation: React.FC = () => {
             <Zap size={18} />
           </div>
           <span className="nexus-floating-label">Action Center</span>
+        </NavLink>
+
+        <NavLink
+          to="/learning"
+          className={({ isActive }) =>
+            `nexus-floating-item ${isActive ? 'active' : ''}`
+          }
+        >
+          <div className="nexus-squircle-box">
+            <Cpu size={18} />
+          </div>
+          <span className="nexus-floating-label">Model Learning</span>
         </NavLink>
 
         <NavLink

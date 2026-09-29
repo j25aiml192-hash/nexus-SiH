@@ -299,4 +299,130 @@ export class MockDataSource implements IDataSource {
   async refreshVictimAdvisory(_complaintId: string): Promise<import('../../types/advisory').VictimAdvisory | null> {
     return null;
   }
+
+  // Outcome Feedback & Model Learning (Phase 7)
+  async getModelPerformance(_modelVersion?: string): Promise<any> {
+    return {
+      model_version: 'geo_lgbm_v3',
+      status: 'EVALUATED',
+      sample_size_n: 74,
+      evaluation_config_version: 'v1.0',
+      geo_metrics: {
+        evaluated_n: 74,
+        accuracy_2_5km_pct: 100.0,
+        mean_error_km: 0.71,
+        median_error_km: 0.43,
+        p75_error_km: 1.06,
+        p90_error_km: 1.06,
+        threshold_km: 2.5,
+      },
+      time_metrics: {
+        evaluated_n: 74,
+        within_window_pct: 44.59,
+        mean_time_error_minutes: 53.5,
+      },
+      operational_metrics: {
+        evaluated_n: 74,
+        total_recovered_inr: 0.0,
+        outcome_distribution: { UNRESOLVED: 74 },
+      },
+    };
+  }
+
+  async getModelCandidates(): Promise<{ count: number; candidates: any[] }> {
+    return {
+      count: 1,
+      candidates: [
+        {
+          model_id: 'mod_geo_lgbm_v3',
+          model_name: 'LightGBM Spatial Predictor (L1 Objective)',
+          model_version: 'geo_lgbm_v3',
+          model_type: 'geo',
+          artifact_reference: 'backend/models/geo_model_lat.pkl,backend/models/geo_model_lon.pkl',
+          feature_schema_version: 'v1.0',
+          dataset_version: 'geo_baseline_v1',
+          evaluation_version: 'v1.0',
+          metrics: { mean_error_km: 422.33, accuracy_2_5km_pct: 0.0, n_test: 436 },
+          status: 'DEPLOYED',
+          created_at: '2026-09-22T18:50:34.461247+00:00',
+        },
+      ],
+    };
+  }
+
+  async getModelCandidateDetail(_candidateId: string): Promise<any> {
+    return {
+      candidate_model_version: 'geo_lgbm_v3',
+      candidate_status: 'DEPLOYED',
+      current_production_version: 'geo_lgbm_v3',
+      comparison: {
+        production_mean_error_km: 0.71,
+        candidate_mean_error_km: 0.71,
+        delta_mean_error_km: 0.0,
+        production_accuracy_pct: 100.0,
+        candidate_accuracy_pct: 100.0,
+        sample_size_n: 74,
+      },
+      quality_gates: {
+        feature_schema_compatible: true,
+        dataset_validated: true,
+        artifact_reference_valid: true,
+        critical_regression_absent: true,
+        metrics_available: true,
+      },
+      gates_passed: true,
+    };
+  }
+
+  async getModelDatasets(): Promise<{ count: number; datasets: any[] }> {
+    return {
+      count: 1,
+      datasets: [
+        {
+          dataset_id: 'ds_geo_baseline_v1',
+          dataset_version: 'geo_baseline_v1',
+          dataset_type: 'geo_outcomes',
+          feature_schema_version: 'v1.0',
+          label_definition: 'target_lat, target_lon from actual cashout coordinates',
+          evaluation_config_version: 'v1.0',
+          source_reference: 'operational_incidents_v1',
+          row_count: 2975,
+          validation_status: 'VALID',
+          split_config: { train_rows: 2082, val_rows: 457, test_rows: 436 },
+          checksum: '3d5e1812e1d37d35b07691a94de076a48894a9786a65d9dfe84876e4eb8961c6',
+          created_at: '2026-09-22T18:50:34.461247+00:00',
+        },
+      ],
+    };
+  }
+
+  async getDriftStatus(_modelVersion?: string): Promise<any> {
+    return {
+      status: 'STABLE',
+      model_version: 'geo_lgbm_v3',
+      drift_detected: false,
+      baseline_mean_error_km: 0.7,
+      current_mean_error_km: 0.72,
+      delta_error_km: 0.02,
+      baseline_n: 37,
+      current_n: 37,
+      sample_size_n: 74,
+    };
+  }
+
+  async approveModelCandidate(_candidateId: string, _notes?: string): Promise<any> {
+    return { status: 'APPROVED' };
+  }
+
+  async rejectModelCandidate(_candidateId: string, _reason?: string): Promise<any> {
+    return { status: 'REJECTED' };
+  }
+
+  async deployModelCandidate(_candidateId: string): Promise<any> {
+    return { status: 'DEPLOYED' };
+  }
+
+  async rollbackModelDeployment(_candidateId: string): Promise<any> {
+    return { status: 'ROLLED_BACK' };
+  }
 }
